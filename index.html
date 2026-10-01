@@ -301,15 +301,21 @@
     font-family:var(--font-display);
     font-size:15px;
     letter-spacing:0.3px;
-    margin:2px 0 10px;
+    margin:0;
+    padding:11px 14px;
     display:flex;align-items:center;gap:8px;
+    background:var(--accent);
+    color:#20221f;
+    border-radius:10px 10px 0 0;
   }
-  #cartCount{font-family:var(--font-mono);color:var(--accent-dark);font-size:13px;}
+  #cartCount{font-family:var(--font-mono);color:#20221f;opacity:0.72;font-size:13px;}
   .cart-box{
     background:var(--card);
     border:1px solid var(--border);
-    border-radius:10px;
+    border-top:none;
+    border-radius:0 0 10px 10px;
     padding:12px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.14);
   }
   .cart-empty{color:var(--muted);font-size:13.5px;text-align:center;padding:22px 6px;}
   .cart-item{
