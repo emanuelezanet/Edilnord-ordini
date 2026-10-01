@@ -734,9 +734,9 @@ async function createOrder(order){
     return false;
   }
 }
-async function updateOrderStatus(id, status){
+async function updateOrderStatus(id, status, extra){
   try{
-    await withTimeout(updateDoc(doc(ordersCol(), id), {status}));
+    await withTimeout(updateDoc(doc(ordersCol(), id), Object.assign({status}, extra || {})));
     return true;
   }catch(e){
     return false;
@@ -1321,6 +1321,7 @@ function renderOrders(){
       + '<div class="order-time">' + formatOrderTime(o.createdAt) + '</div></div>'
       + '<div class="order-items">' + itemsHtml + '</div>'
       + (o.note ? '<div class="order-note"><b>Note:</b> ' + escapeHtml(o.note) + '</div>' : '')
+      + (isEvaso && o.evasoBy ? '<div class="order-operator">Evaso da <strong>' + escapeHtml(o.evasoBy) + '</strong>' + (o.evasoAt ? ' · ' + formatOrderTime(o.evasoAt) : '') + '</div>' : '')
       + '<div class="order-actions">'
       + (isEvaso ? '<button class="delete-btn" data-delete="' + o.id + '">Elimina</button>' : '')
       + '<button class="evaso-btn ' + (isEvaso?'undo':'') + '" data-toggle="' + o.id + '">'
@@ -1340,10 +1341,15 @@ function renderOrders(){
       // ord.status in place throws and silently aborts this handler, so a
       // new order object (and a new ordersCache array) is built instead.
       const newStatus = ord.status === 'evaso' ? 'in_attesa' : 'evaso';
-      ordersCache = ordersCache.map(o => o.id === id ? Object.assign({}, o, {status: newStatus}) : o);
+      // Record who (which device's set name) flipped the status, and when,
+      // so the office can tell at a glance who marked it evaso.
+      const extra = newStatus === 'evaso'
+        ? { evasoBy: operatorName || null, evasoAt: new Date().toISOString() }
+        : { evasoBy: null, evasoAt: null };
+      ordersCache = ordersCache.map(o => o.id === id ? Object.assign({}, o, {status: newStatus}, extra) : o);
       updateBadge(ordersCache);
       renderOrders();
-      updateOrderStatus(id, newStatus);
+      updateOrderStatus(id, newStatus, extra);
     });
   });
 
