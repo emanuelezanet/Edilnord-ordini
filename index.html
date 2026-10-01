@@ -1187,13 +1187,21 @@ function renderCart(){
     if(addBtn) addBtn.addEventListener('click', openNotePanel);
     const editLink = row.querySelector('.ci-note-edit-link');
     if(editLink) editLink.addEventListener('click', openNotePanel);
-    row.querySelector('.ci-note-save').addEventListener('click', ()=>{
+    let noteSaved = false;
+    const saveNote = ()=>{
+      if(noteSaved) return; // avoid double-save when blur fires right before the Salva click
+      noteSaved = true;
       item.note = noteInput.value.trim();
       renderCart();
-    });
+    };
+    row.querySelector('.ci-note-save').addEventListener('click', saveNote);
     noteInput.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter') row.querySelector('.ci-note-save').click();
+      if(e.key === 'Enter'){ e.preventDefault(); saveNote(); }
     });
+    // On mobile, dismissing the keyboard (checkmark/"Fine" in the accessory bar,
+    // or tapping elsewhere) doesn't fire a real Enter keydown — only blur does.
+    // Saving on blur means the magazziniere never has to remember to tap "Salva".
+    noteInput.addEventListener('blur', saveNote);
   });
 }
 renderCart();
