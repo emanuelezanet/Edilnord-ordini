@@ -30,8 +30,11 @@
     --font-mono:'IBM Plex Mono', monospace;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;height:100%;}
+  /* Lo sfondo di html (scuro) è quello che si vede dietro la barra di stato
+     dell'iPhone; il corpo della pagina resta beige e copre tutto il contenuto. */
+  html{margin:0;padding:0;height:100%;background:var(--bg-shell);}
   body{
+    margin:0;padding:0;min-height:100%;
     font-family:var(--font-body);
     background:var(--bg-paper);
     color:var(--text);
