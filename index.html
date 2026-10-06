@@ -836,11 +836,11 @@ function withTimeout(promise, ms){
 }
 
 function ordersCol(){ return collection(fbDb, 'orders'); }
-// Favorites, the operator's name and nicknames are personal to each
-// magazziniere: each person's own phone gets its own invisible, anonymous
-// Firebase identity (viewerId) the first time they open the app, and
-// everything they save lives under that identity, private to them — not a
-// shared, company-wide list.
+// Il nome dell'operatore e i soprannomi sono personali di ogni magazziniere:
+// ogni telefono ha una sua identità anonima e invisibile (viewerId) e quello
+// che salva vive lì, privato. I PREFERITI invece sono una lista unica per
+// tutti (vedi più sotto); favoritesDoc() resta solo per la vecchia lista
+// personale, usata per il passaggio alla lista comune.
 function favoritesDoc(){ return viewerId ? doc(fbDb, 'users', viewerId, 'private', 'favorites') : null; }
 function operatorDoc(){ return viewerId ? doc(fbDb, 'users', viewerId, 'private', 'profile') : null; }
 function nicknamesDoc(){ return viewerId ? doc(fbDb, 'users', viewerId, 'private', 'nicknames') : null; }
@@ -884,15 +884,58 @@ function subscribeOrders(onChange){
   );
 }
 
+// ---- Preferiti: un'unica lista, uguale per tutti ----
+// Ogni preferito è un piccolo documento nella raccolta "favorites" (l'id è il
+// numero del prodotto): così due persone che toccano la stella nello stesso
+// momento non si sovrascrivono a vicenda. Se le regole di Firebase non
+// permettono ancora la lista comune, l'app ripiega sulla vecchia lista
+// personale del telefono (FAV_SHARED = false) e non si perde niente.
+let FAV_SHARED = true;
+function favoritesCol(){ return collection(fbDb, 'favorites'); }
+function legacyFavoritesFrom(snap){
+  return (snap.exists() && Array.isArray(snap.data().list)) ? snap.data().list.filter(Number.isInteger) : [];
+}
+function sharedFavoritesFrom(snap){
+  return snap.docs.map(d => d.data().idx).filter(Number.isInteger);
+}
 async function loadFavorites(){
-  const ref = favoritesDoc();
-  if(!ref) return [];
-  try{
-    const snap = await withTimeout(getDoc(ref));
-    return (snap.exists() && Array.isArray(snap.data().list)) ? snap.data().list : [];
-  }catch(e){
-    return [];
+  const legacyRef = favoritesDoc();
+  let legacy = [];
+  if(legacyRef){
+    try{ legacy = legacyFavoritesFrom(await withTimeout(getDoc(legacyRef))); }catch(e){ legacy = []; }
   }
+  try{
+    const snap = await withTimeout(getDocs(favoritesCol()));
+    FAV_SHARED = true;
+    const shared = sharedFavoritesFrom(snap);
+    // Una tantum: porta nella lista comune i preferiti che questo telefono
+    // aveva già in quella personale, poi svuota quella personale.
+    const missing = legacy.filter(i => shared.indexOf(i) === -1);
+    if(missing.length){
+      const done = await Promise.all(missing.map(i =>
+        withTimeout(setDoc(doc(favoritesCol(), String(i)), {idx: i})).then(()=>true, ()=>false)));
+      missing.forEach((i, k)=>{ if(done[k]) shared.push(i); });
+    }
+    if(legacy.length && legacyRef && legacy.every(i => shared.indexOf(i) !== -1)){
+      try{ await withTimeout(setDoc(legacyRef, {list: []})); }catch(e){}
+    }
+    return shared;
+  }catch(e){
+    FAV_SHARED = false;
+    return legacy;
+  }
+}
+async function saveFavoriteChange(idx, isFav){
+  if(FAV_SHARED){
+    try{
+      const r = doc(favoritesCol(), String(idx));
+      await withTimeout(isFav ? setDoc(r, {idx: idx}) : deleteDoc(r));
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+  return saveFavorites(FAVORITES);
 }
 async function saveFavorites(favs){
   const ref = favoritesDoc();
@@ -905,10 +948,16 @@ async function saveFavorites(favs){
   }
 }
 function subscribeFavorites(onChange){
+  if(FAV_SHARED){
+    return onSnapshot(favoritesCol(),
+      (snap)=> onChange(sharedFavoritesFrom(snap)),
+      ()=>{}
+    );
+  }
   const ref = favoritesDoc();
   if(!ref) return function(){};
   return onSnapshot(ref,
-    (snap)=> onChange((snap.exists() && Array.isArray(snap.data().list)) ? snap.data().list : []),
+    (snap)=> onChange(legacyFavoritesFrom(snap)),
     ()=>{}
   );
 }
@@ -1193,7 +1242,7 @@ function toggleFavorite(idx){
   // the whole click handler. Build a brand new array instead.
   const i = FAVORITES.indexOf(idx);
   FAVORITES = (i === -1) ? FAVORITES.concat([idx]) : FAVORITES.filter((_, pos) => pos !== i);
-  saveFavorites(FAVORITES);
+  saveFavoriteChange(idx, i === -1);
 }
 function rebuildNickNorm(){
   NICK_NORM = {};
@@ -1227,7 +1276,9 @@ function computeTopOrdered(limit){
 }
 function renderQuickAccess(){
   if(searchInput.value.trim()) return;
-  const favIdxs = FAVORITES.filter(idx => PRODUCTS[idx]);
+  // lista comune: in ordine alfabetico, così è facile da scorrere
+  const favIdxs = FAVORITES.filter(idx => PRODUCTS[idx])
+    .sort((a, b) => PRODUCTS[a][0].localeCompare(PRODUCTS[b][0], 'it'));
   const topIdxs = computeTopOrdered(10).filter(idx => !favIdxs.includes(idx));
   let html = '';
   if(favIdxs.length){
@@ -1256,15 +1307,31 @@ function renderResults(query){
     const nickNd = NICK_NORM[String(i)] || '';
     let ok = true;
     for(const w of words){ if(nd.indexOf(w) === -1 && nickNd.indexOf(w) === -1){ ok = false; break; } }
-    if(ok){ matches.push(i); if(matches.length >= 50) break; }
+    if(ok) matches.push(i);
   }
   if(matches.length === 0){
     resultsList.innerHTML = '<div class="no-results">Nessun prodotto trovato. Puoi aggiungerlo come voce manuale qui sotto.</div>';
     searchHint.textContent = '';
     return;
   }
-  searchHint.textContent = matches.length >= 50 ? 'Primi 50 risultati — affina la ricerca per restringere.' : matches.length + ' risultati.';
-  resultsList.innerHTML = matches.map(productRowHtml).join('');
+  // I preferiti vanno in cima, poi tutti gli altri; si mostrano i primi 50.
+  // (Si guardano tutti i risultati prima di tagliare, altrimenti un preferito
+  // in fondo al catalogo non farebbe in tempo ad arrivare tra i primi.)
+  const favSet = new Set(FAVORITES);
+  const favMatches = matches.filter(i => favSet.has(i));
+  const otherMatches = matches.filter(i => !favSet.has(i));
+  const MAX_SHOWN = 50;
+  const shownFav = favMatches.slice(0, MAX_SHOWN);
+  const shownOther = otherMatches.slice(0, Math.max(0, MAX_SHOWN - shownFav.length));
+  searchHint.textContent = matches.length > MAX_SHOWN
+    ? 'Primi ' + MAX_SHOWN + ' di ' + matches.length + ' risultati — affina la ricerca per restringere.'
+    : matches.length + ' risultati.';
+  let html = '';
+  if(shownFav.length && shownOther.length) html += '<div class="qa-heading">⭐ Preferiti</div>';
+  html += shownFav.map(productRowHtml).join('');
+  if(shownFav.length && shownOther.length) html += '<div class="qa-heading">Altri prodotti</div>';
+  html += shownOther.map(productRowHtml).join('');
+  resultsList.innerHTML = html;
   wireProductRows(resultsList);
 }
 searchInput.addEventListener('input', ()=> renderResults(searchInput.value));
@@ -1564,30 +1631,72 @@ async function refreshOrders(silent){
 
 // ---------------- Sound ----------------
 const soundBtn = document.getElementById('soundBtn');
-soundBtn.addEventListener('click', ()=>{
+const SOUND_PREF_KEY = 'edilnord_avviso_sonoro';
+function readSoundPref(){ try{ return localStorage.getItem(SOUND_PREF_KEY) === '1'; }catch(e){ return false; } }
+function writeSoundPref(on){ try{ localStorage.setItem(SOUND_PREF_KEY, on ? '1' : '0'); }catch(e){} }
+function setSoundUi(){
+  soundBtn.classList.toggle('on', audioEnabled);
+  soundBtn.innerHTML = audioEnabled ? '&#128276; Avvisi attivi' : '&#128276; Attiva avviso sonoro';
+}
+// I browser (iPhone in particolare) tengono l'audio "addormentato" finché
+// l'utente non tocca la pagina, e lo rimettono a dormire quando l'app va in
+// background: va quindi risvegliato prima di ogni suono.
+function ensureAudio(){
   if(!audioCtx){
     try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
   }
+  if(audioCtx && audioCtx.state !== 'running'){
+    try{ audioCtx.resume(); }catch(e){}
+  }
+  return audioCtx;
+}
+soundBtn.addEventListener('click', ()=>{
+  ensureAudio();
   audioEnabled = !audioEnabled;
-  soundBtn.classList.toggle('on', audioEnabled);
-  soundBtn.innerHTML = audioEnabled ? '&#128276; Avvisi attivi' : '&#128276; Attiva avviso sonoro';
+  writeSoundPref(audioEnabled);
+  setSoundUi();
   if(audioEnabled) playBeep();
 });
+// Dopo una ricarica la pagina si ricorda che l'avviso era attivo, ma il
+// browser vuole comunque un tocco dell'utente prima di fare rumore: il primo
+// tocco in un punto qualsiasi della pagina lo riattiva da solo.
+if(readSoundPref()){
+  const rearm = (e)=>{
+    if(e.target && e.target.closest && e.target.closest('#soundBtn')) return;
+    document.removeEventListener('pointerdown', rearm, true);
+    document.removeEventListener('keydown', rearm, true);
+    ensureAudio();
+    audioEnabled = true;
+    setSoundUi();
+  };
+  document.addEventListener('pointerdown', rearm, true);
+  document.addEventListener('keydown', rearm, true);
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && audioEnabled) ensureAudio();
+});
 function playBeep(){
-  if(!audioCtx) return;
-  const now = audioCtx.currentTime;
-  [880, 1108].forEach((freq, i)=>{
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = 'sine';
-    o.frequency.value = freq;
-    g.gain.setValueAtTime(0.0001, now + i*0.18);
-    g.gain.exponentialRampToValueAtTime(0.25, now + i*0.18 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + i*0.18 + 0.16);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(now + i*0.18);
-    o.stop(now + i*0.18 + 0.18);
-  });
+  const ctx = ensureAudio();
+  if(!ctx) return;
+  const go = ()=>{
+    const now = ctx.currentTime;
+    // tre note ascendenti, più forti e con più "corpo" del vecchio bip
+    [784, 988, 1319].forEach((freq, i)=>{
+      const t = now + i*0.17;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.6, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t);
+      o.stop(t + 0.26);
+    });
+  };
+  if(ctx.state === 'running') go();
+  else { try{ ctx.resume().then(go).catch(()=>{}); }catch(e){} }
 }
 
 // ---------------- Init & realtime sync ----------------
@@ -1602,13 +1711,18 @@ function playBeep(){
   if(!operatorName) openOperatorEdit();
   renderQuickAccess();
 
+  let knownOrderIds = null;
   subscribeOrders((orders)=>{
-    const prevCount = lastKnownCount;
+    // Un buono è "nuovo" se il suo codice non l'avevo mai visto: così l'avviso
+    // suona anche se nello stesso istante ne viene eliminato un altro.
+    const prevIds = knownOrderIds;
+    const hasNew = prevIds !== null && orders.some(o => !prevIds.has(o.id));
+    knownOrderIds = new Set(orders.map(o => o.id));
     ordersCache = orders;
     updateBadge(orders);
     if(activeTab === 'ordini') renderOrders();
     renderQuickAccess();
-    if(prevCount !== null && orders.length > prevCount){
+    if(hasNew){
       document.getElementById('pendingBadge').classList.add('flash');
       setTimeout(()=> document.getElementById('pendingBadge').classList.remove('flash'), 1300);
       if(audioEnabled) playBeep();
