@@ -983,15 +983,65 @@ async function saveOperatorName(name){
   }
 }
 
+// ---- Soprannomi: un'unica lista, uguale per tutti ----
+// Come i preferiti: un documento per prodotto nella raccolta "nicknames"
+// (id = numero del prodotto), così due colleghi che salvano soprannomi di
+// prodotti diversi non si sovrascrivono. Per lo stesso prodotto c'è un solo
+// soprannome: vale l'ultimo salvato. Se le regole di Firebase non lo
+// permettono ancora, l'app ripiega sulla vecchia lista personale del telefono.
+let NICK_SHARED = true;
+function nicknamesCol(){ return collection(fbDb, 'nicknames'); }
+function legacyNicknamesFrom(snap){
+  return (snap.exists() && snap.data().map && typeof snap.data().map === 'object') ? snap.data().map : {};
+}
+function sharedNicknamesFrom(snap){
+  const out = {};
+  snap.docs.forEach(d => {
+    const v = d.data();
+    if(v && Number.isInteger(v.idx) && typeof v.text === 'string' && v.text.trim()) out[String(v.idx)] = v.text;
+  });
+  return out;
+}
 async function loadNicknames(){
-  const ref = nicknamesDoc();
-  if(!ref) return {};
-  try{
-    const snap = await withTimeout(getDoc(ref));
-    return (snap.exists() && snap.data().map && typeof snap.data().map === 'object') ? snap.data().map : {};
-  }catch(e){
-    return {};
+  const legacyRef = nicknamesDoc();
+  let legacy = {};
+  if(legacyRef){
+    try{ legacy = legacyNicknamesFrom(await withTimeout(getDoc(legacyRef))); }catch(e){ legacy = {}; }
   }
+  try{
+    const snap = await withTimeout(getDocs(nicknamesCol()));
+    NICK_SHARED = true;
+    const shared = sharedNicknamesFrom(snap);
+    // Una tantum: porta nella lista comune i soprannomi che questo telefono
+    // aveva già in quella personale (se un collega ne ha già messo uno per
+    // lo stesso prodotto, resta il suo), poi svuota quella personale.
+    const keys = Object.keys(legacy).filter(k => Number.isInteger(Number(k)) && typeof legacy[k] === 'string' && legacy[k].trim());
+    const toWrite = keys.filter(k => !(k in shared));
+    if(toWrite.length){
+      const done = await Promise.all(toWrite.map(k =>
+        withTimeout(setDoc(doc(nicknamesCol(), k), {idx: Number(k), text: legacy[k]})).then(()=>true, ()=>false)));
+      toWrite.forEach((k, n)=>{ if(done[n]) shared[k] = legacy[k]; });
+    }
+    if(keys.length && legacyRef && keys.every(k => k in shared)){
+      try{ await withTimeout(setDoc(legacyRef, {map: {}})); }catch(e){}
+    }
+    return shared;
+  }catch(e){
+    NICK_SHARED = false;
+    return legacy;
+  }
+}
+async function saveNicknameChange(idx, text){
+  if(NICK_SHARED){
+    try{
+      const r = doc(nicknamesCol(), String(idx));
+      await withTimeout(text ? setDoc(r, {idx: Number(idx), text: text}) : deleteDoc(r));
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+  return saveNicknames(NICKNAMES);
 }
 async function saveNicknames(map){
   const ref = nicknamesDoc();
@@ -1004,10 +1054,16 @@ async function saveNicknames(map){
   }
 }
 function subscribeNicknames(onChange){
+  if(NICK_SHARED){
+    return onSnapshot(nicknamesCol(),
+      (snap)=> onChange(sharedNicknamesFrom(snap)),
+      ()=>{}
+    );
+  }
   const ref = nicknamesDoc();
   if(!ref) return function(){};
   return onSnapshot(ref,
-    (snap)=> onChange((snap.exists() && snap.data().map && typeof snap.data().map === 'object') ? snap.data().map : {}),
+    (snap)=> onChange(legacyNicknamesFrom(snap)),
     ()=>{}
   );
 }
@@ -1023,7 +1079,7 @@ let audioEnabled = false;
 let audioCtx = null;
 let FAVORITES = [];
 let operatorName = '';
-let NICKNAMES = {}; // idx(string) -> soprannome personale, privato per magazziniere
+let NICKNAMES = {}; // idx(string) -> soprannome, condiviso tra tutti i colleghi
 let NICK_NORM = {}; // idx(string) -> soprannome normalizzato (per la ricerca)
 
 // ---------------- Utils ----------------
@@ -1253,14 +1309,25 @@ function setNickname(idx, text){
   // it may be a frozen object straight from the db snapshot.
   NICKNAMES = Object.assign({}, NICKNAMES, { [String(idx)]: text });
   rebuildNickNorm();
-  saveNicknames(NICKNAMES);
+  saveNicknameChange(idx, text);
 }
 function removeNickname(idx){
   const next = Object.assign({}, NICKNAMES);
   delete next[String(idx)];
   NICKNAMES = next;
   rebuildNickNorm();
-  saveNicknames(NICKNAMES);
+  saveNicknameChange(idx, null);
+}
+// Con le liste condivise, un collega può cambiare qualcosa mentre io sto
+// scrivendo un soprannome: in quel caso i dati si aggiornano subito ma lo
+// schermo si ridisegna dopo, per non far sparire quello che sto digitando.
+function isEditingNickname(){
+  const a = document.activeElement;
+  return !!(a && a.classList && a.classList.contains('nick-input'));
+}
+function refreshListsUnlessTyping(){
+  if(isEditingNickname()) return;
+  refreshProductLists();
 }
 function computeTopOrdered(limit){
   const counts = new Map();
@@ -1732,13 +1799,13 @@ function playBeep(){
 
   subscribeFavorites((favs2)=>{
     FAVORITES = favs2;
-    refreshProductLists();
+    refreshListsUnlessTyping();
   });
 
   subscribeNicknames((nicks2)=>{
     NICKNAMES = nicks2;
     rebuildNickNorm();
-    refreshProductLists();
+    refreshListsUnlessTyping();
   });
 })();
 </script>
