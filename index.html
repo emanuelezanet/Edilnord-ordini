@@ -550,6 +550,17 @@
   .operator-edit-form.hidden{display:none;}
   .operator-edit-form input{flex:1;}
   .order-operator{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .app-version{font-family:var(--font-mono);font-size:11px;color:var(--muted);opacity:0.7;flex:none;}
+  .share-warning{
+    background:#FFF1D6;
+    color:#6B4A0F;
+    border-bottom:1px solid #E8C27A;
+    padding:10px 16px;
+    font-size:13px;
+    font-weight:600;
+    line-height:1.35;
+  }
+  .share-warning.hidden{display:none;}
 
   /* ---------- Conferma visiva "aggiunto al carrello" ---------- */
   .add-btn.added{background:var(--success);}
@@ -577,6 +588,8 @@
     /* Barra operatore */
     .operator-bar{font-size:16px;padding:12px 14px;}
     .operator-edit-btn{font-size:15px;padding:10px 14px;min-height:44px;}
+    .app-version{font-size:12px;}
+    .share-warning{font-size:15px;padding:12px 14px;}
     .operator-edit-form{padding:12px 14px;}
 
     /* Ricerca */
@@ -684,11 +697,13 @@
   <span>&#128100;</span>
   <span id="operatorLabel">Nessun nome impostato</span>
   <button class="operator-edit-btn" id="operatorEditBtn">Imposta</button>
+  <span class="app-version" id="appVersion" title="Versione dell'app su questo telefono"></span>
 </div>
 <div class="operator-edit-form hidden" id="operatorEditForm">
   <input class="field-input" id="operatorInput" placeholder="Il tuo nome (es. Mario)" maxlength="40">
   <button class="btn-primary-small" id="operatorSaveBtn" style="flex:none;">Salva</button>
 </div>
+<div class="share-warning hidden" id="shareWarning" role="alert"></div>
 
 <main>
   <section id="tab-nuovo" class="tab-panel active">
@@ -925,6 +940,32 @@ async function loadFavorites(){
     return legacy;
   }
 }
+// Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
+// serve a controllare che un telefono non stia ancora usando una copia vecchia.
+const APP_VERSION = 10;
+
+// Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
+// (di solito perché le regole di Firebase non sono ancora state aggiornate),
+// oppure quando un salvataggio non è andato a buon fine.
+function updateShareWarning(){
+  const el = document.getElementById('shareWarning');
+  if(!el) return;
+  const parts = [];
+  if(!FAV_SHARED) parts.push('I preferiti');
+  if(!NICK_SHARED) parts.push(parts.length ? 'i soprannomi' : 'I soprannomi');
+  if(!parts.length){ el.classList.add('hidden'); return; }
+  el.textContent = '⚠️ ' + parts.join(' e ') + ' ora sono solo su questo telefono, non condivisi con i colleghi: vanno aggiornate le regole di Firebase.';
+  el.classList.remove('hidden');
+}
+function showSaveFailed(){
+  const el = document.getElementById('shareWarning');
+  if(!el) return;
+  el.textContent = '⚠️ Non salvato per i colleghi: controlla la connessione e riprova.';
+  el.classList.remove('hidden');
+  clearTimeout(showSaveFailed._t);
+  showSaveFailed._t = setTimeout(updateShareWarning, 7000);
+}
+
 async function saveFavoriteChange(idx, isFav){
   if(FAV_SHARED){
     try{
@@ -932,6 +973,7 @@ async function saveFavoriteChange(idx, isFav){
       await withTimeout(isFav ? setDoc(r, {idx: idx}) : deleteDoc(r));
       return true;
     }catch(e){
+      showSaveFailed();
       return false;
     }
   }
@@ -1038,6 +1080,7 @@ async function saveNicknameChange(idx, text){
       await withTimeout(text ? setDoc(r, {idx: Number(idx), text: text}) : deleteDoc(r));
       return true;
     }catch(e){
+      showSaveFailed();
       return false;
     }
   }
@@ -1773,6 +1816,8 @@ function playBeep(){
   FAVORITES = favs;
   operatorName = savedName;
   NICKNAMES = nicks;
+  document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
+  updateShareWarning();
   rebuildNickNorm();
   refreshOperatorLabel();
   if(!operatorName) openOperatorEdit();
