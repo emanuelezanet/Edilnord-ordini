@@ -548,6 +548,16 @@
   .operator-edit-form input{flex:1;}
   .order-operator{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin-top:2px;}
 
+  /* ---------- Conferma visiva "aggiunto al carrello" ---------- */
+  .add-btn.added{background:var(--success);}
+  .result-row{transition:background .25s,border-color .25s;}
+  .result-row.in-cart{border-color:var(--success);background:rgba(76,122,82,0.09);}
+  .in-cart-tag{color:var(--success);font-weight:700;}
+  @keyframes pop{0%{transform:scale(1);}40%{transform:scale(1.25);}100%{transform:scale(1);}}
+  .bump{animation:pop .35s ease-out;}
+  @keyframes justAdded{0%{background:rgba(76,122,82,0.30);}100%{background:rgba(76,122,82,0);}}
+  .cart-item.just-added{animation:justAdded 1.3s ease-out;}
+
   /* ---------- Versione telefono: testi e pulsanti più grandi ----------
      Pulsanti con area di tocco >= 44px, testi >= 15px, campi a 16px
      (sotto i 16px iOS fa lo zoom automatico quando si tocca un campo). */
@@ -584,6 +594,8 @@
     .add-btn{flex:1;width:auto;height:52px;border-radius:10px;font-size:28px;}
     .star-btn{font-size:23px;}
     .nick-btn{font-size:20px;}
+    .add-btn.added::after{content:"Aggiunto";font-size:18px;font-weight:700;margin-left:10px;}
+    .in-cart-tag{font-size:14.5px;}
     .nick-edit{gap:8px;padding:10px 12px;}
     .nick-input{font-size:16px;padding:12px 10px;}
     .nick-save,.nick-remove{font-size:16px;padding:0 16px;min-height:48px;}
@@ -1044,7 +1056,7 @@ function productRowHtml(idx){
   const um = p[1] ? p[1].toUpperCase() : '-';
   const fav = FAVORITES.includes(idx);
   const nick = NICKNAMES[String(idx)] || '';
-  return '<div class="result-row">'
+  return '<div class="result-row" data-idx="' + idx + '">'
     + '<div class="result-info"><div class="result-desc">' + escapeHtml(p[0]) + '</div>'
     + '<div class="result-meta">' + um + (nick ? ' &middot; <span class="nick-tag">\u270f\ufe0f ' + escapeHtml(nick) + '</span>' : '') + '</div></div>'
     + '<div class="result-actions">'
@@ -1069,6 +1081,41 @@ function showQuickFeedback(msg){
   clearTimeout(showQuickFeedback._t);
   showQuickFeedback._t = setTimeout(()=> toast.classList.add('hidden'), 1800);
 }
+// Segnali che il prodotto è stato messo nel carrello: il tasto "+" diventa
+// verde con la spunta per un istante, il contatore del carrello "salta" e,
+// dove il telefono lo permette, vibra brevemente.
+function bump(el){
+  if(!el) return;
+  el.classList.remove('bump');
+  void el.offsetWidth;
+  el.classList.add('bump');
+}
+function flashAdded(btn){
+  btn.classList.add('added');
+  btn.textContent = '✓';
+  clearTimeout(btn._addedT);
+  btn._addedT = setTimeout(()=>{ btn.classList.remove('added'); btn.textContent = '+'; }, 1200);
+  try{ if(navigator.vibrate) navigator.vibrate(35); }catch(e){}
+  bump(document.getElementById('scrollToCartBtn'));
+  bump(document.getElementById('cartCount'));
+}
+// Evidenzia in verde le righe dei prodotti già nel carrello, con la quantità.
+function markInCart(){
+  const qtyBy = new Map();
+  for(const c of cart){ if(!c.manual) qtyBy.set(c.desc, (qtyBy.get(c.desc)||0) + c.qty); }
+  document.querySelectorAll('.result-row[data-idx]').forEach(row=>{
+    const p = PRODUCTS[parseInt(row.dataset.idx, 10)];
+    const q = p ? (qtyBy.get(p[0]) || 0) : 0;
+    row.classList.toggle('in-cart', q > 0);
+    const meta = row.querySelector('.result-meta');
+    if(!meta) return;
+    let tag = meta.querySelector('.in-cart-tag');
+    if(q > 0){
+      if(!tag){ tag = document.createElement('span'); tag.className = 'in-cart-tag'; meta.appendChild(tag); }
+      tag.textContent = ' · ✓ nel carrello: ' + q;
+    } else if(tag){ tag.remove(); }
+  });
+}
 // Direct per-button listeners, re-attached every time a list is rendered.
 // Simpler and more robust than a single delegated listener on the
 // container: each button gets its own, ordinary addEventListener right
@@ -1078,8 +1125,10 @@ function wireProductRows(container){
   container.querySelectorAll('[data-add]').forEach(btn=>{
     btn.addEventListener('click', function(){
       addCatalogItemToCart(PRODUCTS[parseInt(btn.dataset.add, 10)]);
+      flashAdded(btn);
     });
   });
+  markInCart();
   container.querySelectorAll('[data-star]').forEach(btn=>{
     btn.addEventListener('click', function(){
       const idx = parseInt(btn.dataset.star, 10);
@@ -1247,10 +1296,11 @@ document.getElementById('manualConfirm').addEventListener('click', ()=>{
 function addCatalogItemToCart(p){
   const desc = p[0], um = p[1] ? p[1].toUpperCase() : '', price = p[2];
   const existing = cart.find(c => !c.manual && c.desc === desc && c.um === um);
-  if(existing){ existing.qty += 1; }
-  else { cart.push({id: cartIdCounter++, desc, um, price, qty:1, manual:false, note:''}); }
+  if(existing){ existing.qty += 1; lastAddedId = existing.id; }
+  else { lastAddedId = cartIdCounter; cart.push({id: cartIdCounter++, desc, um, price, qty:1, manual:false, note:''}); }
   renderCart();
 }
+let lastAddedId = null;
 const cartList = document.getElementById('cartList');
 const cartCount = document.getElementById('cartCount');
 const submitOrderBtn = document.getElementById('submitOrderBtn');
@@ -1258,6 +1308,7 @@ const scrollToCartBtn = document.getElementById('scrollToCartBtn');
 const fabCount = document.getElementById('fabCount');
 
 function renderCart(){
+  markInCart();
   cartCount.textContent = '(' + cart.length + ')';
   fabCount.textContent = cart.length;
   scrollToCartBtn.classList.toggle('show', cart.length > 0);
@@ -1267,9 +1318,11 @@ function renderCart(){
     cartList.innerHTML = '<div class="cart-empty">Nessun articolo. Cerca un prodotto o aggiungine uno manuale.</div>';
     return;
   }
+  const flashId = lastAddedId;
+  lastAddedId = null;
   cartList.innerHTML = cart.map(item=>{
     const hasNote = !!(item.note && item.note.trim());
-    return '<div class="cart-item" data-id="'+item.id+'">'
+    return '<div class="cart-item' + (item.id === flashId ? ' just-added' : '') + '" data-id="'+item.id+'">'
       + '<div class="ci-row">'
       + '<div><div class="ci-desc">' + escapeHtml(item.desc) + (item.manual ? '<span class="ci-tag">MANUALE</span>' : '') + '</div></div>'
       + '<div class="ci-controls">'
