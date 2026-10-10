@@ -710,6 +710,11 @@
   .prep-pill.st-in{background:var(--info);}
   .prep-pill.st-ok{background:var(--success);}
   .prep-pill.st-manc{background:var(--stamp);}
+  .prep-pill.st-del{background:var(--muted);}
+  .prep-card.eliminata{opacity:0.78;border-left-color:var(--muted);}
+  .prep-deleted{font-size:15px;color:var(--text);margin-top:8px;}
+  .chip-count{font-family:var(--font-mono);font-weight:700;margin-left:5px;opacity:0.75;}
+  .chip.active .chip-count{opacity:0.9;}
   .prep-who{font-weight:700;color:var(--text);}
   .prep-who.mine{color:var(--info);}
 
@@ -909,9 +914,9 @@
     <div id="prepListView">
       <div class="ordini-toolbar">
         <div class="filter-chips">
-          <button class="chip prep-chip active" data-prep-filter="aperte">Da fare</button>
-          <button class="chip prep-chip" data-prep-filter="pronte">Pronte</button>
-          <button class="chip prep-chip" data-prep-filter="tutte">Tutte</button>
+          <button class="chip prep-chip active" data-prep-filter="aperte">Da fare<span class="chip-count" id="cntAperte">0</span></button>
+          <button class="chip prep-chip" data-prep-filter="pronte">Pronte<span class="chip-count" id="cntPronte">0</span></button>
+          <button class="chip prep-chip" data-prep-filter="eliminate">Eliminate<span class="chip-count" id="cntEliminate">0</span></button>
         </div>
         <div class="toolbar-right">
           <button class="sound-btn" id="prepSoundBtn">&#128276; Attiva avviso sonoro</button>
@@ -1088,7 +1093,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -2044,12 +2049,18 @@ function normCommissione(id, d){
     presaDaUid: txt(d.presaDaUid) || null,
     presaAt: toIso(d.presaAt),
     chiusaDa: txt(d.chiusaDa) || null,
-    chiusaAt: toIso(d.chiusaAt)
+    chiusaAt: toIso(d.chiusaAt),
+    eliminataDa: txt(d.eliminataDa) || null,
+    eliminataAt: toIso(d.eliminataAt)
   };
   if(!c.stato) c.stato = statoAperto(c);
   return c;
 }
 function isChiusa(c){ return c.stato === 'pronto' || c.stato === 'pronto_mancanze'; }
+// "Eliminata" nell'app vuol dire tolta dalla vista, non cancellata: resta in
+// "Eliminate" con il nome di chi l'ha eliminata. La cancella davvero il server
+// 14 giorni dopo la chiusura, quando il dato è già nel programma ordini.
+function isEliminata(c){ return !!c.eliminataAt; }
 function statoAperto(c){ return (c.presaDa || c.righe.some(r => r.fatta)) ? 'in_preparazione' : 'da_preparare'; }
 function isMia(c){ return !!(c.presaDaUid && viewerId && c.presaDaUid === viewerId); }
 function findPrep(id){ return prepCache.find(c => c.id === id) || null; }
@@ -2091,6 +2102,8 @@ function showPrepToast(msg, info){
 }
 function prepErrorText(code){
   if(code.indexOf('presa:') === 0) return "Nel frattempo l'ha presa " + code.slice(6) + '.';
+  if(code.indexOf('eliminata:') === 0) return "Nel frattempo l'ha eliminata " + code.slice(10) + '.';
+  if(code === 'non_chiusa') return 'Si possono eliminare solo le commissioni pronte.';
   const t = {
     'non_tua': "Questa commissione ora la sta preparando un collega: prendila prima di modificarla.",
     'chiusa': 'La commissione è già stata chiusa.',
@@ -2114,6 +2127,11 @@ function updatePrepBadge(){
   const b = document.getElementById('prepBadge');
   b.textContent = n;
   b.classList.toggle('zero', n === 0);
+  // numeri sui filtri della sezione
+  const set = (id, v)=>{ const el = document.getElementById(id); if(el) el.textContent = v; };
+  set('cntAperte', prepCache.filter(c => !isChiusa(c) && !isEliminata(c)).length);
+  set('cntPronte', prepCache.filter(c => isChiusa(c) && !isEliminata(c)).length);
+  set('cntEliminate', prepCache.filter(isEliminata).length);
 }
 
 // ---- Salvataggio su Firebase ----
@@ -2309,10 +2327,35 @@ async function riapriCommissione(id){
   patchLocal(id, c => Object.assign({}, c, riaperta));
   renderPrep(true);
   const err = await trackInflight(id, txCommissione(id, (raw, c)=>{
+    if(isEliminata(c)) throw new Error('eliminata:' + (c.eliminataDa || 'un collega'));
     if(!isChiusa(c) && c.presaDaUid && c.presaDaUid !== uid) throw new Error('presa:' + (c.presaDa || 'un collega'));
     return riaperta;
   }));
   if(err) revertToServer(err);
+}
+async function eliminaCommissione(id){
+  if(serveNome()) return;
+  if(!viewerId){ showPrepToast(prepErrorText('no-auth')); return; }
+  const me = operatorName, uid = viewerId, now = new Date().toISOString();
+  const eliminata = {eliminataDa: me, eliminataDaUid: uid, eliminataAt: now};
+  patchLocal(id, c => Object.assign({}, c, eliminata));
+  prepOpenId = null;
+  renderPrep(true);
+  const err = await trackInflight(id, txCommissione(id, (raw, c)=>{
+    if(!isChiusa(c)) throw new Error('non_chiusa');
+    if(isEliminata(c)) throw new Error('eliminata:' + (c.eliminataDa || 'un collega'));
+    return eliminata;
+  }));
+  if(err) revertToServer(err);
+  else showPrepToast('Eliminata. La trovi sotto «Eliminate», con il tuo nome.', true);
+}
+async function ripristinaCommissione(id){
+  patchLocal(id, c => Object.assign({}, c, {eliminataDa:null, eliminataAt:null}));
+  renderPrep(true);
+  const err = await trackInflight(id, txCommissione(id, ()=>
+    ({eliminataDa:null, eliminataDaUid:null, eliminataAt:null})));
+  if(err) revertToServer(err);
+  else showPrepToast('Ripristinata: è di nuovo tra le Pronte.', true);
 }
 
 // ---- Disegno dello schermo ----
@@ -2330,11 +2373,15 @@ document.addEventListener('focusout', (e)=>{
 
 function prepVisibili(){
   const t = (iso)=> (iso ? Date.parse(iso) || 0 : 0);
-  const aperte = prepCache.filter(c => !isChiusa(c)).sort((a,b)=> t(a.inviataAt) - t(b.inviataAt)); // prima le più vecchie
-  const chiuse = prepCache.filter(isChiusa).sort((a,b)=> t(b.chiusaAt) - t(a.chiusaAt));          // prima le ultime chiuse
-  if(prepFilter === 'aperte') return aperte;
-  if(prepFilter === 'pronte') return chiuse;
-  return aperte.concat(chiuse);
+  if(prepFilter === 'aperte')    // prima le più vecchie
+    return prepCache.filter(c => !isChiusa(c) && !isEliminata(c)).sort((a,b)=> t(a.inviataAt) - t(b.inviataAt));
+  if(prepFilter === 'pronte')    // prima le ultime chiuse
+    return prepCache.filter(c => isChiusa(c) && !isEliminata(c)).sort((a,b)=> t(b.chiusaAt) - t(a.chiusaAt));
+  // eliminate: prima le ultime eliminate
+  return prepCache.filter(isEliminata).sort((a,b)=> t(b.eliminataAt) - t(a.eliminataAt));
+}
+function eliminataHtml(c){
+  return '🗑 Eliminata da <b>' + escapeHtml(c.eliminataDa || '?') + '</b>' + (c.eliminataAt ? ' · ' + formatOrderTime(c.eliminataAt) : '');
 }
 function chiHtml(c){
   if(!c.presaDa) return '';
@@ -2347,18 +2394,19 @@ function renderPrepList(){
   if(!items.length){
     list.innerHTML = '';
     empty.textContent = prepFilter === 'pronte' ? 'Nessuna commissione pronta.'
-      : prepFilter === 'aperte' ? 'Nessuna commissione da preparare.' : 'Nessuna commissione.';
+      : prepFilter === 'aperte' ? 'Nessuna commissione da preparare.' : 'Nessuna commissione eliminata.';
     empty.classList.remove('hidden');
     return;
   }
   empty.classList.add('hidden');
   list.innerHTML = items.map((c, k) =>
-    '<div class="prep-card ' + PREP_STATI[c.stato].cls + '" role="button" tabindex="0" data-open="' + k + '">'
+    '<div class="prep-card ' + PREP_STATI[c.stato].cls + (isEliminata(c) ? ' eliminata' : '') + '" role="button" tabindex="0" data-open="' + k + '">'
     + '<div class="prep-card-top"><span class="prep-num">N. ' + escapeHtml(c.numero) + '</span>'
     + '<span class="prep-time">' + (c.inviataAt ? formatOrderTime(c.inviataAt) : '') + '</span></div>'
     + '<div class="prep-cliente">' + (c.cliente ? escapeHtml(c.cliente) : 'Cliente non indicato') + '</div>'
     + '<div class="prep-card-info">' + pillHtml(c.stato)
     + '<span>' + c.righe.filter(r => r.fatta).length + '/' + c.righe.length + ' righe</span>' + chiHtml(c) + '</div>'
+    + (isEliminata(c) ? '<div class="prep-deleted">' + eliminataHtml(c) + '</div>' : '')
     + '</div>'
   ).join('');
   list.querySelectorAll('[data-open]').forEach(card=>{
@@ -2455,7 +2503,12 @@ function renderPrepDetail(c){
     const m = riepilogoMancanze(c);
     fondo = '<div class="prep-closed-box">' + pillHtml(c.stato)
       + (m.tot ? '<div style="margin-top:8px;">' + frasiMancanze(m).replace(/^./, x => x.toUpperCase()) + '.</div>' : '')
-      + '<div class="prep-actions"><button class="prep-btn ghost" data-act="riapri">Riapri (ho sbagliato)</button></div></div>';
+      + (isEliminata(c)
+        ? '<div class="prep-deleted">' + eliminataHtml(c) + '</div>'
+          + '<div class="prep-actions"><button class="prep-btn ghost" data-act="ripristina">Ripristina (rimetti tra le Pronte)</button></div>'
+        : '<div class="prep-actions"><button class="prep-btn ghost" data-act="riapri">Riapri (ho sbagliato)</button>'
+          + '<button class="prep-btn danger" data-act="elimina">🗑 Elimina</button></div>')
+      + '</div>';
   }
 
   view.innerHTML = '<button class="prep-back" data-act="indietro">← Tutte le commissioni</button>'
@@ -2482,6 +2535,8 @@ function renderPrepDetail(c){
   if(act('chiudi')) act('chiudi').addEventListener('click', ()=> chiudiCommissione(id));
   if(act('chiudi-manc')) armaConferma(act('chiudi-manc'), 'Tocca ancora per chiudere con mancanze', ()=> chiudiCommissione(id));
   if(act('riapri')) armaConferma(act('riapri'), 'Tocca ancora per riaprirla', ()=> riapriCommissione(id));
+  if(act('elimina')) armaConferma(act('elimina'), 'Tocca ancora per eliminare', ()=> eliminaCommissione(id));
+  if(act('ripristina')) act('ripristina').addEventListener('click', ()=> ripristinaCommissione(id));
 
   if(!editabile) return;
   view.querySelectorAll('[data-check]').forEach(b => b.addEventListener('click', ()=> spuntaRiga(id, parseInt(b.dataset.check, 10))));
