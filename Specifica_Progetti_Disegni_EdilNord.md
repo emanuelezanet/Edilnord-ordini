@@ -10,7 +10,7 @@ Ultimo aggiornamento: 10 ottobre 2026
 
 Aiutare i collaboratori a **disegnare i progetti dei clienti** e a tenere **in un unico posto** tutto quello che riguarda ogni cliente: disegni, foto di cantiere, file e note.
 
-Il modulo **non è un programma separato**. Va **integrato nel software che ho già creato** (vedi punto 7).
+Il modulo **non è un programma separato**. Va **integrato nel software commissioni** che ho già creato (quello dove ci sono i clienti), **non** nell'app Ordini Magazzino. Vedi punto 7.
 
 ---
 
@@ -73,7 +73,7 @@ Importante: i permessi devono essere applicati **davvero sui dati**, non solo na
 
 ## 6. Collegamento con i clienti (software commissioni)
 
-Come prendere i clienti dipende da com'è fatto il software commissioni:
+Poiché il modulo va **dentro** il software commissioni, i progetti si collegano **direttamente** ai clienti già presenti: nessuna importazione necessaria. (La tabella sotto resta solo come riferimento, se in futuro servisse collegare un altro programma.)
 
 | Se il software commissioni è… | Soluzione |
 |---|---|
@@ -83,25 +83,27 @@ Come prendere i clienti dipende da com'è fatto il software commissioni:
 
 ---
 
-## 7. Software esistente (dove va integrato)
+## 7. Software esistente
 
-I miei software sono **artifact di Claude** (claude.ai), non repository GitHub.
+**Dove va integrato il modulo: nel SOFTWARE COMMISSIONI** (dove ci sono già i clienti). Link: *da aggiungere*.
 
-- **Ordini Magazzino**: https://claude.ai/artifact/3sLBPJnXhK2d3oda8AqQdJ
+Non va integrato nell'app Ordini Magazzino. Quella resta separata e, al massimo, in Fase 3 si collega ai progetti.
+
+Altri miei software (artifact di Claude):
+
+- **Ordini Magazzino** (app ordini, NON è dove va il modulo): https://claude.ai/artifact/3sLBPJnXhK2d3oda8AqQdJ
   - Catalogo prodotti con ricerca, preferiti e soprannomi.
   - Carrello con quantità, unità di misura, note e voci fuori catalogo.
   - Cliente scritto come **testo libero**, senza anagrafica.
   - Elenco ordini con stato "in attesa" / "evaso" e avviso sonoro.
   - Nome dell'operatore.
   - Dati nel **database condiviso dell'artifact**, con riconoscimento dell'utente.
-- **Software commissioni** (dove ci sono i clienti): *link da aggiungere*.
-
 Altri artifact collegati al lavoro:
 - Database prezzi e fatture fornitori: https://claude.ai/artifact/1gujZbSs6spP8Jho3YE8et
 - Preventivo Edil Nord – Redesign: https://claude.ai/artifact/MYKXpusy5no2q6EeQKALqK
 - Progetti Edil Nord: https://claude.ai/artifact/LzLbbxYp3nsBZhwDTLsPyw. È una pagina **vetrina** del sito, con lavori fatti e foto. NON è il gestionale.
 
-Nota tecnica: il modulo può usare le stesse funzioni degli artifact (database condiviso, riconoscimento utente, caricamento file e foto). Prima di iniziare vanno **verificati i limiti** di spazio per foto e file e il funzionamento dei permessi per utente.
+Nota tecnica: se il software commissioni è anche lui un artifact, il modulo può usare le stesse funzioni (database condiviso, riconoscimento utente, caricamento file e foto). Prima di iniziare vanno **verificati i limiti** di spazio per foto e file e il funzionamento dei permessi per utente.
 
 Il repository GitHub `emanuelezanet/Edilnord-ordini` ("Buoni di Carico") **non c'entra** con questo modulo. Le osservazioni fatte su quel codice non valgono qui.
 
@@ -109,8 +111,8 @@ Il repository GitHub `emanuelezanet/Edilnord-ordini` ("Buoni di Carico") **non c
 
 ## 8. Domande ancora aperte
 
-1. Il modulo va integrato in **Ordini Magazzino** o nel **software commissioni**?
-2. Dov'è il **software commissioni** (link artifact, chat o nome del programma) ed esporta i clienti?
+1. ~~Dove va integrato?~~ **Deciso: nel software commissioni.**
+2. Link del **software commissioni**, e com'è fatto (artifact di Claude? dove salva i dati?)
 3. "Vede i suoi" vuol dire progetti **assegnati** al collaboratore o progetti **creati** da lui?
 4. I collaboratori lo useranno di più in **ufficio (PC)** o in **cantiere (tablet/telefono)**?
 5. Quali elementi del bagno servono nella libreria, e con quali misure standard?
