@@ -678,6 +678,131 @@
     .stamp{font-size:20px;top:40px;right:14px;}
     .empty-state{font-size:17px;}
   }
+
+  /* ---------- Da preparare (commissioni dal programma ordini) ----------
+     Pensata per il telefono: tutto grande e facile da toccare. */
+  :root{ --info:#3E6A8A; --warn-bg:#FFF1D6; --bad-bg:#F8E4E1; --ok-bg:#E6EFE6; }
+  .prep-warning{
+    background:var(--warn-bg);color:#6B4A0F;border:1px solid #E8C27A;
+    border-radius:8px;padding:12px 14px;font-size:15px;font-weight:600;line-height:1.35;margin-bottom:12px;
+  }
+  .prep-warning.hidden{display:none;}
+  .prep-list{display:flex;flex-direction:column;gap:12px;}
+  .prep-card{
+    width:100%;text-align:left;
+    background:var(--card);border:1px solid var(--border);border-left:6px solid var(--accent);
+    border-radius:8px;padding:14px 14px 13px;box-shadow:0 2px 7px rgba(0,0,0,0.07);
+    color:var(--text);
+  }
+  .prep-card.st-in{border-left-color:var(--info);}
+  .prep-card.st-ok{border-left-color:var(--success);background:#F2F0EA;}
+  .prep-card.st-manc{border-left-color:var(--stamp);background:#F2F0EA;}
+  .prep-card-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
+  .prep-num{font-family:var(--font-mono);font-size:14px;color:var(--muted);letter-spacing:0.4px;}
+  .prep-time{font-family:var(--font-mono);font-size:14px;color:var(--muted);white-space:nowrap;}
+  .prep-cliente{font-size:19px;font-weight:700;margin:3px 0 8px;word-break:break-word;}
+  .prep-card-info{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:15px;color:var(--muted);}
+  .prep-pill{
+    display:inline-block;font-size:13px;font-weight:700;letter-spacing:0.3px;
+    padding:4px 10px;border-radius:20px;color:#fff;background:var(--accent-dark);white-space:nowrap;
+  }
+  .prep-pill.st-da{background:var(--accent);color:#20221f;}
+  .prep-pill.st-in{background:var(--info);}
+  .prep-pill.st-ok{background:var(--success);}
+  .prep-pill.st-manc{background:var(--stamp);}
+  .prep-who{font-weight:700;color:var(--text);}
+  .prep-who.mine{color:var(--info);}
+
+  .prep-back{
+    background:transparent;border:1px solid var(--border);color:var(--text);
+    font-size:16px;font-weight:600;padding:12px 16px;min-height:48px;border-radius:10px;margin-bottom:12px;
+  }
+  .prep-head{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;
+  }
+  .prep-head .prep-cliente{font-size:22px;margin:4px 0 10px;}
+  .prep-office-note{
+    font-size:16px;background:rgba(0,0,0,0.04);border-radius:8px;padding:10px 12px;margin:10px 0 0;
+    word-break:break-word;
+  }
+  .prep-office-note b{color:var(--muted);font-weight:600;}
+  .prep-holder{font-size:16px;margin-top:12px;line-height:1.4;}
+  .prep-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .prep-btn{
+    flex:1;min-height:54px;border-radius:10px;border:none;font-size:17px;font-weight:700;padding:12px 14px;
+    background:var(--bg-shell);color:#fff;
+  }
+  .prep-btn.take{background:var(--accent);color:#20221f;}
+  .prep-btn.ghost{background:transparent;color:var(--text);border:1.5px solid var(--border);}
+  .prep-btn.danger{background:transparent;color:var(--stamp);border:1.5px solid var(--stamp);}
+  .prep-btn.danger.confirm{background:var(--stamp);color:#fff;}
+  .prep-btn.done{background:var(--success);}
+  .prep-btn:disabled{opacity:0.45;}
+  .prep-progress{font-family:var(--font-mono);font-size:15px;color:var(--muted);margin:4px 2px 10px;}
+
+  .prep-rows{display:flex;flex-direction:column;gap:10px;}
+  .prep-row{
+    display:flex;gap:12px;align-items:flex-start;
+    background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;
+  }
+  .prep-row.r-ok{background:var(--ok-bg);border-color:#B9CFB9;}
+  .prep-row.r-parziale,.prep-row.r-mancante{background:var(--bad-bg);border-color:#E3B8B1;}
+  .prep-check{
+    flex:none;width:54px;height:54px;border-radius:10px;border:2px solid var(--border);
+    background:#fff;font-size:30px;font-weight:700;color:transparent;
+    display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .prep-row.r-ok .prep-check{background:var(--success);border-color:var(--success);color:#fff;}
+  .prep-row.r-parziale .prep-check,.prep-row.r-mancante .prep-check{background:var(--stamp);border-color:var(--stamp);color:#fff;}
+  .prep-check:disabled{opacity:1;cursor:default;}
+  .prep-row-main{flex:1;min-width:0;}
+  .prep-desc{font-size:17px;font-weight:600;line-height:1.3;word-break:break-word;}
+  .prep-req{font-size:15.5px;color:var(--muted);margin-top:4px;}
+  .prep-req b{color:var(--text);font-family:var(--font-mono);font-size:16.5px;}
+  .prep-tag{
+    display:inline-block;font-size:12px;font-weight:700;letter-spacing:0.4px;
+    padding:2px 7px;border-radius:4px;margin-left:6px;vertical-align:1px;color:#fff;background:var(--stamp);
+  }
+  .prep-tag.ok{background:var(--success);}
+  .prep-qty-row{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .prep-qty-row .lbl{flex-basis:100%;font-size:15.5px;color:var(--muted);font-weight:600;margin-bottom:-2px;}
+  .prep-step{
+    width:52px;height:48px;border:1px solid var(--border);background:#fff;border-radius:8px;
+    font-size:26px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;color:var(--text);
+  }
+  .prep-qty{
+    width:84px;height:48px;text-align:center;border:1.5px solid var(--border);border-radius:8px;
+    font-size:19px;font-family:var(--font-mono);background:#fff;color:var(--text);
+  }
+  .prep-qty:focus{outline:none;border-color:var(--accent-dark);}
+  .prep-um{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--muted);}
+  .prep-nota-show{
+    margin-top:10px;font-size:15px;font-style:italic;background:rgba(0,0,0,0.04);border-radius:8px;padding:9px 11px;
+    word-break:break-word;
+  }
+  .prep-nota-btn{
+    background:none;border:none;color:var(--accent-dark);font-size:15.5px;font-weight:600;
+    padding:0;min-height:44px;text-decoration:underline;
+  }
+  .prep-nota-edit{display:flex;gap:8px;margin-top:8px;}
+  .prep-nota-edit.hidden{display:none;}
+  .prep-nota-input{
+    flex:1;min-width:0;border:1px solid var(--border);border-radius:8px;padding:12px 10px;
+    font-size:16px;background:#fff;color:var(--text);
+  }
+  .prep-close-box{margin-top:16px;}
+  .prep-close-hint{font-size:15px;color:var(--muted);margin:8px 2px 0;line-height:1.35;}
+  .prep-closed-box{
+    margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:16px;line-height:1.4;
+  }
+  .prep-toast{
+    position:fixed;left:12px;right:12px;bottom:18px;z-index:60;
+    background:var(--stamp);color:#fff;border-radius:10px;padding:14px 16px;font-size:16px;font-weight:600;
+    box-shadow:0 4px 14px rgba(0,0,0,0.3);text-align:center;
+  }
+  .prep-toast.info{background:var(--bg-shell);}
+  .prep-toast.hidden{display:none;}
+  @media(min-width:900px){ .prep-toast{left:auto;right:24px;max-width:420px;} }
 </style>
 </head>
 <body>
@@ -690,6 +815,7 @@
   <nav class="tabs">
     <button class="tab active" data-tab="nuovo">Nuovo Buono di Carico</button>
     <button class="tab" data-tab="ordini">Buoni di Carico <span class="badge zero" id="pendingBadge">0</span></button>
+    <button class="tab" data-tab="prep">Da preparare <span class="badge zero" id="prepBadge">0</span></button>
   </nav>
 </header>
 
@@ -777,7 +903,27 @@
     <div class="orders-list" id="ordersList"></div>
     <div class="empty-state hidden" id="ordersEmpty">Nessun buono di carico ancora.</div>
   </section>
+
+  <section id="tab-prep" class="tab-panel">
+    <div class="prep-warning hidden" id="prepWarning" role="alert"></div>
+    <div id="prepListView">
+      <div class="ordini-toolbar">
+        <div class="filter-chips">
+          <button class="chip prep-chip active" data-prep-filter="aperte">Da fare</button>
+          <button class="chip prep-chip" data-prep-filter="pronte">Pronte</button>
+          <button class="chip prep-chip" data-prep-filter="tutte">Tutte</button>
+        </div>
+        <div class="toolbar-right">
+          <button class="sound-btn" id="prepSoundBtn">&#128276; Attiva avviso sonoro</button>
+        </div>
+      </div>
+      <div class="prep-list" id="prepList"></div>
+      <div class="empty-state hidden" id="prepEmpty">Nessuna commissione da preparare.</div>
+    </div>
+    <div id="prepDetailView" class="hidden-view" style="display:none;"></div>
+  </section>
 </main>
+<div class="prep-toast hidden" id="prepToast" role="status"></div>
 
 <button class="fab" id="scrollToCartBtn">&#128722; <span id="fabCount">0</span></button>
 
@@ -791,7 +937,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  onSnapshot, collection, getDocs, serverTimestamp
+  onSnapshot, collection, getDocs, serverTimestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -942,7 +1088,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = 10;
+const APP_VERSION = 11;
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -1154,6 +1300,9 @@ document.querySelectorAll('.tab').forEach(btn=>{
     document.getElementById('tab-' + activeTab).classList.add('active');
     if(activeTab === 'ordini'){
       refreshOrders(false);
+    }
+    if(activeTab === 'prep'){
+      renderPrep();
     }
   });
 });
@@ -1621,9 +1770,9 @@ submitOrderBtn.addEventListener('click', async ()=>{
 });
 
 // ---------------- Orders tab ----------------
-document.querySelectorAll('.chip').forEach(chip=>{
+document.querySelectorAll('#tab-ordini .chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
-    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    document.querySelectorAll('#tab-ordini .chip').forEach(c=>c.classList.remove('active'));
     chip.classList.add('active');
     ordersFilter = chip.dataset.filter;
     renderOrders();
@@ -1744,9 +1893,13 @@ const soundBtn = document.getElementById('soundBtn');
 const SOUND_PREF_KEY = 'edilnord_avviso_sonoro';
 function readSoundPref(){ try{ return localStorage.getItem(SOUND_PREF_KEY) === '1'; }catch(e){ return false; } }
 function writeSoundPref(on){ try{ localStorage.setItem(SOUND_PREF_KEY, on ? '1' : '0'); }catch(e){} }
+// Il pulsante dell'avviso c'è sia nei Buoni di Carico sia in Da preparare:
+// è lo stesso interruttore, vale per tutti e due.
 function setSoundUi(){
-  soundBtn.classList.toggle('on', audioEnabled);
-  soundBtn.innerHTML = audioEnabled ? '&#128276; Avvisi attivi' : '&#128276; Attiva avviso sonoro';
+  document.querySelectorAll('.sound-btn').forEach(b=>{
+    b.classList.toggle('on', audioEnabled);
+    b.innerHTML = audioEnabled ? '&#128276; Avvisi attivi' : '&#128276; Attiva avviso sonoro';
+  });
 }
 // I browser (iPhone in particolare) tengono l'audio "addormentato" finché
 // l'utente non tocca la pagina, e lo rimettono a dormire quando l'app va in
@@ -1760,19 +1913,19 @@ function ensureAudio(){
   }
   return audioCtx;
 }
-soundBtn.addEventListener('click', ()=>{
+document.querySelectorAll('.sound-btn').forEach(b=> b.addEventListener('click', ()=>{
   ensureAudio();
   audioEnabled = !audioEnabled;
   writeSoundPref(audioEnabled);
   setSoundUi();
   if(audioEnabled) playBeep();
-});
+}));
 // Dopo una ricarica la pagina si ricorda che l'avviso era attivo, ma il
 // browser vuole comunque un tocco dell'utente prima di fare rumore: il primo
 // tocco in un punto qualsiasi della pagina lo riattiva da solo.
 if(readSoundPref()){
   const rearm = (e)=>{
-    if(e.target && e.target.closest && e.target.closest('#soundBtn')) return;
+    if(e.target && e.target.closest && e.target.closest('.sound-btn')) return;
     document.removeEventListener('pointerdown', rearm, true);
     document.removeEventListener('keydown', rearm, true);
     ensureAudio();
@@ -1809,6 +1962,597 @@ function playBeep(){
   else { try{ ctx.resume().then(go).catch(()=>{}); }catch(e){} }
 }
 
+// ---------------- Da preparare: commissioni dal programma ordini ----------------
+// Le commissioni le scrive il programma ordini dell'ufficio nella raccolta
+// "commissioni_magazzino", separata dai buoni di carico. Dentro ci sono SOLO
+// descrizioni, quantità, nome cliente e note: prezzi, sconti e totali non
+// vengono proprio inviati. L'app non crea e non cancella commissioni: le
+// prende in carico, spunta le righe, segna le quantità caricate e le chiude.
+//
+// Forma di un documento (l'id è il codice della commissione):
+//   numero      "1234"                        (se manca si mostra l'id)
+//   cliente     "Rossi Mario"
+//   note        "Ritira lunedì mattina"       (note di preparazione dell'ufficio)
+//   inviataAt   "2026-10-10T07:30:00Z"        (testo ISO oppure data di Firestore)
+//   righe       [ {desc, um, qtyRichiesta}, ... ]
+// Campi che aggiunge l'app man mano:
+//   righe[n].fatta / .qtyCaricata / .nota
+//   stato       da_preparare | in_preparazione | pronto | pronto_mancanze
+//   presaDa, presaDaUid, presaAt              (chi la sta preparando)
+//   chiusaDa, chiusaDaUid, chiusaAt           (chi l'ha chiusa)
+//   aggiornataAt
+function commissioniCol(){ return collection(fbDb, 'commissioni_magazzino'); }
+
+const PREP_STATI = {
+  da_preparare:    {label:'Da preparare',          cls:'st-da'},
+  in_preparazione: {label:'In preparazione',       cls:'st-in'},
+  pronto:          {label:'Pronto',                cls:'st-ok'},
+  pronto_mancanze: {label:'Pronto salvo mancanze', cls:'st-manc'}
+};
+
+let prepServer = [];          // ultima copia arrivata da Firebase
+let prepCache = [];           // quello che si vede (= server + modifiche appena fatte)
+let prepFilter = 'aperte';
+let prepOpenId = null;        // commissione aperta nel dettaglio (null = elenco)
+let prepError = '';
+let prepRenderPending = false;
+const prepPendingRows = new Map(); // riga modificata qui ma non ancora confermata da Firebase
+const prepQtyTimers = new Map();   // quantità in attesa di essere salvate (si salva dopo una breve pausa)
+const prepInflight = new Map();    // salvataggi in corso, per commissione
+
+function escAttr(s){ return escapeHtml(s == null ? '' : String(s)).replace(/"/g, '&quot;'); }
+function toIso(v){
+  if(!v) return null;
+  if(typeof v === 'string') return v;
+  if(typeof v.toDate === 'function'){ try{ return v.toDate().toISOString(); }catch(e){ return null; } }
+  if(v instanceof Date) return v.toISOString();
+  return null;
+}
+function toNum(v){
+  if(typeof v === 'number' && isFinite(v)) return v;
+  if(typeof v === 'string' && v.trim() !== ''){ const n = parseFloat(v.replace(',', '.')); return isFinite(n) ? n : null; }
+  return null;
+}
+function txt(v){ return typeof v === 'string' ? v : (v == null ? '' : String(v)); }
+function rowKey(id, i){ return id + '\u0001' + i; }
+
+// Ogni documento viene messo sempre nella stessa forma, così l'app non si
+// rompe se il programma ordini (o la prova inserita a mano) omette qualche campo.
+function normCommissione(id, d){
+  d = d || {};
+  const righe = (Array.isArray(d.righe) ? d.righe : []).map((r, i)=>{
+    r = (r && typeof r === 'object') ? r : {};
+    return {
+      i,
+      desc: txt(r.desc).trim() || '(senza descrizione)',
+      um: txt(r.um).trim().toUpperCase(),
+      qtyRichiesta: toNum(r.qtyRichiesta),
+      qtyCaricata: toNum(r.qtyCaricata),
+      fatta: r.fatta === true,
+      nota: txt(r.nota)
+    };
+  });
+  const c = {
+    id,
+    numero: d.numero != null && txt(d.numero).trim() ? txt(d.numero).trim() : id,
+    cliente: txt(d.cliente).trim(),
+    note: txt(d.note).trim(),
+    inviataAt: toIso(d.inviataAt),
+    righe,
+    stato: PREP_STATI[d.stato] ? d.stato : null,
+    presaDa: txt(d.presaDa) || null,
+    presaDaUid: txt(d.presaDaUid) || null,
+    presaAt: toIso(d.presaAt),
+    chiusaDa: txt(d.chiusaDa) || null,
+    chiusaAt: toIso(d.chiusaAt)
+  };
+  if(!c.stato) c.stato = statoAperto(c);
+  return c;
+}
+function isChiusa(c){ return c.stato === 'pronto' || c.stato === 'pronto_mancanze'; }
+function statoAperto(c){ return (c.presaDa || c.righe.some(r => r.fatta)) ? 'in_preparazione' : 'da_preparare'; }
+function isMia(c){ return !!(c.presaDaUid && viewerId && c.presaDaUid === viewerId); }
+function findPrep(id){ return prepCache.find(c => c.id === id) || null; }
+
+// Stato di una riga: da_fare (non spuntata), ok, parziale, mancante (spuntata con 0)
+function statoRiga(r){
+  if(!r.fatta) return 'da_fare';
+  if(r.qtyCaricata === null || r.qtyRichiesta === null) return 'ok';
+  if(r.qtyCaricata <= 0) return 'mancante';
+  if(r.qtyCaricata < r.qtyRichiesta) return 'parziale';
+  return 'ok';
+}
+function riepilogoMancanze(c){
+  let nonCaricate = 0, parziali = 0;
+  c.righe.forEach(r => {
+    const s = statoRiga(r);
+    if(s === 'da_fare' || s === 'mancante') nonCaricate++;
+    else if(s === 'parziale') parziali++;
+  });
+  return {nonCaricate, parziali, tot: nonCaricate + parziali};
+}
+function fmtQty(n){ return n === null ? '—' : Number(n).toLocaleString('it-IT', {maximumFractionDigits:3}); }
+function pillHtml(s){ const st = PREP_STATI[s]; return '<span class="prep-pill ' + st.cls + '">' + st.label + '</span>'; }
+function frasiMancanze(m){
+  const p = [];
+  if(m.nonCaricate) p.push(m.nonCaricate + (m.nonCaricate === 1 ? ' riga non caricata' : ' righe non caricate'));
+  if(m.parziali) p.push(m.parziali + (m.parziali === 1 ? ' parziale' : ' parziali'));
+  return p.join(', ');
+}
+
+// ---- Avvisi ----
+function showPrepToast(msg, info){
+  const el = document.getElementById('prepToast');
+  el.textContent = msg;
+  el.classList.toggle('info', !!info);
+  el.classList.remove('hidden');
+  clearTimeout(showPrepToast._t);
+  showPrepToast._t = setTimeout(()=> el.classList.add('hidden'), 4500);
+}
+function prepErrorText(code){
+  if(code.indexOf('presa:') === 0) return "Nel frattempo l'ha presa " + code.slice(6) + '.';
+  const t = {
+    'non_tua': "Questa commissione ora la sta preparando un collega: prendila prima di modificarla.",
+    'chiusa': 'La commissione è già stata chiusa.',
+    'cambiata': "L'ufficio ha modificato la commissione: ricontrolla le righe.",
+    'sparita': "La commissione non c'è più: l'ufficio l'ha ritirata.",
+    'permission-denied': 'Firebase non permette ancora di modificare le commissioni: va aggiunta la regola.',
+    'no-auth': 'Collegamento non riuscito: ricarica la pagina.'
+  };
+  return t[code] || 'Non salvato: controlla la connessione e riprova.';
+}
+function updatePrepWarning(){
+  const el = document.getElementById('prepWarning');
+  if(!prepError){ el.classList.add('hidden'); return; }
+  el.textContent = prepError === 'permission-denied'
+    ? '⚠️ La sezione Da preparare non è ancora attiva: in Firebase va aggiunta la regola per le commissioni.'
+    : '⚠️ Non riesco a leggere le commissioni: controlla la connessione e ricarica la pagina.';
+  el.classList.remove('hidden');
+}
+function updatePrepBadge(){
+  const n = prepCache.filter(c => c.stato === 'da_preparare').length;
+  const b = document.getElementById('prepBadge');
+  b.textContent = n;
+  b.classList.toggle('zero', n === 0);
+}
+
+// ---- Salvataggio su Firebase ----
+// Ogni modifica passa da una "transazione": Firebase rilegge la commissione
+// aggiornata e applica solo il cambio richiesto. Così se due colleghi toccano
+// "Prendo io" nello stesso istante, uno solo la prende e l'altro viene avvisato.
+async function txCommissione(id, mutate){
+  try{
+    await withTimeout(runTransaction(fbDb, async (tx)=>{
+      const ref = doc(commissioniCol(), id);
+      const snap = await tx.get(ref);
+      if(!snap.exists()) throw new Error('sparita');
+      const raw = snap.data() || {};
+      const patch = mutate(raw, normCommissione(id, raw));
+      tx.update(ref, Object.assign({}, patch, {aggiornataAt: new Date().toISOString()}));
+    }), 10000);
+    return '';
+  }catch(e){
+    return (e && (e.code || e.message)) || 'errore';
+  }
+}
+function trackInflight(id, p){
+  if(!prepInflight.has(id)) prepInflight.set(id, new Set());
+  const s = prepInflight.get(id);
+  s.add(p);
+  p.finally(()=> s.delete(p));
+  return p;
+}
+function revertToServer(err){
+  prepCache = applyPending(prepServer);
+  renderPrep(true);
+  showPrepToast(prepErrorText(err));
+}
+function patchLocal(id, fn){
+  prepCache = prepCache.map(c => c.id === id ? fn(c) : c);
+}
+// Le righe modificate qui restano "in sospeso" finché Firebase non le
+// conferma: se nel frattempo arriva un aggiornamento da un collega, le
+// modifiche appena fatte non spariscono dallo schermo.
+function applyPending(list){
+  if(!prepPendingRows.size) return list;
+  return list.map(c => {
+    let changed = false;
+    const righe = c.righe.map(r => {
+      const p = prepPendingRows.get(rowKey(c.id, r.i));
+      if(!p) return r;
+      changed = true;
+      return Object.assign({}, r, p);
+    });
+    return changed ? Object.assign({}, c, {righe}) : c;
+  });
+}
+function cambiaRigaLocale(id, i, patch){
+  const key = rowKey(id, i);
+  prepPendingRows.set(key, Object.assign({}, prepPendingRows.get(key) || {}, patch));
+  patchLocal(id, c => Object.assign({}, c, {
+    stato: isChiusa(c) ? c.stato : 'in_preparazione',
+    righe: c.righe.map(r => r.i === i ? Object.assign({}, r, patch) : r)
+  }));
+}
+function scriviRiga(id, i, desc){
+  const key = rowKey(id, i);
+  const pending = prepPendingRows.get(key);
+  if(!pending) return Promise.resolve();
+  const uid = viewerId;
+  const p = txCommissione(id, (raw, c)=>{
+    if(isChiusa(c)) throw new Error('chiusa');
+    if(c.presaDaUid !== uid) throw new Error('non_tua');
+    if(!c.righe[i] || c.righe[i].desc !== desc) throw new Error('cambiata');
+    const righe = raw.righe.map((r, k) => k === i ? Object.assign({}, r, pending) : r);
+    return {righe, stato: 'in_preparazione'};
+  }).then(err => {
+    if(prepPendingRows.get(key) === pending || err) prepPendingRows.delete(key);
+    if(err) revertToServer(err);
+  });
+  return trackInflight(id, p);
+}
+// La quantità si salva dopo una breve pausa: chi tocca "+" cinque volte di
+// fila fa un solo salvataggio, con il numero finale.
+function scriviRigaDopo(id, i, desc){
+  const key = rowKey(id, i);
+  const old = prepQtyTimers.get(key);
+  if(old) clearTimeout(old.t);
+  const run = ()=>{ prepQtyTimers.delete(key); return scriviRiga(id, i, desc); };
+  prepQtyTimers.set(key, {id, run, t: setTimeout(run, 600)});
+}
+function annullaAttesa(id, i){
+  const key = rowKey(id, i);
+  const old = prepQtyTimers.get(key);
+  if(old){ clearTimeout(old.t); prepQtyTimers.delete(key); }
+}
+function flushPrepWrites(id){
+  const runs = [];
+  for(const v of [...prepQtyTimers.values()]){
+    if(v.id === id){ clearTimeout(v.t); runs.push(v.run()); }
+  }
+  const infl = prepInflight.get(id);
+  return Promise.all(runs.concat(infl ? [...infl] : []));
+}
+
+// ---- Azioni ----
+function serveNome(){
+  if(operatorName) return false;
+  openOperatorEdit();
+  window.scrollTo({top:0, behavior:'smooth'});
+  setTimeout(()=> operatorInput.focus(), 300);
+  showPrepToast('Scrivi il tuo nome qui in alto prima di prendere una commissione.', true);
+  return true;
+}
+async function prendiCommissione(id, alPostoDiUnCollega){
+  if(serveNome()) return;
+  if(!viewerId){ showPrepToast(prepErrorText('no-auth')); return; }
+  const me = operatorName, uid = viewerId, now = new Date().toISOString();
+  const presa = {presaDa: me, presaDaUid: uid, presaAt: now, stato: 'in_preparazione'};
+  patchLocal(id, c => Object.assign({}, c, presa));
+  renderPrep(true);
+  const err = await trackInflight(id, txCommissione(id, (raw, c)=>{
+    if(isChiusa(c)) throw new Error('chiusa');
+    if(c.presaDaUid && c.presaDaUid !== uid && !alPostoDiUnCollega) throw new Error('presa:' + (c.presaDa || 'un collega'));
+    return presa;
+  }));
+  if(err) revertToServer(err);
+}
+async function rilasciaCommissione(id){
+  const uid = viewerId;
+  await flushPrepWrites(id);
+  patchLocal(id, c => { const n = Object.assign({}, c, {presaDa:null, presaDaUid:null, presaAt:null}); n.stato = statoAperto(n); return n; });
+  prepOpenId = null;
+  renderPrep(true);
+  const err = await txCommissione(id, (raw, c)=>{
+    if(isChiusa(c)) throw new Error('chiusa');
+    if(c.presaDaUid && c.presaDaUid !== uid) throw new Error('non_tua');
+    return {presaDa:null, presaDaUid:null, presaAt:null, stato: c.righe.some(r => r.fatta) ? 'in_preparazione' : 'da_preparare'};
+  });
+  if(err) revertToServer(err);
+  else showPrepToast('Commissione rilasciata: ora la può prendere un collega.', true);
+}
+function spuntaRiga(id, i){
+  const c = findPrep(id);
+  const r = c && c.righe[i];
+  if(!r) return;
+  annullaAttesa(id, i);
+  const patch = r.fatta
+    ? {fatta:false, qtyCaricata:null}
+    : {fatta:true, qtyCaricata: (r.qtyCaricata !== null && r.qtyCaricata > 0) ? r.qtyCaricata : r.qtyRichiesta};
+  cambiaRigaLocale(id, i, patch);
+  try{ if(navigator.vibrate) navigator.vibrate(25); }catch(e){}
+  renderPrep();
+  scriviRiga(id, i, r.desc);
+}
+function impostaQtyRiga(id, i, value){
+  const c = findPrep(id);
+  const r = c && c.righe[i];
+  if(!r) return;
+  const patch = (value === null) ? {fatta:false, qtyCaricata:null} : {fatta:true, qtyCaricata: Math.max(0, value)};
+  cambiaRigaLocale(id, i, patch);
+  renderPrep();
+  scriviRigaDopo(id, i, r.desc);
+}
+function salvaNotaRiga(id, i, text){
+  const c = findPrep(id);
+  const r = c && c.righe[i];
+  if(!r) return;
+  text = (text || '').trim();
+  if(text === r.nota) return;
+  cambiaRigaLocale(id, i, {nota: text});
+  renderPrep();
+  scriviRiga(id, i, r.desc);
+}
+async function chiudiCommissione(id){
+  await flushPrepWrites(id);
+  const c = findPrep(id);
+  if(!c) return;
+  const me = operatorName || null, uid = viewerId, now = new Date().toISOString();
+  const statoPrevisto = riepilogoMancanze(c).tot ? 'pronto_mancanze' : 'pronto';
+  patchLocal(id, x => Object.assign({}, x, {stato: statoPrevisto, chiusaDa: me, chiusaAt: now}));
+  renderPrep(true);
+  window.scrollTo({top:0, behavior:'smooth'});
+  const err = await trackInflight(id, txCommissione(id, (raw, cc)=>{
+    if(isChiusa(cc)) throw new Error('chiusa');
+    if(cc.presaDaUid !== uid) throw new Error('non_tua');
+    // lo stato finale si decide sui dati confermati da Firebase, non su quelli dello schermo
+    return {stato: riepilogoMancanze(cc).tot ? 'pronto_mancanze' : 'pronto', chiusaDa: me, chiusaDaUid: uid, chiusaAt: now};
+  }));
+  if(err) revertToServer(err);
+  else showPrepToast(statoPrevisto === 'pronto' ? 'Commissione pronta ✓ L\'ufficio la vede.' : 'Chiusa come "pronto salvo mancanze". L\'ufficio vede cosa manca.', true);
+}
+async function riapriCommissione(id){
+  if(serveNome()) return;
+  if(!viewerId){ showPrepToast(prepErrorText('no-auth')); return; }
+  const me = operatorName, uid = viewerId, now = new Date().toISOString();
+  const riaperta = {stato:'in_preparazione', chiusaDa:null, chiusaDaUid:null, chiusaAt:null, presaDa: me, presaDaUid: uid, presaAt: now};
+  patchLocal(id, c => Object.assign({}, c, riaperta));
+  renderPrep(true);
+  const err = await trackInflight(id, txCommissione(id, (raw, c)=>{
+    if(!isChiusa(c) && c.presaDaUid && c.presaDaUid !== uid) throw new Error('presa:' + (c.presaDa || 'un collega'));
+    return riaperta;
+  }));
+  if(err) revertToServer(err);
+}
+
+// ---- Disegno dello schermo ----
+// Mentre si scrive una quantità o una nota lo schermo non si ridisegna
+// (altrimenti sparirebbe la tastiera): si aggiorna appena si esce dal campo.
+function isTypingPrep(){
+  const a = document.activeElement;
+  return !!(a && a.classList && (a.classList.contains('prep-qty') || a.classList.contains('prep-nota-input')));
+}
+document.addEventListener('focusout', (e)=>{
+  if(!e.target || !e.target.classList) return;
+  if(!e.target.classList.contains('prep-qty') && !e.target.classList.contains('prep-nota-input')) return;
+  setTimeout(()=>{ if(prepRenderPending && !isTypingPrep()) renderPrep(); }, 0);
+});
+
+function prepVisibili(){
+  const t = (iso)=> (iso ? Date.parse(iso) || 0 : 0);
+  const aperte = prepCache.filter(c => !isChiusa(c)).sort((a,b)=> t(a.inviataAt) - t(b.inviataAt)); // prima le più vecchie
+  const chiuse = prepCache.filter(isChiusa).sort((a,b)=> t(b.chiusaAt) - t(a.chiusaAt));          // prima le ultime chiuse
+  if(prepFilter === 'aperte') return aperte;
+  if(prepFilter === 'pronte') return chiuse;
+  return aperte.concat(chiuse);
+}
+function chiHtml(c){
+  if(!c.presaDa) return '';
+  return '<span class="prep-who' + (isMia(c) ? ' mine' : '') + '">👷 ' + escapeHtml(c.presaDa) + (isMia(c) ? ' (tu)' : '') + '</span>';
+}
+function renderPrepList(){
+  const list = document.getElementById('prepList');
+  const empty = document.getElementById('prepEmpty');
+  const items = prepVisibili();
+  if(!items.length){
+    list.innerHTML = '';
+    empty.textContent = prepFilter === 'pronte' ? 'Nessuna commissione pronta.'
+      : prepFilter === 'aperte' ? 'Nessuna commissione da preparare.' : 'Nessuna commissione.';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  list.innerHTML = items.map((c, k) =>
+    '<div class="prep-card ' + PREP_STATI[c.stato].cls + '" role="button" tabindex="0" data-open="' + k + '">'
+    + '<div class="prep-card-top"><span class="prep-num">N. ' + escapeHtml(c.numero) + '</span>'
+    + '<span class="prep-time">' + (c.inviataAt ? formatOrderTime(c.inviataAt) : '') + '</span></div>'
+    + '<div class="prep-cliente">' + (c.cliente ? escapeHtml(c.cliente) : 'Cliente non indicato') + '</div>'
+    + '<div class="prep-card-info">' + pillHtml(c.stato)
+    + '<span>' + c.righe.filter(r => r.fatta).length + '/' + c.righe.length + ' righe</span>' + chiHtml(c) + '</div>'
+    + '</div>'
+  ).join('');
+  list.querySelectorAll('[data-open]').forEach(card=>{
+    const open = ()=>{
+      const c = items[parseInt(card.dataset.open, 10)];
+      if(!c) return;
+      prepOpenId = c.id;
+      renderPrep(true);
+      window.scrollTo(0, 0);
+    };
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') open(); });
+  });
+}
+function rigaHtml(r, editabile){
+  const s = statoRiga(r);
+  const cls = s === 'ok' ? ' r-ok' : s === 'parziale' ? ' r-parziale' : s === 'mancante' ? ' r-mancante' : '';
+  const um = r.um ? ' ' + escapeHtml(r.um) : '';
+  let tag = '';
+  if(s === 'parziale') tag = '<span class="prep-tag">PARZIALE</span>';
+  else if(s === 'mancante') tag = '<span class="prep-tag">MANCA</span>';
+  else if(s === 'ok' && r.qtyCaricata !== null && r.qtyRichiesta !== null && r.qtyCaricata > r.qtyRichiesta) tag = '<span class="prep-tag ok">IN PIÙ</span>';
+  const segno = (s === 'parziale' || s === 'mancante') ? '!' : '✓';
+  let qty = '';
+  if(editabile){
+    qty = '<div class="prep-qty-row"><span class="lbl">Caricati</span>'
+      + '<button class="prep-step" data-dec="' + r.i + '" aria-label="Uno in meno">−</button>'
+      + '<input class="prep-qty" data-qty="' + r.i + '" type="number" inputmode="decimal" step="any" min="0" placeholder="—" value="' + (r.qtyCaricata === null ? '' : r.qtyCaricata) + '">'
+      + '<button class="prep-step" data-inc="' + r.i + '" aria-label="Uno in più">+</button>'
+      + (r.um ? '<span class="prep-um">' + escapeHtml(r.um) + '</span>' : '')
+      + '</div>';
+  } else if(r.fatta){
+    qty = '<div class="prep-req">Caricati <b>' + fmtQty(r.qtyCaricata) + um + '</b></div>';
+  }
+  let nota = '';
+  if(editabile){
+    nota = (r.nota ? '<div class="prep-nota-show">📝 ' + escapeHtml(r.nota) + '</div>' : '')
+      + '<button class="prep-nota-btn" data-nota-open="' + r.i + '">' + (r.nota ? 'Modifica nota' : '+ Aggiungi nota') + '</button>'
+      + '<div class="prep-nota-edit hidden" data-nota-edit="' + r.i + '">'
+      + '<input type="text" class="prep-nota-input" data-nota-input="' + r.i + '" maxlength="200" placeholder="Es. finiti, arriva bancale lunedì" value="' + escAttr(r.nota) + '">'
+      + '<button class="nick-save" data-nota-save="' + r.i + '">Salva</button></div>';
+  } else if(r.nota){
+    nota = '<div class="prep-nota-show">📝 ' + escapeHtml(r.nota) + '</div>';
+  }
+  return '<div class="prep-row' + cls + '">'
+    + '<button class="prep-check" data-check="' + r.i + '"' + (editabile ? '' : ' disabled') + ' aria-label="Caricata">' + segno + '</button>'
+    + '<div class="prep-row-main"><div class="prep-desc">' + escapeHtml(r.desc) + '</div>'
+    + '<div class="prep-req">Richiesti <b>' + fmtQty(r.qtyRichiesta) + um + '</b>' + tag + '</div>'
+    + qty + nota + '</div></div>';
+}
+function armaConferma(btn, testoConferma, azione){
+  btn.addEventListener('click', ()=>{
+    if(btn.dataset.armed !== '1'){
+      btn.dataset.armed = '1';
+      const prima = btn.textContent;
+      btn.textContent = testoConferma;
+      btn.classList.add('confirm');
+      clearTimeout(btn._t);
+      btn._t = setTimeout(()=>{ btn.dataset.armed = ''; btn.textContent = prima; btn.classList.remove('confirm'); }, 4000);
+      return;
+    }
+    clearTimeout(btn._t);
+    azione();
+  });
+}
+function renderPrepDetail(c){
+  const view = document.getElementById('prepDetailView');
+  const chiusa = isChiusa(c), mia = isMia(c), editabile = mia && !chiusa;
+  const fatte = c.righe.filter(r => r.fatta).length;
+
+  let chi;
+  if(chiusa) chi = 'Chiusa da <b>' + escapeHtml(c.chiusaDa || '?') + '</b>' + (c.chiusaAt ? ' · ' + formatOrderTime(c.chiusaAt) : '') + '.';
+  else if(mia) chi = 'La stai preparando <b>tu</b>.';
+  else if(c.presaDa) chi = 'La sta preparando <b>' + escapeHtml(c.presaDa) + '</b>' + (c.presaAt ? ' (dalle ' + formatOrderTime(c.presaAt).replace('Oggi ', '') + ')' : '') + '.';
+  else chi = fatte ? 'Nessuno la sta preparando (già iniziata da qualcuno).' : 'Nessuno la sta preparando.';
+
+  let azioni = '';
+  if(!chiusa){
+    if(mia) azioni = '<button class="prep-btn ghost" data-act="rilascia">Rilascia</button>';
+    else if(c.presaDa) azioni = '<button class="prep-btn danger" data-act="prendi-forza">Prendila tu</button>';
+    else azioni = '<button class="prep-btn take" data-act="prendi">✋ Prendo io</button>';
+  }
+
+  let fondo = '';
+  if(editabile){
+    const m = riepilogoMancanze(c);
+    fondo = '<div class="prep-close-box">'
+      + (m.tot
+        ? '<button class="prep-btn danger" data-act="chiudi-manc" style="width:100%;">Chiudi con mancanze</button>'
+          + '<div class="prep-close-hint">Ancora ' + frasiMancanze(m) + '. Se manca davvero la merce, chiudi così: in ufficio vedranno cosa non è stato caricato.</div>'
+        : '<button class="prep-btn done" data-act="chiudi" style="width:100%;">✓ Tutto caricato: segna come Pronto</button>')
+      + '</div>';
+  } else if(chiusa){
+    const m = riepilogoMancanze(c);
+    fondo = '<div class="prep-closed-box">' + pillHtml(c.stato)
+      + (m.tot ? '<div style="margin-top:8px;">' + frasiMancanze(m).replace(/^./, x => x.toUpperCase()) + '.</div>' : '')
+      + '<div class="prep-actions"><button class="prep-btn ghost" data-act="riapri">Riapri (ho sbagliato)</button></div></div>';
+  }
+
+  view.innerHTML = '<button class="prep-back" data-act="indietro">← Tutte le commissioni</button>'
+    + '<div class="prep-head">'
+    + '<div class="prep-card-top"><span class="prep-num">Commissione N. ' + escapeHtml(c.numero) + '</span>'
+    + '<span class="prep-time">' + (c.inviataAt ? formatOrderTime(c.inviataAt) : '') + '</span></div>'
+    + '<div class="prep-cliente">' + (c.cliente ? escapeHtml(c.cliente) : 'Cliente non indicato') + '</div>'
+    + pillHtml(c.stato)
+    + (c.note ? '<div class="prep-office-note"><b>Note dall\'ufficio:</b> ' + escapeHtml(c.note) + '</div>' : '')
+    + '<div class="prep-holder">' + chi + '</div>'
+    + (azioni ? '<div class="prep-actions">' + azioni + '</div>' : '')
+    + '</div>'
+    + '<div class="prep-progress">' + fatte + ' di ' + c.righe.length + ' righe spuntate'
+    + (!mia && !chiusa ? ' · tocca «Prendo io» per iniziare' : '') + '</div>'
+    + '<div class="prep-rows">' + (c.righe.length ? c.righe.map(r => rigaHtml(r, editabile)).join('') : '<div class="empty-state">Nessuna riga in questa commissione.</div>') + '</div>'
+    + fondo;
+
+  const id = c.id;
+  const act = (name)=> view.querySelector('[data-act="' + name + '"]');
+  act('indietro').addEventListener('click', ()=>{ prepOpenId = null; renderPrep(true); });
+  if(act('prendi')) act('prendi').addEventListener('click', ()=> prendiCommissione(id, false));
+  if(act('prendi-forza')) armaConferma(act('prendi-forza'), 'Tocca ancora: la prendi al posto di ' + c.presaDa, ()=> prendiCommissione(id, true));
+  if(act('rilascia')) act('rilascia').addEventListener('click', ()=> rilasciaCommissione(id));
+  if(act('chiudi')) act('chiudi').addEventListener('click', ()=> chiudiCommissione(id));
+  if(act('chiudi-manc')) armaConferma(act('chiudi-manc'), 'Tocca ancora per chiudere con mancanze', ()=> chiudiCommissione(id));
+  if(act('riapri')) armaConferma(act('riapri'), 'Tocca ancora per riaprirla', ()=> riapriCommissione(id));
+
+  if(!editabile) return;
+  view.querySelectorAll('[data-check]').forEach(b => b.addEventListener('click', ()=> spuntaRiga(id, parseInt(b.dataset.check, 10))));
+  view.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', ()=>{
+    const i = parseInt(b.dataset.inc, 10);
+    const r = findPrep(id).righe[i];
+    impostaQtyRiga(id, i, (r.qtyCaricata === null ? 0 : r.qtyCaricata) + 1);
+  }));
+  view.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', ()=>{
+    const i = parseInt(b.dataset.dec, 10);
+    const r = findPrep(id).righe[i];
+    // da vuoto, "−" parte dalla quantità richiesta (es. 5 richiesti → 4 caricati)
+    const base = r.qtyCaricata !== null ? r.qtyCaricata : (r.qtyRichiesta !== null ? r.qtyRichiesta : 0);
+    impostaQtyRiga(id, i, Math.max(0, base - 1));
+  }));
+  view.querySelectorAll('[data-qty]').forEach(inp => inp.addEventListener('change', ()=>{
+    const raw = inp.value.trim();
+    const v = raw === '' ? null : toNum(raw);
+    if(raw !== '' && v === null) return;
+    impostaQtyRiga(id, parseInt(inp.dataset.qty, 10), v);
+  }));
+  view.querySelectorAll('[data-nota-open]').forEach(b => b.addEventListener('click', ()=>{
+    const panel = view.querySelector('[data-nota-edit="' + b.dataset.notaOpen + '"]');
+    panel.classList.remove('hidden');
+    b.style.display = 'none';
+    panel.querySelector('input').focus();
+  }));
+  view.querySelectorAll('[data-nota-input]').forEach(inp=>{
+    const i = parseInt(inp.dataset.notaInput, 10);
+    inp.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); inp.blur(); } });
+    // come nel carrello: uscire dal campo (anche col "Fine" della tastiera) salva
+    inp.addEventListener('blur', ()=> salvaNotaRiga(id, i, inp.value));
+  });
+  view.querySelectorAll('[data-nota-save]').forEach(b => b.addEventListener('click', ()=>{
+    const inp = view.querySelector('[data-nota-input="' + b.dataset.notaSave + '"]');
+    salvaNotaRiga(id, parseInt(b.dataset.notaSave, 10), inp.value);
+  }));
+}
+function renderPrep(force){
+  updatePrepBadge();
+  updatePrepWarning();
+  if(activeTab !== 'prep') return;
+  if(!force && isTypingPrep()){ prepRenderPending = true; return; }
+  prepRenderPending = false;
+  let c = null;
+  if(prepOpenId){
+    c = findPrep(prepOpenId);
+    if(!c){
+      prepOpenId = null;
+      if(prepServer.length || !prepError) showPrepToast("La commissione non c'è più: l'ufficio l'ha ritirata.", true);
+    }
+  }
+  document.getElementById('prepListView').style.display = c ? 'none' : '';
+  document.getElementById('prepDetailView').style.display = c ? '' : 'none';
+  if(c) renderPrepDetail(c); else renderPrepList();
+}
+document.querySelectorAll('.prep-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.prep-chip').forEach(x => x.classList.remove('active'));
+    chip.classList.add('active');
+    prepFilter = chip.dataset.prepFilter;
+    renderPrep(true);
+  });
+});
+function subscribeCommissioni(onChange, onError){
+  return onSnapshot(commissioniCol(),
+    (snap)=> onChange(snap.docs.map(d => normCommissione(d.id, d.data()))),
+    (err)=> onError(err)
+  );
+}
+
 // ---------------- Init & realtime sync ----------------
 (async function init(){
   await initCapabilities();
@@ -1840,6 +2584,27 @@ function playBeep(){
       if(audioEnabled) playBeep();
     }
     lastKnownCount = orders.length;
+  });
+
+  // Commissioni dal programma ordini: suonano e lampeggiano come i buoni nuovi.
+  let knownPrepIds = null;
+  subscribeCommissioni((list)=>{
+    prepError = '';
+    const prev = knownPrepIds;
+    const hasNew = prev !== null && list.some(c => !prev.has(c.id));
+    knownPrepIds = new Set(list.map(c => c.id));
+    prepServer = list;
+    prepCache = applyPending(list);
+    renderPrep();
+    if(hasNew){
+      const b = document.getElementById('prepBadge');
+      b.classList.add('flash');
+      setTimeout(()=> b.classList.remove('flash'), 1300);
+      if(audioEnabled) playBeep();
+    }
+  }, (err)=>{
+    prepError = (err && err.code) || 'errore';
+    renderPrep(true);
   });
 
   subscribeFavorites((favs2)=>{
