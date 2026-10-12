@@ -810,6 +810,31 @@
   .prep-toast.info{background:var(--bg-shell);}
   .prep-toast.hidden{display:none;}
   @media(min-width:900px){ .prep-toast{left:auto;right:24px;max-width:420px;} }
+
+  /* ---------- Accesso (login) ---------- */
+  .login-overlay{
+    position:fixed;inset:0;z-index:9999;
+    background:var(--bg-shell);
+    display:flex;align-items:center;justify-content:center;
+    padding:16px;overflow-y:auto;
+  }
+  .login-overlay.hidden{display:none;}
+  .login-card{
+    width:100%;max-width:420px;
+    background:var(--card);border-radius:12px;
+    padding:24px 20px;display:flex;flex-direction:column;gap:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.35);
+  }
+  .login-card h2{font-family:var(--font-display);font-size:22px;margin:0;color:var(--text);}
+  .login-sub{margin:0;font-size:15px;line-height:1.4;color:var(--muted);}
+  .login-card label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--muted);}
+  .login-card .field-input{font-size:17px;padding:13px 12px;min-height:50px;}
+  .login-card .btn-primary-small{font-size:17px;padding:15px 16px;min-height:54px;flex:none;}
+  .login-card .btn-primary-small:disabled{opacity:0.6;}
+  .login-error{background:var(--bad-bg, #F8E4E1);color:var(--stamp);border-radius:8px;padding:10px 12px;font-size:15px;font-weight:600;line-height:1.35;}
+  .login-error.hidden{display:none;}
+  .operator-bar .logout-btn{margin-left:0;}
+  .operator-bar .logout-btn.confirm{border-color:var(--stamp);color:var(--stamp);}
 </style>
 </head>
 <body>
@@ -826,10 +851,26 @@
   </nav>
 </header>
 
+<div class="login-overlay hidden" id="loginOverlay">
+  <form class="login-card" id="loginForm" novalidate>
+    <h2>Accesso</h2>
+    <p class="login-sub">Inserisci email e password del tuo account. Si fa una volta sola: poi il tablet resta collegato.</p>
+    <label>Email
+      <input class="field-input" id="loginEmail" type="email" autocomplete="username" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false">
+    </label>
+    <label>Password
+      <input class="field-input" id="loginPassword" type="password" autocomplete="current-password">
+    </label>
+    <div class="login-error hidden" id="loginError" role="alert"></div>
+    <button type="submit" class="btn-primary-small" id="loginBtn">Entra</button>
+  </form>
+</div>
+
 <div class="operator-bar" id="operatorBar">
   <span>&#128100;</span>
   <span id="operatorLabel">Nessun nome impostato</span>
   <button class="operator-edit-btn" id="operatorEditBtn">Imposta</button>
+  <button class="operator-edit-btn logout-btn" id="logoutBtn">Esci</button>
   <span class="app-version" id="appVersion" title="Versione dell'app su questo telefono"></span>
 </div>
 <div class="operator-edit-form hidden" id="operatorEditForm">
@@ -940,7 +981,7 @@
 // (Project settings → your apps → "</>") in place of the object below.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
-  getAuth, signInAnonymously, onAuthStateChanged
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
@@ -978,16 +1019,95 @@ PRODUCTS.forEach((p, idx)=>{ if(!PRODUCTS_BY_DESC.has(p[0])) PRODUCTS_BY_DESC.se
 // submitOrderBtn's handler, renderOrders, etc.) had to change at all.
 let viewerId = null;
 
-function waitForAnonymousAuth(){
+// ---------------- Accesso con email e password ----------------
+// Solo gli account creati nella console Firebase (e messi nella lista delle
+// regole Firestore) possono leggere o scrivere: chi ha solo il link vede
+// la schermata di accesso e basta. Il login resta salvato sul tablet.
+const LAST_EMAIL_KEY = 'edilnord_last_email';
+let currentEmail = '';
+const loginOverlay = document.getElementById('loginOverlay');
+const loginForm = document.getElementById('loginForm');
+const loginEmail = document.getElementById('loginEmail');
+const loginPassword = document.getElementById('loginPassword');
+const loginError = document.getElementById('loginError');
+const loginBtn = document.getElementById('loginBtn');
+
+function showLogin(){
+  try{ const last = localStorage.getItem(LAST_EMAIL_KEY); if(last && !loginEmail.value) loginEmail.value = last; }catch(e){}
+  loginOverlay.classList.remove('hidden');
+  setTimeout(()=> (loginEmail.value ? loginPassword : loginEmail).focus(), 50);
+}
+function hideLogin(){
+  loginOverlay.classList.add('hidden');
+  loginPassword.value = '';
+  loginError.classList.add('hidden');
+}
+function loginErrorText(code){
+  switch(code){
+    case 'auth/invalid-email': return "L'email non è scritta bene.";
+    case 'auth/missing-password': return 'Manca la password.';
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found': return 'Email o password sbagliate.';
+    case 'auth/user-disabled': return 'Questo account è stato disattivato: chiedi in ufficio.';
+    case 'auth/too-many-requests': return 'Troppi tentativi sbagliati: aspetta qualche minuto e riprova.';
+    case 'auth/network-request-failed': return 'Niente connessione: controlla il Wi-Fi e riprova.';
+    default: return 'Accesso non riuscito (' + (code || 'errore sconosciuto') + ').';
+  }
+}
+loginForm.addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  const email = loginEmail.value.trim().toLowerCase();
+  const pw = loginPassword.value;
+  if(!email || !pw){ loginError.textContent = 'Scrivi email e password.'; loginError.classList.remove('hidden'); return; }
+  loginBtn.disabled = true; loginBtn.textContent = 'Accesso in corso…';
+  loginError.classList.add('hidden');
+  try{
+    await signInWithEmailAndPassword(fbAuth, email, pw);
+    try{ localStorage.setItem(LAST_EMAIL_KEY, email); }catch(e){}
+  }catch(e){
+    loginError.textContent = loginErrorText(e && e.code);
+    loginError.classList.remove('hidden');
+  }finally{
+    loginBtn.disabled = false; loginBtn.textContent = 'Entra';
+  }
+});
+
+function waitForLogin(){
   return new Promise((resolve) => {
-    signInAnonymously(fbAuth).catch(()=>{});
-    const unsub = onAuthStateChanged(fbAuth, (user)=>{
-      if(user){ unsub(); resolve(user.uid); }
+    let started = false;
+    onAuthStateChanged(fbAuth, (user)=>{
+      if(user){
+        currentEmail = user.email || '';
+        hideLogin();
+        if(!started){ started = true; resolve(user.uid); }
+        else if(user.uid !== viewerId){ location.reload(); }
+      }else{
+        // Uscito dopo essere entrato: si riparte puliti dalla schermata di accesso.
+        if(started){ location.reload(); return; }
+        showLogin();
+      }
     });
   });
 }
 async function initCapabilities(){
-  try{ viewerId = await waitForAnonymousAuth(); }catch(e){ viewerId = null; }
+  try{ viewerId = await waitForLogin(); }catch(e){ viewerId = null; }
+  const btn = document.getElementById('logoutBtn');
+  if(btn){
+    btn.title = currentEmail ? 'Collegato come ' + currentEmail : '';
+    let armed = null;
+    btn.addEventListener('click', async ()=>{
+      if(!armed){
+        btn.textContent = 'Sicuro? Esci';
+        btn.classList.add('confirm');
+        armed = setTimeout(()=>{ armed = null; btn.textContent = 'Esci'; btn.classList.remove('confirm'); }, 3500);
+        return;
+      }
+      clearTimeout(armed); armed = null;
+      try{ await signOut(fbAuth); }catch(e){ location.reload(); }
+    });
+  }
 }
 
 // Never let a db call hang the UI forever (e.g. a flaky connection): after
@@ -1005,7 +1125,7 @@ function withTimeout(promise, ms){
 
 function ordersCol(){ return collection(fbDb, 'orders'); }
 // Il nome dell'operatore e i soprannomi sono personali di ogni magazziniere:
-// ogni telefono ha una sua identità anonima e invisibile (viewerId) e quello
+// ogni account (email/password) ha la sua identità (viewerId) e quello
 // che salva vive lì, privato. I PREFERITI invece sono una lista unica per
 // tutti (vedi più sotto); favoritesDoc() resta solo per la vecchia lista
 // personale, usata per il passaggio alla lista comune.
@@ -1095,7 +1215,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
