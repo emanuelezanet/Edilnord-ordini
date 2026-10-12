@@ -834,6 +834,57 @@
   .login-error{background:var(--bad-bg, #F8E4E1);color:var(--stamp);border-radius:8px;padding:10px 12px;font-size:15px;font-weight:600;line-height:1.35;}
   .login-error.hidden{display:none;}
   .operator-bar .logout-btn{margin-left:0;}
+
+  /* ---------- v15: cliente obbligatorio + numero per la cassa ---------- */
+  .req{font-weight:600;color:var(--stamp);font-size:0.85em;margin-left:4px;}
+  .customer-row{display:flex;gap:8px;}
+  .customer-row .field-input{flex:1;min-width:0;}
+  .gen-num-btn{flex:none;white-space:nowrap;color:var(--text);}
+  .field-input.missing{border-color:var(--stamp);box-shadow:0 0 0 2px rgba(178,59,59,0.25);}
+  .gen-num-hint{margin-top:8px;font-size:15px;background:var(--warn-bg);color:#6B4A0F;border-radius:8px;padding:10px 12px;}
+  .gen-num-hint b{font-family:var(--font-mono);font-size:20px;letter-spacing:1px;}
+  .gen-num-hint.hidden{display:none;}
+  .toast.warn{background:var(--stamp);}
+  @media (max-width:420px){ .customer-row{flex-direction:column;} }
+
+  /* ---------- v15: barra "Annulla" dopo aver tolto una riga ---------- */
+  .undo-bar{
+    position:fixed;left:12px;right:12px;bottom:18px;z-index:61;
+    background:var(--bg-shell);color:#fff;border-radius:10px;padding:8px 8px 8px 16px;
+    display:flex;align-items:center;gap:12px;font-size:16px;font-weight:600;
+    box-shadow:0 4px 14px rgba(0,0,0,0.3);
+  }
+  .undo-bar.hidden{display:none;}
+  .undo-bar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .undo-bar button{
+    flex:none;background:var(--accent);color:#20221f;border:none;border-radius:8px;
+    font-size:17px;font-weight:700;padding:0 20px;min-height:48px;
+  }
+  @media(min-width:900px){ .undo-bar{left:auto;right:24px;width:420px;} }
+
+  /* ---------- v14: ricerca con tasto ×, voce manuale dai "nessun risultato" ---------- */
+  .search-box input::-webkit-search-cancel-button{-webkit-appearance:none;display:none;}
+  .search-clear{
+    flex:none;width:44px;height:44px;margin-right:2px;border:none;border-radius:8px;
+    background:rgba(0,0,0,0.06);color:var(--muted);font-size:18px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .search-clear.hidden{display:none;}
+  .no-results-add{margin-top:14px;border-color:var(--accent);color:var(--accent-dark);background:rgba(232,163,61,0.08);}
+  @media (max-width:700px), (pointer:coarse){
+    .search-clear{width:52px;height:52px;font-size:22px;}
+  }
+  /* Tablet (schermo touch largo): nome del prodotto e pulsanti sulla stessa
+     riga, così si vedono il doppio dei risultati senza scorrere. I pulsanti
+     restano grandi. Sul telefono resta tutto com'era (pulsanti sotto). */
+  @media (pointer:coarse) and (min-width:700px){
+    .result-row{flex-wrap:nowrap;padding:10px 12px;}
+    .result-info{flex:1 1 auto;}
+    .result-actions{flex:none;}
+    .add-btn{flex:none;width:120px;}
+    .add-btn.added::after{content:"";margin:0;}
+    .results-list{max-height:62vh;}
+  }
   .operator-bar .logout-btn.confirm{border-color:var(--stamp);color:var(--stamp);}
 </style>
 </head>
@@ -885,7 +936,8 @@
       <div class="catalog-col">
         <div class="search-box">
           <span class="icon">&#128269;</span>
-          <input id="searchInput" placeholder="Cerca prodotto per nome...">
+          <input id="searchInput" type="search" enterkeyhint="search" autocomplete="off" placeholder="Cerca prodotto per nome...">
+          <button class="search-clear hidden" id="searchClear" aria-label="Cancella ricerca">&#10005;</button>
         </div>
         <div class="search-hint" id="searchHint">Digita per cercare tra i prodotti a catalogo.</div>
         <div class="quick-access results-list" id="quickAccess"></div>
@@ -921,8 +973,12 @@
           <div id="cartList"></div>
           <div class="order-meta">
             <div>
-              <label>Cliente</label>
-              <input class="field-input" id="customerInput" placeholder="Nome cliente">
+              <label>Cliente <span class="req">obbligatorio</span></label>
+              <div class="customer-row">
+                <input class="field-input" id="customerInput" placeholder="Nome cliente" autocomplete="off">
+                <button type="button" class="btn-secondary gen-num-btn" id="genNumBtn">&#128290; Genera numero</button>
+              </div>
+              <div class="gen-num-hint hidden" id="genNumHint"></div>
             </div>
             <div>
               <label>Note / istruzioni</label>
@@ -939,8 +995,8 @@
   <section id="tab-ordini" class="tab-panel">
     <div class="ordini-toolbar">
       <div class="filter-chips">
-        <button class="chip active" data-filter="tutti">Tutti</button>
-        <button class="chip" data-filter="attesa">In attesa</button>
+        <button class="chip" data-filter="tutti">Tutti</button>
+        <button class="chip active" data-filter="attesa">In attesa</button>
         <button class="chip" data-filter="evaso">Evasi</button>
       </div>
       <div class="toolbar-right">
@@ -972,6 +1028,7 @@
   </section>
 </main>
 <div class="prep-toast hidden" id="prepToast" role="status"></div>
+<div class="undo-bar hidden" id="undoBar" role="status"><span id="undoText"></span><button id="undoBtn">Annulla</button></div>
 
 <button class="fab" id="scrollToCartBtn">&#128722; <span id="fabCount">0</span></button>
 
@@ -1215,7 +1272,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = 13;
+const APP_VERSION = 15;
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -1389,7 +1446,7 @@ let cart = [];
 let cartIdCounter = 1;
 let activeTab = 'nuovo';
 let ordersCache = [];
-let ordersFilter = 'tutti';
+let ordersFilter = 'attesa'; // si apre su In attesa: è la lista di chi deve evadere
 let lastKnownCount = null;
 let audioEnabled = false;
 let audioCtx = null;
@@ -1425,6 +1482,7 @@ document.querySelectorAll('.tab').forEach(btn=>{
     btn.classList.add('active');
     activeTab = btn.dataset.tab;
     document.getElementById('tab-' + activeTab).classList.add('active');
+    updateFab();
     if(activeTab === 'ordini'){
       refreshOrders(false);
     }
@@ -1445,8 +1503,14 @@ function refreshOperatorLabel(){
   operatorLabel.innerHTML = operatorName ? 'Tu sei <strong>' + escapeHtml(operatorName) + '</strong>' : 'Nessun nome impostato';
   operatorEditBtn.textContent = operatorName ? 'Cambia' : 'Imposta';
 }
+// Nome proposto dall'account: marco@edil-nord.com → "Marco",
+// emanuele.zanet@gmail.com → "Emanuele". Basta toccare Salva.
+function nomeDaAccount(){
+  const local = (currentEmail || '').split('@')[0].split(/[._\-+0-9]/)[0];
+  return local ? local.charAt(0).toUpperCase() + local.slice(1).toLowerCase() : '';
+}
 function openOperatorEdit(){
-  operatorInput.value = operatorName;
+  operatorInput.value = operatorName || nomeDaAccount();
   operatorEditForm.classList.remove('hidden');
 }
 operatorEditBtn.addEventListener('click', ()=>{
@@ -1501,12 +1565,10 @@ function refreshProductLists(){
   renderQuickAccess();
   if(searchInput.value.trim()) renderResults(searchInput.value);
 }
+// Messaggio breve in basso sullo schermo (prima finiva sotto il tasto Invia,
+// che sul tablet in verticale è fuori vista: la conferma non si vedeva).
 function showQuickFeedback(msg){
-  const toast = document.getElementById('orderToast');
-  toast.classList.remove('hidden');
-  toast.textContent = msg;
-  clearTimeout(showQuickFeedback._t);
-  showQuickFeedback._t = setTimeout(()=> toast.classList.add('hidden'), 1800);
+  showPrepToast(msg, true, 2200);
 }
 // Segnali che il prodotto è stato messo nel carrello: il tasto "+" diventa
 // verde con la spunta per un istante, il contatore del carrello "salta" e,
@@ -1687,17 +1749,46 @@ function renderResults(query){
   }
   quickAccessEl.innerHTML = '';
   const words = q.split(/\s+/).filter(Boolean);
+  // Pertinenza: prima i prodotti dove la parola cercata è una parola intera
+  // ("tubo 40" → "TUBO D 40" prima di "TUBO D 140"), poi quelli dove una
+  // parola INIZIA così ("cemento" → "CEMENTO BIANCO" prima di "FIBROCEMENTO"),
+  // in fondo quelli dove la si trova solo in mezzo a una parola.
+  // Il soprannome conta più della descrizione.
+  const pats = words.map(w => {
+    const e = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return { w, whole: new RegExp('(^|[^a-z0-9])' + e + '([^a-z0-9]|$)'), start: new RegExp('(^|[^a-z0-9])' + e) };
+  });
+  const wordScore = (text, p)=>{
+    if(!text || text.indexOf(p.w) === -1) return 0;
+    if(p.whole.test(text)) return 4;
+    if(p.start.test(text)) return 2;
+    return 1;
+  };
   const matches = [];
+  const score = new Map();
   for(let i=0;i<PRODUCTS.length;i++){
     const nd = PRODUCTS[i][3];
     const nickNd = NICK_NORM[String(i)] || '';
-    let ok = true;
-    for(const w of words){ if(nd.indexOf(w) === -1 && nickNd.indexOf(w) === -1){ ok = false; break; } }
-    if(ok) matches.push(i);
+    let ok = true, s = 0;
+    for(const p of pats){
+      if(nd.indexOf(p.w) === -1 && nickNd.indexOf(p.w) === -1){ ok = false; break; }
+      const sn = wordScore(nickNd, p);
+      s += Math.max(wordScore(nd, p), sn ? sn + 1 : 0);
+    }
+    if(!ok) continue;
+    if(nd.indexOf(words[0]) === 0) s += 1; // la descrizione comincia con la prima parola cercata
+    matches.push(i);
+    score.set(i, s);
   }
+  matches.sort((a, b)=> (score.get(b) - score.get(a)) || (PRODUCTS[a][0].length - PRODUCTS[b][0].length) || (a - b));
   if(matches.length === 0){
-    resultsList.innerHTML = '<div class="no-results">Nessun prodotto trovato. Puoi aggiungerlo come voce manuale qui sotto.</div>';
+    resultsList.innerHTML = '<div class="no-results">Nessun prodotto trovato.'
+      + '<button class="manual-add-btn no-results-add" id="noResultsAdd">+ Aggiungi «' + escapeHtml(query.trim()) + '» come voce manuale</button></div>';
     searchHint.textContent = '';
+    // la voce manuale parte già con quello che si è scritto nella ricerca
+    document.getElementById('noResultsAdd').addEventListener('click', ()=>{
+      openManualForm(query.trim());
+    });
     return;
   }
   // I preferiti vanno in cima, poi tutti gli altri; si mostrano i primi 50.
@@ -1720,7 +1811,16 @@ function renderResults(query){
   resultsList.innerHTML = html;
   wireProductRows(resultsList);
 }
-searchInput.addEventListener('input', ()=> renderResults(searchInput.value));
+const searchClear = document.getElementById('searchClear');
+function syncSearchClear(){ searchClear.classList.toggle('hidden', !searchInput.value); }
+searchInput.addEventListener('input', ()=>{ syncSearchClear(); renderResults(searchInput.value); });
+// × : svuota la ricerca e lascia il cursore lì, pronto per il prodotto dopo
+searchClear.addEventListener('click', ()=>{
+  searchInput.value = '';
+  syncSearchClear();
+  renderResults('');
+  searchInput.focus();
+});
 renderResults('');
 
 // ---------------- Manual entry ----------------
@@ -1729,8 +1829,16 @@ const manualForm = document.getElementById('manualForm');
 document.getElementById('umOptions').innerHTML = UM_OPTIONS.map(u=>'<option value="'+u+'">').join('');
 
 manualBtn.addEventListener('click', ()=>{
-  manualForm.classList.toggle('hidden');
+  if(manualForm.classList.contains('hidden')) openManualForm(searchInput.value.trim());
+  else manualForm.classList.add('hidden');
 });
+function openManualForm(desc){
+  const d = document.getElementById('manualDesc');
+  if(desc && !d.value.trim()) d.value = desc;
+  manualForm.classList.remove('hidden');
+  manualForm.scrollIntoView({behavior:'smooth', block:'center'});
+  setTimeout(()=> (d.value ? document.getElementById('manualQty') : d).focus(), 250);
+}
 document.getElementById('manualCancel').addEventListener('click', ()=>{
   manualForm.classList.add('hidden');
   document.getElementById('manualDesc').value = '';
@@ -1763,11 +1871,72 @@ const submitOrderBtn = document.getElementById('submitOrderBtn');
 const scrollToCartBtn = document.getElementById('scrollToCartBtn');
 const fabCount = document.getElementById('fabCount');
 
+// ---- Togliere una riga dal carrello, con "Annulla" ----
+// Coi guanti è facile toccare la ✕ per sbaglio: la riga sparisce ma per
+// qualche secondo in basso c'è "Annulla", che la rimette dov'era.
+let undoTimer = null;
+function removeCartItem(id){
+  const pos = cart.findIndex(c => c.id === id);
+  if(pos === -1) return;
+  const tolto = Object.assign({}, cart[pos]);
+  if(tolto.qty <= 0) tolto.qty = 1; // tolta col "−" arrivando a 0: torna con 1
+  cart = cart.filter(c => c.id !== id);
+  renderCart();
+  const bar = document.getElementById('undoBar');
+  document.getElementById('undoText').textContent = 'Tolto: ' + tolto.desc;
+  bar.classList.remove('hidden');
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(()=> bar.classList.add('hidden'), 6000);
+  document.getElementById('undoBtn').onclick = ()=>{
+    clearTimeout(undoTimer);
+    bar.classList.add('hidden');
+    cart.splice(Math.min(pos, cart.length), 0, tolto);
+    lastAddedId = tolto.id;
+    renderCart();
+  };
+}
+
+// ---- Bozza del buono salvata sul tablet ----
+// Se il tablet si spegne, Android chiude l'app o arriva un aggiornamento,
+// il buono che si stava scrivendo (righe, cliente, note) non va perso:
+// resta sul tablet, legato all'account, finché non viene inviato.
+const DRAFT_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+function draftKey(){ return viewerId ? 'edilnord_bozza_' + viewerId : null; }
+let draftReady = false; // si salva solo dopo aver provato a riprendere la bozza
+function saveDraft(){
+  const k = draftKey();
+  if(!k || !draftReady) return;
+  const customer = document.getElementById('customerInput').value;
+  const note = document.getElementById('noteInput').value;
+  try{
+    if(!cart.length && !customer.trim() && !note.trim()) localStorage.removeItem(k);
+    else localStorage.setItem(k, JSON.stringify({cart, customer, note, at: Date.now()}));
+  }catch(e){}
+}
+function restoreDraft(){
+  const k = draftKey();
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem(k) || 'null'); }catch(e){ d = null; }
+  draftReady = true;
+  if(!d || !Array.isArray(d.cart) || (Date.now() - (d.at || 0)) > DRAFT_MAX_AGE_MS){ saveDraft(); return; }
+  if(cart.length) return; // c'è già qualcosa nel carrello: non si mescola
+  cart = d.cart.filter(c => c && typeof c.desc === 'string' && typeof c.qty === 'number')
+    .map((c, n) => ({id: n + 1, desc: c.desc, um: c.um || '', price: 0, qty: c.qty, manual: !!c.manual, note: c.note || ''}));
+  cartIdCounter = cart.length + 1;
+  document.getElementById('customerInput').value = d.customer || '';
+  document.getElementById('noteInput').value = d.note || '';
+  syncGenHint();
+  renderCart();
+  if(cart.length) showQuickFeedback('Ripreso il buono che stavi scrivendo (' + cart.length + (cart.length === 1 ? ' articolo' : ' articoli') + ')');
+}
+['customerInput', 'noteInput'].forEach(id => document.getElementById(id).addEventListener('input', saveDraft));
+
 function renderCart(){
+  saveDraft();
   markInCart();
   cartCount.textContent = '(' + cart.length + ')';
   fabCount.textContent = cart.length;
-  scrollToCartBtn.classList.toggle('show', cart.length > 0);
+  updateFab();
   submitOrderBtn.disabled = cart.length === 0;
 
   if(cart.length === 0){
@@ -1803,8 +1972,8 @@ function renderCart(){
     const id = parseInt(row.dataset.id);
     const item = cart.find(c=>c.id === id);
     row.querySelector('[data-act="inc"]').addEventListener('click', ()=>{ item.qty += 1; renderCart(); });
-    row.querySelector('[data-act="dec"]').addEventListener('click', ()=>{ item.qty = Math.max(0, item.qty - 1); if(item.qty === 0){ cart = cart.filter(c=>c.id!==id); } renderCart(); });
-    row.querySelector('[data-act="rm"]').addEventListener('click', ()=>{ cart = cart.filter(c=>c.id!==id); renderCart(); });
+    row.querySelector('[data-act="dec"]').addEventListener('click', ()=>{ item.qty = Math.max(0, item.qty - 1); if(item.qty === 0){ removeCartItem(id); return; } renderCart(); });
+    row.querySelector('[data-act="rm"]').addEventListener('click', ()=> removeCartItem(id));
     row.querySelector('.um-input').addEventListener('change', (e)=>{
       // The magazziniere can override the catalog's default unit of measure
       // for this specific load (e.g. count a product by PZ instead of MQ).
@@ -1813,7 +1982,7 @@ function renderCart(){
     });
     row.querySelector('.qty-input').addEventListener('change', (e)=>{
       const v = parseFloat(e.target.value);
-      if(!isNaN(v) && v > 0){ item.qty = v; } else { cart = cart.filter(c=>c.id!==id); }
+      if(!isNaN(v) && v > 0){ item.qty = v; } else { removeCartItem(id); return; }
       renderCart();
     });
     const notePanel = row.querySelector('.ci-note-edit-panel');
@@ -1842,8 +2011,50 @@ function renderCart(){
 }
 renderCart();
 
+// Il pulsante tondo del carrello si vede solo in "Nuovo Buono di Carico" e
+// solo finché il carrello è fuori vista: prima restava anche nelle altre
+// schede (dove non faceva niente) e copriva i pulsanti del carrello.
+var cartInView = false; // var: renderCart() la usa già prima di questa riga
+function updateFab(){
+  scrollToCartBtn.classList.toggle('show', cart.length > 0 && activeTab === 'nuovo' && !cartInView);
+}
+try{
+  new IntersectionObserver((entries)=>{
+    cartInView = entries.some(e => e.isIntersecting);
+    updateFab();
+  }, {threshold: 0, rootMargin: '0px 0px -120px 0px'}).observe(document.getElementById('cartSection'));
+}catch(e){}
 scrollToCartBtn.addEventListener('click', ()=>{
   document.getElementById('cartSection').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+// ---- Cliente obbligatorio / numero per la cassa ----
+// Se il magazziniere non sa il nome, genera un numero: lo dice al cliente,
+// che lo ripete in cassa. In ufficio il buono compare come "Cliente n. 4827".
+const NUM_RE = /^Cliente n\. (\d{4})$/;
+function numeroCassa(text){ const m = NUM_RE.exec((text || '').trim()); return m ? m[1] : ''; }
+function generaNumero(){
+  const usati = new Set(ordersCache.filter(o => o.status === 'in_attesa').map(o => numeroCassa(o.customer)).filter(Boolean));
+  let n = '';
+  for(let k = 0; k < 50; k++){
+    n = String(1000 + Math.floor(Math.random() * 9000));
+    if(!usati.has(n)) break;
+  }
+  return n;
+}
+const customerInput = document.getElementById('customerInput');
+const genNumHint = document.getElementById('genNumHint');
+function syncGenHint(){
+  const n = numeroCassa(customerInput.value);
+  genNumHint.classList.toggle('hidden', !n);
+  if(n) genNumHint.innerHTML = 'Di\' al cliente il numero <b>' + n + '</b>: lo ripete in cassa.';
+  customerInput.classList.remove('missing');
+}
+customerInput.addEventListener('input', syncGenHint);
+document.getElementById('genNumBtn').addEventListener('click', ()=>{
+  customerInput.value = 'Cliente n. ' + generaNumero();
+  syncGenHint();
+  saveDraft();
 });
 
 // ---------------- Submit order ----------------
@@ -1856,6 +2067,18 @@ submitOrderBtn.addEventListener('click', async ()=>{
     toast.classList.remove('hidden');
     toast.textContent = 'Inserisci il tuo nome qui sopra prima di inviare il buono di carico.';
     setTimeout(()=> toast.classList.add('hidden'), 3500);
+    return;
+  }
+  if(!customerInput.value.trim()){
+    customerInput.classList.add('missing');
+    customerInput.scrollIntoView({behavior:'smooth', block:'center'});
+    setTimeout(()=> customerInput.focus(), 300);
+    const toast = document.getElementById('orderToast');
+    toast.classList.remove('hidden');
+    toast.classList.add('warn');
+    toast.textContent = 'Manca il cliente: scrivi il nome oppure tocca «Genera numero».';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>{ toast.classList.add('hidden'); toast.classList.remove('warn'); }, 4000);
     return;
   }
   submitOrderBtn.disabled = true;
@@ -1881,19 +2104,27 @@ submitOrderBtn.addEventListener('click', async ()=>{
 
   const toast = document.getElementById('orderToast');
   toast.classList.remove('hidden');
-  toast.textContent = ok ? "Buono di carico inviato all'ufficio ✓" : 'Errore di connessione: riprova.';
+  toast.classList.remove('warn');
+  const numInviato = numeroCassa(order.customer);
+  toast.textContent = !ok ? 'Errore di connessione: riprova.'
+    : numInviato ? "Inviato ✓ — Di' al cliente il numero " + numInviato + ' per la cassa.'
+    : "Buono di carico inviato all'ufficio ✓";
 
   if(ok){
     cart = [];
     renderCart();
     document.getElementById('customerInput').value = '';
     document.getElementById('noteInput').value = '';
+    saveDraft(); // inviato: la bozza sul tablet si cancella
+    syncGenHint();
     searchInput.value = '';
+    syncSearchClear();
     renderResults('');
   }
   submitOrderBtn.textContent = 'Invia';
   submitOrderBtn.disabled = cart.length === 0;
-  setTimeout(()=> toast.classList.add('hidden'), 3500);
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=> toast.classList.add('hidden'), (ok && numInviato) ? 10000 : 3500); // il numero deve restare il tempo di dirlo al cliente
 });
 
 // ---------------- Orders tab ----------------
@@ -2214,13 +2445,13 @@ function frasiMancanze(m){
 }
 
 // ---- Avvisi ----
-function showPrepToast(msg, info){
+function showPrepToast(msg, info, ms){
   const el = document.getElementById('prepToast');
   el.textContent = msg;
   el.classList.toggle('info', !!info);
   el.classList.remove('hidden');
   clearTimeout(showPrepToast._t);
-  showPrepToast._t = setTimeout(()=> el.classList.add('hidden'), 4500);
+  showPrepToast._t = setTimeout(()=> el.classList.add('hidden'), ms || 4500);
 }
 function prepErrorText(code){
   if(code.indexOf('presa:') === 0) return "Nel frattempo l'ha presa " + code.slice(6) + '.';
@@ -2743,6 +2974,7 @@ function subscribeCommissioni(onChange, onError){
   refreshOperatorLabel();
   if(!operatorName) openOperatorEdit();
   renderQuickAccess();
+  restoreDraft();
 
   let knownOrderIds = null;
   subscribeOrders((orders)=>{
