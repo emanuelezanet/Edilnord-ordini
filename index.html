@@ -468,7 +468,7 @@
   }
   .chip.active{background:var(--bg-shell);color:#fff;border-color:var(--bg-shell);}
   .toolbar-right{display:flex;gap:8px;align-items:center;}
-  .sound-btn,.refresh-btn{
+  .sound-btn,.refresh-btn,.notif-btn{
     background:var(--card);border:1px solid var(--border);color:var(--text);
     padding:8px 12px;border-radius:7px;font-size:12.5px;font-weight:600;
   }
@@ -663,9 +663,9 @@
     .filter-chips{width:100%;gap:8px;}
     .chip{flex:1;font-size:16px;padding:13px 8px;min-height:48px;border-radius:24px;text-align:center;}
     .toolbar-right{width:100%;gap:8px;}
-    .sound-btn,.refresh-btn{font-size:15px;padding:13px 12px;min-height:48px;border-radius:10px;}
+    .sound-btn,.refresh-btn,.notif-btn{font-size:15px;padding:13px 12px;min-height:48px;border-radius:10px;}
     .refresh-btn{flex:none;}
-    .sound-btn{flex:1;}
+    .sound-btn,.notif-btn{flex:1;}
     .order-card{padding:22px 16px 18px;}
     .order-code{font-size:13.5px;}
     .order-customer{font-size:19px;}
@@ -835,6 +835,11 @@
   .login-error.hidden{display:none;}
   .operator-bar .logout-btn{margin-left:0;}
 
+  /* ---------- v16: notifiche di Windows ---------- */
+  .notif-btn.hidden{display:none;}
+  .notif-btn.on{background:var(--success);color:#fff;border-color:var(--success);}
+  .notif-btn.blocked{border-color:var(--stamp);color:var(--stamp);}
+
   /* ---------- v15: cliente obbligatorio + numero per la cassa ---------- */
   .req{font-weight:600;color:var(--stamp);font-size:0.85em;margin-left:4px;}
   .customer-row{display:flex;gap:8px;}
@@ -1002,6 +1007,7 @@
       <div class="toolbar-right">
         <button class="refresh-btn" id="refreshBtn">&#8635; Aggiorna</button>
         <button class="sound-btn" id="soundBtn">&#128276; Attiva avviso sonoro</button>
+        <button class="notif-btn hidden">&#128421; Attiva notifiche</button>
       </div>
     </div>
     <div class="orders-list" id="ordersList"></div>
@@ -1019,6 +1025,7 @@
         </div>
         <div class="toolbar-right">
           <button class="sound-btn" id="prepSoundBtn">&#128276; Attiva avviso sonoro</button>
+          <button class="notif-btn hidden">&#128421; Attiva notifiche</button>
         </div>
       </div>
       <div class="prep-list" id="prepList"></div>
@@ -1272,7 +1279,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -2093,6 +2100,7 @@ submitOrderBtn.addEventListener('click', async ()=>{
     createdAt: new Date().toISOString(),
     status: 'in_attesa'
   };
+  myOrderIds.add(order.id);
   const ok = await createOrder(order);
   if(ok){
     ordersCache = [...ordersCache, order];
@@ -2154,6 +2162,8 @@ function renderOrders(){
 
   if(orders.length === 0){
     list.innerHTML = '';
+    empty.textContent = ordersFilter === 'attesa' ? 'Nessun buono in attesa: tutto evaso 👍'
+      : ordersFilter === 'evaso' ? 'Nessun buono evaso.' : 'Nessun buono di carico ancora.';
     empty.classList.remove('hidden');
     return;
   }
@@ -2320,6 +2330,81 @@ function playBeep(){
   else { try{ ctx.resume().then(go).catch(()=>{}); }catch(e){} }
 }
 
+// ---------------- Notifiche di Windows ----------------
+// Per il PC senza casse (amministrazione): ogni buono nuovo, commissione
+// nuova o commissione pronta fa comparire il riquadro di Windows in basso a
+// destra, anche col browser ridotto a icona (deve restare aperto). Si attiva
+// su ogni PC/tablet col pulsante "Attiva notifiche"; Windows lo chiede una volta.
+const NOTIF_PREF_KEY = 'edilnord_notifiche';
+const notifSupported = ('Notification' in window);
+function notifOn(){
+  try{ return notifSupported && Notification.permission === 'granted' && localStorage.getItem(NOTIF_PREF_KEY) === '1'; }catch(e){ return false; }
+}
+function setNotifUi(){
+  document.querySelectorAll('.notif-btn').forEach(b=>{
+    b.classList.toggle('hidden', !notifSupported);
+    if(!notifSupported) return;
+    const blocked = Notification.permission === 'denied';
+    b.classList.toggle('on', notifOn());
+    b.classList.toggle('blocked', blocked);
+    b.innerHTML = blocked ? '&#128421; Notifiche bloccate' : notifOn() ? '&#128421; Notifiche attive' : '&#128421; Attiva notifiche';
+  });
+}
+document.querySelectorAll('.notif-btn').forEach(b=> b.addEventListener('click', async ()=>{
+  if(!notifSupported) return;
+  if(Notification.permission === 'denied'){
+    showPrepToast('Le notifiche sono bloccate per questo sito: tocca il lucchetto accanto all\'indirizzo → Notifiche → Consenti, poi ricarica la pagina.', false, 9000);
+    return;
+  }
+  if(notifOn()){
+    try{ localStorage.setItem(NOTIF_PREF_KEY, '0'); }catch(e){}
+    setNotifUi();
+    showPrepToast('Notifiche spente su questo dispositivo.', true);
+    return;
+  }
+  let perm = Notification.permission;
+  if(perm !== 'granted'){ try{ perm = await Notification.requestPermission(); }catch(e){ perm = 'denied'; } }
+  if(perm === 'granted'){
+    try{ localStorage.setItem(NOTIF_PREF_KEY, '1'); }catch(e){}
+    showNotif('Notifiche attive ✓', 'Da ora i buoni nuovi e le commissioni pronte compaiono qui, anche col browser ridotto a icona.', 'prova');
+  }
+  setNotifUi();
+}));
+function showNotif(title, body, tag, onOpen){
+  if(!notifOn()) return;
+  try{
+    const n = new Notification(title, {body, tag: 'edilnord-' + tag, icon: 'icon-192.png', requireInteraction: true});
+    n.onclick = ()=>{ try{ window.focus(); }catch(e){} if(onOpen) onOpen(); n.close(); };
+  }catch(e){}
+}
+function vaiAScheda(tab){
+  const btn = document.querySelector('.tab[data-tab="' + tab + '"]');
+  if(btn) btn.click();
+}
+function righeTxt(n){ return n + (n === 1 ? ' riga' : ' righe'); }
+const myOrderIds = new Set(); // buoni inviati da questo dispositivo: niente notifica a se stessi
+function notificaBuoniNuovi(nuovi){
+  nuovi.filter(o => !myOrderIds.has(o.id)).forEach(o=>{
+    showNotif('Nuovo buono di carico',
+      (o.customer || 'Cliente non specificato') + ' · ' + righeTxt((o.items || []).length) + (o.operator ? ' · da ' + o.operator : ''),
+      'buono-' + o.id, ()=> vaiAScheda('ordini'));
+  });
+}
+function notificaCommissioni(prevStati, list){
+  list.forEach(c=>{
+    const prima = prevStati.get(c.id);
+    const apri = ()=>{ vaiAScheda('prep'); prepOpenId = c.id; renderPrep(true); };
+    if(prima === undefined){
+      showNotif('Nuova commissione da preparare', 'N. ' + c.numero + ' · ' + (c.cliente || 'Cliente non indicato') + ' · ' + righeTxt(c.righe.length), 'comm-' + c.id, apri);
+    } else if(!isChiusa({stato: prima}) && isChiusa(c) && c.chiusaDaUid !== viewerId){
+      const m = riepilogoMancanze(c);
+      showNotif(m.tot ? 'Commissione pronta salvo mancanze' : 'Commissione pronta ✓',
+        'N. ' + c.numero + ' · ' + (c.cliente || 'Cliente non indicato') + (m.tot ? ' · ' + frasiMancanze(m) : '') + (c.chiusaDa ? ' · da ' + c.chiusaDa : ''),
+        'comm-' + c.id, apri);
+    }
+  });
+}
+
 // ---------------- Da preparare: commissioni dal programma ordini ----------------
 // Le commissioni le scrive il programma ordini dell'ufficio nella raccolta
 // "commissioni_magazzino", separata dai buoni di carico. Dentro ci sono SOLO
@@ -2403,6 +2488,7 @@ function normCommissione(id, d){
     presaAt: toIso(d.presaAt),
     chiusaDa: txt(d.chiusaDa) || null,
     chiusaAt: toIso(d.chiusaAt),
+    chiusaDaUid: txt(d.chiusaDaUid) || null,
     eliminataDa: txt(d.eliminataDa) || null,
     eliminataAt: toIso(d.eliminataAt)
   };
@@ -2969,6 +3055,7 @@ function subscribeCommissioni(onChange, onError){
   operatorName = savedName;
   NICKNAMES = nicks;
   document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
+  setNotifUi();
   updateShareWarning();
   rebuildNickNorm();
   refreshOperatorLabel();
@@ -2982,6 +3069,7 @@ function subscribeCommissioni(onChange, onError){
     // suona anche se nello stesso istante ne viene eliminato un altro.
     const prevIds = knownOrderIds;
     const hasNew = prevIds !== null && orders.some(o => !prevIds.has(o.id));
+    if(hasNew) notificaBuoniNuovi(orders.filter(o => !prevIds.has(o.id)));
     knownOrderIds = new Set(orders.map(o => o.id));
     ordersCache = orders;
     updateBadge(orders);
@@ -2997,9 +3085,12 @@ function subscribeCommissioni(onChange, onError){
 
   // Commissioni dal programma ordini: suonano e lampeggiano come i buoni nuovi.
   let knownPrepIds = null;
+  let knownPrepStati = null; // id → stato, per accorgersi di quando una commissione diventa pronta
   subscribeCommissioni((list)=>{
     prepError = '';
     const prev = knownPrepIds;
+    if(knownPrepStati) notificaCommissioni(knownPrepStati, list);
+    knownPrepStati = new Map(list.map(c => [c.id, c.stato]));
     const hasNew = prev !== null && list.some(c => !prev.has(c.id));
     knownPrepIds = new Set(list.map(c => c.id));
     prepServer = list;
