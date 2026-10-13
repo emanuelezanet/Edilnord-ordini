@@ -719,6 +719,18 @@
   .chip.active .chip-count{opacity:0.9;}
   .prep-who{font-weight:700;color:var(--text);}
   .prep-who.mine{color:var(--info);}
+  /* assegnazione decisa dall'ufficio */
+  .prep-assign{
+    display:inline-block;font-size:14px;font-weight:800;letter-spacing:0.3px;margin:6px 0 0;
+    padding:4px 10px;border-radius:6px;color:#fff;background:var(--info);
+  }
+  .prep-assign.me{background:var(--success);}
+  .prep-card.per-me{box-shadow:0 0 0 2px var(--success),0 2px 7px rgba(0,0,0,0.07);}
+  .prep-assign-box{
+    margin-top:10px;font-size:17px;padding:10px 12px;border-radius:8px;
+    background:rgba(62,106,138,0.12);border:1.5px solid var(--info);color:var(--text);
+  }
+  .prep-assign-box.me{background:var(--ok-bg);border-color:var(--success);}
 
   .prep-back{
     background:transparent;border:1px solid var(--border);color:var(--text);
@@ -1279,7 +1291,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -2395,7 +2407,10 @@ function notificaCommissioni(prevStati, list){
     const prima = prevStati.get(c.id);
     const apri = ()=>{ vaiAScheda('prep'); prepOpenId = c.id; renderPrep(true); };
     if(prima === undefined){
-      showNotif('Nuova commissione da preparare', 'N. ' + c.numero + ' · ' + (c.cliente || 'Cliente non indicato') + ' · ' + righeTxt(c.righe.length), 'comm-' + c.id, apri);
+      showNotif(isPerMe(c) ? 'Nuova commissione PER TE' : 'Nuova commissione da preparare',
+        'N. ' + c.numero + ' · ' + (c.cliente || 'Cliente non indicato') + ' · ' + righeTxt(c.righe.length)
+          + (c.assegnataA && !isPerMe(c) ? ' · per ' + c.assegnataNome : ''),
+        'comm-' + c.id, apri);
     } else if(!isChiusa({stato: prima}) && isChiusa(c) && c.chiusaDaUid !== viewerId){
       const m = riepilogoMancanze(c);
       showNotif(m.tot ? 'Commissione pronta salvo mancanze' : 'Commissione pronta ✓',
@@ -2418,6 +2433,12 @@ function notificaCommissioni(prevStati, list){
 //   note        "Ritira lunedì mattina"       (note di preparazione dell'ufficio)
 //   inviataAt   "2026-10-10T07:30:00Z"        (testo ISO oppure data di Firestore)
 //   righe       [ {desc, um, qtyRichiesta}, ... ]
+//   assegnataA     "davide@edil-nord.com"     (facoltativo: email in minuscolo del magazziniere)
+//   assegnataNome  "Davide"                   (nome da mostrare)
+//     Se mancano o sono null la commissione è "casuale": la prende il primo.
+//     Se ci sono, solo quel magazziniere può prenderla, spuntare e chiuderla;
+//     gli altri la vedono in sola lettura. L'app NON scrive mai questi due campi
+//     (lo vietano anche le regole Firestore): li cambia solo il programma ordini.
 // Campi che aggiunge l'app man mano:
 //   righe[n].fatta / .qtyCaricata / .nota
 //   stato       da_preparare | in_preparazione | pronto | pronto_mancanze
@@ -2490,11 +2511,20 @@ function normCommissione(id, d){
     chiusaAt: toIso(d.chiusaAt),
     chiusaDaUid: txt(d.chiusaDaUid) || null,
     eliminataDa: txt(d.eliminataDa) || null,
-    eliminataAt: toIso(d.eliminataAt)
+    eliminataAt: toIso(d.eliminataAt),
+    assegnataA: txt(d.assegnataA).trim().toLowerCase() || null,
+    assegnataNome: null
   };
+  if(c.assegnataA) c.assegnataNome = txt(d.assegnataNome).trim() || nomeDaEmail(c.assegnataA);
   if(!c.stato) c.stato = statoAperto(c);
   return c;
 }
+// ---- Assegnazione a un magazziniere (decisa dall'ufficio) ----
+function nomeDaEmail(e){ const n = String(e || '').split('@')[0]; return n ? n.charAt(0).toUpperCase() + n.slice(1) : '?'; }
+function myEmail(){ return (currentEmail || '').trim().toLowerCase(); }
+function isPerMe(c){ return !!(c.assegnataA && myEmail() && c.assegnataA === myEmail()); }
+// assegnata a un collega: per me è in sola lettura
+function isAssegnataAltro(c){ return !!(c.assegnataA && c.assegnataA !== myEmail()); }
 function isChiusa(c){ return c.stato === 'pronto' || c.stato === 'pronto_mancanze'; }
 // "Eliminata" nell'app vuol dire tolta dalla vista, non cancellata: resta in
 // "Eliminate" con il nome di chi l'ha eliminata. La cancella davvero il server
@@ -2542,13 +2572,14 @@ function showPrepToast(msg, info, ms){
 function prepErrorText(code){
   if(code.indexOf('presa:') === 0) return "Nel frattempo l'ha presa " + code.slice(6) + '.';
   if(code.indexOf('eliminata:') === 0) return "Nel frattempo l'ha eliminata " + code.slice(10) + '.';
+  if(code.indexOf('assegnata:') === 0) return "L'ufficio l'ha assegnata a " + code.slice(10) + ': solo lui può prepararla.';
   if(code === 'non_chiusa') return 'Si possono eliminare solo le commissioni pronte.';
   const t = {
     'non_tua': "Questa commissione ora la sta preparando un collega: prendila prima di modificarla.",
     'chiusa': 'La commissione è già stata chiusa.',
     'cambiata': "L'ufficio ha modificato la commissione: ricontrolla le righe.",
     'sparita': "La commissione non c'è più: l'ufficio l'ha ritirata.",
-    'permission-denied': 'Firebase non permette ancora di modificare le commissioni: va aggiunta la regola.',
+    'permission-denied': 'Firebase ha rifiutato la modifica: o la commissione è assegnata a un collega, o manca la regola in Firebase.',
     'no-auth': 'Collegamento non riuscito: ricarica la pagina.'
   };
   return t[code] || 'Non salvato: controlla la connessione e riprova.';
@@ -2584,7 +2615,13 @@ async function txCommissione(id, mutate){
       const snap = await tx.get(ref);
       if(!snap.exists()) throw new Error('sparita');
       const raw = snap.data() || {};
-      const patch = mutate(raw, normCommissione(id, raw));
+      const cur = normCommissione(id, raw);
+      // Controllo fatto DENTRO la transazione, sui dati appena riletti:
+      // l'ufficio potrebbe averla appena assegnata (o riassegnata) a un collega.
+      if(isAssegnataAltro(cur)) throw new Error('assegnata:' + cur.assegnataNome);
+      const patch = mutate(raw, cur);
+      // l'app non tocca mai l'assegnazione, qualunque cosa contenga la patch
+      delete patch.assegnataA; delete patch.assegnataNome;
       tx.update(ref, Object.assign({}, patch, {aggiornataAt: new Date().toISOString()}));
     }), 10000);
     return '';
@@ -2672,6 +2709,14 @@ function flushPrepWrites(id){
 }
 
 // ---- Azioni ----
+// Blocco "a schermo" prima di toccare qualcosa: il controllo vero resta
+// quello dentro la transazione (e la regola Firestore).
+function bloccataPerAssegnazione(id){
+  const c = findPrep(id);
+  if(!c || !isAssegnataAltro(c)) return false;
+  showPrepToast(prepErrorText('assegnata:' + c.assegnataNome));
+  return true;
+}
 function serveNome(){
   if(operatorName) return false;
   openOperatorEdit();
@@ -2681,6 +2726,7 @@ function serveNome(){
   return true;
 }
 async function prendiCommissione(id, alPostoDiUnCollega){
+  if(bloccataPerAssegnazione(id)) return;
   if(serveNome()) return;
   if(!viewerId){ showPrepToast(prepErrorText('no-auth')); return; }
   const me = operatorName, uid = viewerId, now = new Date().toISOString();
@@ -2709,6 +2755,7 @@ async function rilasciaCommissione(id){
   else showPrepToast('Commissione rilasciata: ora la può prendere un collega.', true);
 }
 function spuntaRiga(id, i){
+  if(bloccataPerAssegnazione(id)) return;
   const c = findPrep(id);
   const r = c && c.righe[i];
   if(!r) return;
@@ -2722,6 +2769,7 @@ function spuntaRiga(id, i){
   scriviRiga(id, i, r.desc);
 }
 function impostaQtyRiga(id, i, value){
+  if(bloccataPerAssegnazione(id)) return;
   const c = findPrep(id);
   const r = c && c.righe[i];
   if(!r) return;
@@ -2731,6 +2779,7 @@ function impostaQtyRiga(id, i, value){
   scriviRigaDopo(id, i, r.desc);
 }
 function salvaNotaRiga(id, i, text){
+  if(bloccataPerAssegnazione(id)) return;
   const c = findPrep(id);
   const r = c && c.righe[i];
   if(!r) return;
@@ -2741,6 +2790,7 @@ function salvaNotaRiga(id, i, text){
   scriviRiga(id, i, r.desc);
 }
 async function chiudiCommissione(id){
+  if(bloccataPerAssegnazione(id)) return;
   await flushPrepWrites(id);
   const c = findPrep(id);
   if(!c) return;
@@ -2759,6 +2809,7 @@ async function chiudiCommissione(id){
   else showPrepToast(statoPrevisto === 'pronto' ? 'Commissione pronta ✓ L\'ufficio la vede.' : 'Chiusa come "pronto salvo mancanze". L\'ufficio vede cosa manca.', true);
 }
 async function riapriCommissione(id){
+  if(bloccataPerAssegnazione(id)) return;
   if(serveNome()) return;
   if(!viewerId){ showPrepToast(prepErrorText('no-auth')); return; }
   const me = operatorName, uid = viewerId, now = new Date().toISOString();
@@ -2773,6 +2824,7 @@ async function riapriCommissione(id){
   if(err) revertToServer(err);
 }
 async function eliminaCommissione(id){
+  if(bloccataPerAssegnazione(id)) return;
   if(serveNome()) return;
   if(!viewerId){ showPrepToast(prepErrorText('no-auth')); return; }
   const me = operatorName, uid = viewerId, now = new Date().toISOString();
@@ -2789,6 +2841,7 @@ async function eliminaCommissione(id){
   else showPrepToast('Eliminata. La trovi sotto «Eliminate», con il tuo nome.', true);
 }
 async function ripristinaCommissione(id){
+  if(bloccataPerAssegnazione(id)) return;
   patchLocal(id, c => Object.assign({}, c, {eliminataDa:null, eliminataAt:null}));
   renderPrep(true);
   const err = await trackInflight(id, txCommissione(id, ()=>
@@ -2813,7 +2866,8 @@ document.addEventListener('focusout', (e)=>{
 function prepVisibili(){
   const t = (iso)=> (iso ? Date.parse(iso) || 0 : 0);
   if(prepFilter === 'aperte')    // prima le più vecchie
-    return prepCache.filter(c => !isChiusa(c) && !isEliminata(c)).sort((a,b)=> t(a.inviataAt) - t(b.inviataAt));
+    return prepCache.filter(c => !isChiusa(c) && !isEliminata(c))
+      .sort((a,b)=> (isPerMe(b) - isPerMe(a)) || (t(a.inviataAt) - t(b.inviataAt)));  // prima quelle "per te"
   if(prepFilter === 'pronte')    // prima le ultime chiuse
     return prepCache.filter(c => isChiusa(c) && !isEliminata(c)).sort((a,b)=> t(b.chiusaAt) - t(a.chiusaAt));
   // eliminate: prima le ultime eliminate
@@ -2821,6 +2875,12 @@ function prepVisibili(){
 }
 function eliminataHtml(c){
   return '🗑 Eliminata da <b>' + escapeHtml(c.eliminataDa || '?') + '</b>' + (c.eliminataAt ? ' · ' + formatOrderTime(c.eliminataAt) : '');
+}
+function assegnataHtml(c){
+  if(!c.assegnataA) return '';
+  return isPerMe(c)
+    ? '<span class="prep-assign me">⭐ PER TE</span>'
+    : '<span class="prep-assign">per ' + escapeHtml(c.assegnataNome) + '</span>';
 }
 function chiHtml(c){
   if(!c.presaDa) return '';
@@ -2839,9 +2899,10 @@ function renderPrepList(){
   }
   empty.classList.add('hidden');
   list.innerHTML = items.map((c, k) =>
-    '<div class="prep-card ' + PREP_STATI[c.stato].cls + (isEliminata(c) ? ' eliminata' : '') + '" role="button" tabindex="0" data-open="' + k + '">'
+    '<div class="prep-card ' + PREP_STATI[c.stato].cls + (isEliminata(c) ? ' eliminata' : '') + (isPerMe(c) ? ' per-me' : '') + '" role="button" tabindex="0" data-open="' + k + '">'
     + '<div class="prep-card-top"><span class="prep-num">N. ' + escapeHtml(c.numero) + '</span>'
     + '<span class="prep-time">' + (c.inviataAt ? formatOrderTime(c.inviataAt) : '') + '</span></div>'
+    + assegnataHtml(c)
     + '<div class="prep-cliente">' + (c.cliente ? escapeHtml(c.cliente) : 'Cliente non indicato') + '</div>'
     + '<div class="prep-card-info">' + pillHtml(c.stato)
     + '<span>' + c.righe.filter(r => r.fatta).length + '/' + c.righe.length + ' righe</span>' + chiHtml(c) + '</div>'
@@ -2913,7 +2974,8 @@ function armaConferma(btn, testoConferma, azione){
 }
 function renderPrepDetail(c){
   const view = document.getElementById('prepDetailView');
-  const chiusa = isChiusa(c), mia = isMia(c), editabile = mia && !chiusa;
+  const chiusa = isChiusa(c), altro = isAssegnataAltro(c);
+  const mia = isMia(c) && !altro, editabile = mia && !chiusa;
   const fatte = c.righe.filter(r => r.fatta).length;
 
   let chi;
@@ -2923,7 +2985,9 @@ function renderPrepDetail(c){
   else chi = fatte ? 'Nessuno la sta preparando (già iniziata da qualcuno).' : 'Nessuno la sta preparando.';
 
   let azioni = '';
-  if(!chiusa){
+  if(altro){
+    if(!chiusa) azioni = '<button class="prep-btn take" disabled>🔒 Assegnata a ' + escapeHtml(c.assegnataNome) + '</button>';
+  } else if(!chiusa){
     if(mia) azioni = '<button class="prep-btn ghost" data-act="rilascia">Rilascia</button>';
     else if(c.presaDa) azioni = '<button class="prep-btn danger" data-act="prendi-forza">Prendila tu</button>';
     else azioni = '<button class="prep-btn take" data-act="prendi">✋ Prendo io</button>';
@@ -2942,7 +3006,10 @@ function renderPrepDetail(c){
     const m = riepilogoMancanze(c);
     fondo = '<div class="prep-closed-box">' + pillHtml(c.stato)
       + (m.tot ? '<div style="margin-top:8px;">' + frasiMancanze(m).replace(/^./, x => x.toUpperCase()) + '.</div>' : '')
-      + (isEliminata(c)
+      + (altro
+        ? (isEliminata(c) ? '<div class="prep-deleted">' + eliminataHtml(c) + '</div>' : '')
+          + '<div class="prep-close-hint">Assegnata a ' + escapeHtml(c.assegnataNome) + ': solo lui può riaprirla o eliminarla (oppure la toglie l\'ufficio).</div>'
+        : isEliminata(c)
         ? '<div class="prep-deleted">' + eliminataHtml(c) + '</div>'
           + '<div class="prep-actions"><button class="prep-btn ghost" data-act="ripristina">Ripristina (rimetti tra le Pronte)</button></div>'
         : '<div class="prep-actions"><button class="prep-btn ghost" data-act="riapri">Riapri (ho sbagliato)</button>'
@@ -2956,12 +3023,16 @@ function renderPrepDetail(c){
     + '<span class="prep-time">' + (c.inviataAt ? formatOrderTime(c.inviataAt) : '') + '</span></div>'
     + '<div class="prep-cliente">' + (c.cliente ? escapeHtml(c.cliente) : 'Cliente non indicato') + '</div>'
     + pillHtml(c.stato)
+    + (c.assegnataA
+      ? '<div class="prep-assign-box' + (altro ? '' : ' me') + '">' + (altro ? '🔒 Assegnata a <b>' + escapeHtml(c.assegnataNome) + '</b> dall\'ufficio' : '⭐ Assegnata a <b>te</b> dall\'ufficio') + '</div>'
+      : '')
     + (c.note ? '<div class="prep-office-note"><b>Note dall\'ufficio:</b> ' + escapeHtml(c.note) + '</div>' : '')
     + '<div class="prep-holder">' + chi + '</div>'
     + (azioni ? '<div class="prep-actions">' + azioni + '</div>' : '')
     + '</div>'
     + '<div class="prep-progress">' + fatte + ' di ' + c.righe.length + ' righe spuntate'
-    + (!mia && !chiusa ? ' · tocca «Prendo io» per iniziare' : '') + '</div>'
+    + (!chiusa && altro ? ' · solo ' + escapeHtml(c.assegnataNome) + ' può prepararla'
+      : !mia && !chiusa ? ' · tocca «Prendo io» per iniziare' : '') + '</div>'
     + '<div class="prep-rows">' + (c.righe.length ? c.righe.map(r => rigaHtml(r, editabile)).join('') : '<div class="empty-state">Nessuna riga in questa commissione.</div>') + '</div>'
     + fondo;
 
