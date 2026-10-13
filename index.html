@@ -1233,9 +1233,13 @@ async function updateOrderStatus(id, status, extra){
     return false;
   }
 }
-async function deleteOrder(id){
+// v18: "Elimina" non cancella più il buono da Firebase: lo segna come
+// eliminato (chi e quando) e lo nasconde dall'app. Così lo script delle
+// statistiche sul PC dell'ufficio fa in tempo a scaricarlo nello storico;
+// la cancellazione vera la fa il server SRV-PREV dopo 7 giorni.
+async function deleteOrder(id, extra){
   try{
-    await withTimeout(deleteDoc(doc(ordersCol(), id)));
+    await withTimeout(updateDoc(doc(ordersCol(), id), extra));
     return true;
   }catch(e){
     return false;
@@ -1291,7 +1295,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = 17;
+const APP_VERSION = 18;
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -2159,7 +2163,7 @@ document.querySelectorAll('#tab-ordini .chip').forEach(chip=>{
 document.getElementById('refreshBtn').addEventListener('click', ()=> refreshOrders(false));
 
 function updateBadge(orders){
-  const pending = orders.filter(o=>o.status==='in_attesa').length;
+  const pending = orders.filter(o=>o.status==='in_attesa' && !o.eliminatoAt).length;
   const badge = document.getElementById('pendingBadge');
   badge.textContent = pending;
   badge.classList.toggle('zero', pending === 0);
@@ -2168,7 +2172,7 @@ function updateBadge(orders){
 function renderOrders(){
   const list = document.getElementById('ordersList');
   const empty = document.getElementById('ordersEmpty');
-  let orders = [...ordersCache].sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+  let orders = ordersCache.filter(o => !o.eliminatoAt).sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
   if(ordersFilter === 'attesa') orders = orders.filter(o=>o.status==='in_attesa');
   if(ordersFilter === 'evaso') orders = orders.filter(o=>o.status==='evaso');
 
@@ -2250,11 +2254,14 @@ function renderOrders(){
       }
       clearTimeout(btn._resetTimer);
       const id = btn.dataset.delete;
-      ordersCache = ordersCache.filter(o=>o.id !== id);
+      const extra = {eliminatoDa: operatorName || null, eliminatoDaUid: viewerId || null, eliminatoAt: new Date().toISOString()};
+      ordersCache = ordersCache.map(o => o.id === id ? Object.assign({}, o, extra) : o);
       updateBadge(ordersCache);
       renderOrders();
       renderQuickAccess();
-      deleteOrder(id);
+      deleteOrder(id, extra).then(ok => {
+        if(!ok){ showPrepToast('Non eliminato: controlla la connessione e riprova.'); refreshOrders(true); }
+      });
     });
   });
 }
