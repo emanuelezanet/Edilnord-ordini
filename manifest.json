@@ -1,6 +1,6 @@
 {
-  "name": "Buoni di Carico",
-  "short_name": "Buoni di Carico",
+  "name": "Edil Nord Magazzino",
+  "short_name": "Magazzino",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
