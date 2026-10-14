@@ -2119,7 +2119,7 @@ document.getElementById('genNumBtn').addEventListener('click', ()=>{
   saveDraft();
 });
 
-// ---- v19: privato / impresa (obbligatorio) ----
+// ---- v19: privato / impresa (facoltativo) ----
 function getCustomerType(){
   const b = document.querySelector('.ctype-btn.active');
   return b ? b.dataset.ctype : '';
@@ -2132,8 +2132,9 @@ function setCustomerType(t){
   });
   if(t) document.getElementById('ctypeRow').classList.remove('missing');
 }
+// facoltativo: un secondo tocco sullo stesso pulsante toglie la scelta
 document.querySelectorAll('.ctype-btn').forEach(b => b.addEventListener('click', ()=>{
-  setCustomerType(b.dataset.ctype);
+  setCustomerType(getCustomerType() === b.dataset.ctype ? '' : b.dataset.ctype);
   saveDraft();
 }));
 const CTYPE_LABEL = {privato: 'PRIVATO', impresa: 'IMPRESA'};
@@ -2175,18 +2176,6 @@ submitOrderBtn.addEventListener('click', async ()=>{
     toast.classList.remove('hidden');
     toast.classList.add('warn');
     toast.textContent = 'Manca il cliente: scrivi il nome oppure tocca «Genera numero».';
-    clearTimeout(toast._t);
-    toast._t = setTimeout(()=>{ toast.classList.add('hidden'); toast.classList.remove('warn'); }, 4000);
-    return;
-  }
-  if(!getCustomerType()){
-    const row = document.getElementById('ctypeRow');
-    row.classList.add('missing');
-    row.scrollIntoView({behavior:'smooth', block:'center'});
-    const toast = document.getElementById('orderToast');
-    toast.classList.remove('hidden');
-    toast.classList.add('warn');
-    toast.textContent = 'Scegli se il cliente è un privato o un\'impresa.';
     clearTimeout(toast._t);
     toast._t = setTimeout(()=>{ toast.classList.add('hidden'); toast.classList.remove('warn'); }, 4000);
     return;
