@@ -255,10 +255,11 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'noleggi passo 4';
+const VERSIONE = 'noleggi passo 4.1';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
-const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'amministrazione@edil-nord.com'];
+const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'carlo@edil-nord.com'];   // gestiscono tutto (attrezzi, manutenzioni, forzare)
+const DOCUMENTI = UFFICIO.concat(['amministrazione@edil-nord.com']);                              // vedono e scrivono telefono e documento dei privati
 
 // ---------------- Dati di partenza: i 31 attrezzi decisi il 14/10/2026 ----------------
 const SN = 'si_no', LV = 'livello', NM = 'numero', TX = 'testo';
@@ -378,6 +379,7 @@ window.__noleggiTest = {statoScadenza, statoPeggiore, slug, normAttrezzo, docDaI
 // ---------------- Stato ----------------
 let me = '';
 let isUfficio = false;
+let isDoc = false;
 let attrezzi = [];
 let openId = null;
 let editing = false;
@@ -420,7 +422,8 @@ onAuthStateChanged(fbAuth, user => {
   $('loginOverlay').hidden = true;
   me = (user.email || '').toLowerCase();
   isUfficio = UFFICIO.includes(me);
-  $('who').textContent = me + (isUfficio ? ' · ufficio' : '');
+  isDoc = DOCUMENTI.includes(me);
+  $('who').textContent = me + (isUfficio ? ' · gestione' : isDoc ? ' · documenti' : '');
   $('newBtn').hidden = !isUfficio;
   if(!unsub) unsub = onSnapshot(collection(fbDb, 'attrezzi'), snap => {
     $('rulesWarn').hidden = true;
@@ -1047,7 +1050,7 @@ function renderOggi(){
   const prossimi = per('prenotato').filter(n => n.dal <= limite).sort((a, b) => a.dal.localeCompare(b.dal));
   const chiusi = noleggi.filter(n => n.stato === 'chiuso').sort((a, b) => String(b.chiusoAt).localeCompare(String(a.chiusoAt))).slice(0, 8);
   const limiteChiusi = addGiorni(oggi, -30);
-  const privati = isUfficio ? noleggi.filter(n => n.tipoCliente === 'privato' && !n.datiPrivato && n.stato !== 'annullato'
+  const privati = isDoc ? noleggi.filter(n => n.tipoCliente === 'privato' && !n.datiPrivato && n.stato !== 'annullato'
     && !(n.stato === 'chiuso' && String(n.chiusoAt).slice(0, 10) < limiteChiusi)).sort((a, b) => a.dal.localeCompare(b.dal)) : [];
   const buoniKo = noleggi.filter(n => (n.uscita && n.uscita.buono && !buonoInviato(n, n.uscita.buono)) || n.rientri.some(r => r.buono && !buonoInviato(n, r.buono)));
   box.innerHTML = '<div class="warnbox" id="nolWarn" hidden></div>'
@@ -1179,9 +1182,9 @@ function disegnaNuovo(){
   const disegnaPriv = () => {
     const box = $('nPriv');
     if(F.tipoCliente !== 'privato'){ box.innerHTML = ''; return; }
-    if(!isUfficio){ box.innerHTML = '<p class="muted small" style="margin:0">Privato: telefono e documento li aggiunge l\'ufficio.</p>'; return; }
-    box.innerHTML = '<div class="row"><div class="field"><label for="nTel">Telefono <span class="muted">(solo ufficio)</span></label><input class="inp" id="nTel" type="tel" inputmode="tel" maxlength="30" value="' + esc(F.telefono) + '"></div>'
-      + '<div class="field" style="grid-column:span 2"><label for="nDoc">Documento <span class="muted">(tipo e numero, solo ufficio)</span></label><input class="inp" id="nDoc" maxlength="80" placeholder="Es. C.I. CA12345BC" value="' + esc(F.documento) + '"></div></div>';
+    if(!isDoc){ box.innerHTML = '<p class="muted small" style="margin:0">Privato: telefono e documento li aggiunge l\'ufficio.</p>'; return; }
+    box.innerHTML = '<div class="row"><div class="field"><label for="nTel">Telefono <span class="muted">(riservato)</span></label><input class="inp" id="nTel" type="tel" inputmode="tel" maxlength="30" value="' + esc(F.telefono) + '"></div>'
+      + '<div class="field" style="grid-column:span 2"><label for="nDoc">Documento <span class="muted">(tipo e numero, riservato)</span></label><input class="inp" id="nDoc" maxlength="80" placeholder="Es. C.I. CA12345BC" value="' + esc(F.documento) + '"></div></div>';
     $('nTel').addEventListener('input', e => F.telefono = e.target.value);
     $('nDoc').addEventListener('input', e => F.documento = e.target.value);
   };
@@ -1262,7 +1265,7 @@ async function salvaNuovo(){
     const esce = F.esce;
     // di solito Firebase l'ha già fatta arrivare: la aggiungo solo se manca
     if(!noleggi.some(x => x.id === numero)) noleggi = noleggi.concat([normNoleggio(numero, data)]);
-    if(isUfficio && F.tipoCliente === 'privato') await salvaDatiPrivato(numero, cliente, F.telefono, F.documento, '');
+    if(isDoc && F.tipoCliente === 'privato') await salvaDatiPrivato(numero, cliente, F.telefono, F.documento, '');
     if(esce) apriUscita(numero); else { toast('Prenotazione salvata ✓'); apriNol(numero); }
   }catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = F.esce ? 'Avanti: controlli di uscita' : 'Salva prenotazione'; }
 }
@@ -1376,7 +1379,7 @@ async function confermaUscita(){
     pendingEsce = null;
     id = data.numero;
     if(!noleggi.some(x => x.id === id)) noleggi = noleggi.concat([normNoleggio(id, data)]);
-    if(isUfficio && data.tipoCliente === 'privato') await salvaDatiPrivato(id, data.cliente, form.telefono, form.documento, '');
+    if(isDoc && data.tipoCliente === 'privato') await salvaDatiPrivato(id, data.cliente, form.telefono, form.documento, '');
   }else{
     const err = await txNoleggio(nolId, (raw, n) => {
       if(n.stato === 'fuori') throw new Error('gia_uscito');
@@ -1587,7 +1590,7 @@ function renderNolDettaglio(){
     + '<div class="sec"><h2>Attrezzi</h2><ul class="list">' + n.righe.map(r => '<li><span>' + esc(r.nome) + '</span><span class="kind">×' + r.qty
       + (n.stato !== 'prenotato' ? ' · rientrati ' + r.rientrati : '') + '</span></li>').join('') + '</ul></div>'
     + buoniHtml(n)
-    + (isUfficio && n.tipoCliente === 'privato' ? '<div class="sec"><h2>Dati del cliente privato <span class="muted small">(li vede solo l\'ufficio)</span></h2><div id="privBox">'
+    + (isDoc && n.tipoCliente === 'privato' ? '<div class="sec"><h2>Dati del cliente privato <span class="muted small">(riservati: Emanuele, Marco, Carlo, Amministrazione)</span></h2><div id="privBox">'
         + (n.datiPrivato ? '<button class="btn ghost" id="privLoad" type="button">Mostra telefono e documento</button>' : '<p class="warnbox" style="margin:0 0 8px">Mancano telefono e/o documento.</p><button class="btn dark" id="privLoad" type="button">Completa i dati</button>')
         + '</div></div>' : '')
     + (segn.length ? '<div class="sec segn"><h2>Segnalazioni per l\'ufficio</h2><ul class="list">' + segn.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' : '')
