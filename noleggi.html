@@ -164,6 +164,22 @@
   .ctrl-line{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;padding:4px 0;border-bottom:1px dashed var(--border);}
   .ctrl-line.bad{color:var(--stamp);font-weight:600;}
   .segn .list li{background:var(--bad-bg);color:var(--stamp);font-weight:600;}
+  /* ---------- Passo 3: foto ---------- */
+  .foto-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .thumb{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#fff;padding:0;}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumb-x{position:absolute;top:4px;right:4px;width:32px;height:32px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:15px;}
+  .thumb.big{width:150px;height:auto;display:grid;text-align:left;color:var(--text);}
+  .thumb.big img{height:110px;}
+  .thumb.big span{font-size:11.5px;font-family:var(--font-mono);padding:4px 6px;color:var(--muted);}
+  .foto-add{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 16px;border:1.5px dashed var(--border);border-radius:8px;background:#fff;font-weight:600;cursor:pointer;}
+  .fo-overlay{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:12px;}
+  .fo-in{max-width:100%;max-height:100%;display:grid;gap:10px;}
+  .fo-in img{max-width:100%;max-height:78vh;border-radius:8px;justify-self:center;}
+  .fo-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;color:#fff;font-size:14px;}
+  .fo-bar span{flex:1;min-width:200px;}
+  .fo-bar .btn{text-decoration:none;display:inline-flex;align-items:center;}
+  .fo-bar .btn.ghost{color:#fff;border-color:rgba(255,255,255,.4);}
 </style>
 </head>
 <body>
@@ -214,12 +230,13 @@
   </section>
 </main>
 
+<div class="fo-overlay" id="fotoOverlay" hidden></div>
 <div class="toast" id="toast" hidden role="status"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, updateDoc, addDoc, getDocs, onSnapshot, collection, query, orderBy, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, updateDoc, addDoc, getDocs, onSnapshot, collection, query, orderBy, writeBatch, runTransaction, where, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAbDjlaO8iX8PBmObY-SKHUgVBLKURHt9A",
@@ -233,7 +250,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'noleggi passo 2.3';
+const VERSIONE = 'noleggi passo 3';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'amministrazione@edil-nord.com'];
@@ -406,7 +423,9 @@ onAuthStateChanged(fbAuth, user => {
     attrezzi = []; render();
   });
   avviaNoleggi();
+  if(!fotoPulite){ fotoPulite = true; setTimeout(pulisciFotoVecchie, 5000); }
 });
+let fotoPulite = false;
 
 // ---------------- Elenco ----------------
 $('search').addEventListener('input', () => renderList());
@@ -1212,6 +1231,7 @@ function bloccoVoce(v, i, extra){
     + (v.accessori.length ? '<div class="ctrl"><div class="ctrl-t">' + (F.accTitolo || 'Accessori') + '</div><div class="accs">'
         + v.accessori.map((x, j) => '<label class="acc"><input type="checkbox" data-acc="' + i + '.' + j + '"' + (x.ok ? ' checked' : '') + '> ' + esc(x.nome) + '</label>').join('') + '</div></div>' : '')
     + (v.contaore ? '<div class="ctrl"><div class="ctrl-t">Ore contaore <span class="muted">(facoltativo)</span></div><input class="inp" style="max-width:160px" type="number" inputmode="decimal" step="any" data-ore="' + i + '" value="' + esc(v.ore) + '"></div>' : '')
+    + fotoRowHtml(i)
     + '</div>';
 }
 function disegnaUscita(n){
@@ -1224,6 +1244,7 @@ function disegnaUscita(n){
     + '<div class="field"><label for="uNote">Note all\'uscita</label><textarea class="inp" id="uNote" rows="2" maxlength="500" placeholder="Es. graffio sul cofano già presente"></textarea></div>'
     + '<button class="btn primary big" id="uOk" type="button">Conferma uscita</button></div>';
   wireControlli(v, () => resetArm('uOk', 'Conferma uscita'));
+  wireFoto(v);
   $('uNote').addEventListener('input', e => F.note = e.target.value);
   $('uRitira').addEventListener('input', e => F.ritira = e.target.value);
   $('uBack').addEventListener('click', () => {
@@ -1247,6 +1268,7 @@ async function confermaUscita(){
     catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = 'Conferma uscita'; return; }
     pendingEsce = null;
     if(!noleggi.some(x => x.id === data.numero)) noleggi = noleggi.concat([normNoleggio(data.numero, data)]);
+    if(F.voci.some(v => (v.foto || []).length)){ b.textContent = 'Salvo le foto...'; await salvaFoto(data.numero, data.numero, 'uscita', F.voci, now); }
     aggiornaOre(F.voci, oggiISO());
     toast('Uscita registrata ✓ ' + oraTxt(now));
     apriNol(data.numero);
@@ -1259,6 +1281,7 @@ async function confermaUscita(){
     return {stato: 'fuori', uscita};
   });
   if(err){ toast(nolErr(err), true); b.disabled = false; b.textContent = 'Conferma uscita'; F.armed = false; return; }
+  if(F.voci.some(v => (v.foto || []).length)){ b.textContent = 'Salvo le foto...'; await salvaFoto(nolId, (findNol(nolId) || {}).numero || nolId, 'uscita', F.voci, now); }
   aggiornaOre(F.voci, oggiISO());
   toast('Uscita registrata ✓ ' + oraTxt(now));
   apriNol(nolId);
@@ -1294,6 +1317,7 @@ function disegnaRientro(n){
     + '<div class="field"><label for="rNote">Segnalazioni per l\'ufficio</label><textarea class="inp" id="rNote" rows="3" maxlength="800" placeholder="Es. da pulire, ammaccatura sul braccio, manca una benna"></textarea></div>'
     + '<button class="btn primary big" id="rOk" type="button">Conferma rientro</button></div>';
   wireControlli(v, (i, j) => { mostraDiff(i, j); resetArm('rOk', 'Conferma rientro'); });
+  wireFoto(v);
   F.voci.forEach((x, i) => x.controlli.forEach((c, j) => mostraDiff(i, j)));
   v.querySelectorAll('[data-rqty]').forEach(el => el.addEventListener('change', () => {
     const x = F.voci[+el.dataset.rqty];
@@ -1347,6 +1371,8 @@ async function confermaRientro(){
     return patch;
   });
   if(err){ toast(nolErr(err), true); b.disabled = false; b.textContent = 'Conferma rientro'; F.armed = false; return; }
+  if(voci.some(v => (v.foto || []).length)){ b.textContent = 'Salvo le foto...'; await salvaFoto(nolId, (findNol(nolId) || {}).numero || nolId, 'rientro', voci, now); }
+  if(chiuso) segnaFotoChiuse(nolId, Date.parse(now));
   aggiornaOre(voci, oggiISO());
   toast(chiuso ? 'Rientro registrato ✓ Noleggio chiuso.' : 'Rientro parziale registrato ✓ Il resto risulta ancora fuori.');
   apriNol(nolId);
@@ -1433,6 +1459,7 @@ function renderNolDettaglio(){
     + (n.stato === 'prenotato' ? '<button class="btn primary big" id="xUscita" type="button">Esce adesso</button><button class="btn ghost" id="xDate" type="button">Cambia date</button><button class="btn danger" id="xAnn" type="button">Annulla prenotazione</button>' : '')
     + (n.stato === 'fuori' ? '<button class="btn primary big" id="xRientro" type="button">Rientro</button><button class="btn ghost" id="xDate" type="button">Proroga</button>' : '')
     + '</div>'
+    + (n.stato === 'fuori' || n.stato === 'chiuso' ? '<div class="sec"><h2>Foto</h2><div id="fotoBox">' + (fotoCache[n.id] ? '' : '<button class="btn ghost" id="xFoto" type="button">📷 Vedi foto</button>') + '</div></div>' : '')
     + (n.uscita ? '<div class="sec"><h2>Controlli all\'uscita · ' + oraTxt(n.uscita.at) + ' · ' + esc(n.uscita.da) + '</h2>' + (n.uscita.voci || []).map(vv => voceTxt(vv, false)).join('')
       + (n.uscita.note ? '<p class="muted" style="margin:6px 0 0">Nota: ' + esc(n.uscita.note) + '</p>' : '') + '</div>' : '')
     + n.rientri.map(r => '<div class="sec"><h2>Rientro · ' + oraTxt(r.at) + ' · ' + esc(r.da) + '</h2>' + (r.voci || []).map(vv => voceTxt(vv, true)).join('') + '</div>').join('')
@@ -1441,6 +1468,8 @@ function renderNolDettaglio(){
     + '<p class="muted small" style="margin:0">Creato da ' + esc(n.creatoDa) + ' · ' + oraTxt(n.creatoAt) + '</p>'
     + '</div>';
   $('xBack').addEventListener('click', chiudiNol);
+  if(fotoCache[n.id]) disegnaFoto(n);
+  if($('xFoto')) $('xFoto').addEventListener('click', () => caricaFoto(n));
   if($('xUscita')) $('xUscita').addEventListener('click', () => apriUscita(n.id));
   if($('xRientro')) $('xRientro').addEventListener('click', () => apriRientro(n.id));
   if($('xDate')) $('xDate').addEventListener('click', () => apriDate(n.id));
@@ -1472,6 +1501,130 @@ function avviaNoleggi(){
     unsubNol = null;
     setTimeout(avviaNoleggi, 15000);
   });
+}
+
+// =====================================================================
+// PASSO 3 — FOTO in uscita e al rientro (Firestore, 15 giorni dal rientro)
+// =====================================================================
+const FOTO_GIORNI = 15;
+const FOTO_MS = FOTO_GIORNI * 86400000;
+const fotoCache = {};   // nolId -> [foto] già caricate
+let fotoAperte = {};    // nolId -> true se l'utente ha toccato "Vedi foto"
+
+// Riduce la foto sul tablet: lato lungo 1280 px, JPEG, sotto ~600 KB di testo
+function comprimiFoto(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const max = 1280;
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      let q = 0.6, d = c.toDataURL('image/jpeg', q);
+      while(d.length > 600000 && q > 0.3){ q -= 0.1; d = c.toDataURL('image/jpeg', q); }
+      if(d.length > 900000){ rej(new Error('troppo_grande')); return; }
+      res({dataUrl: d, w, h});
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('non_immagine')); };
+    img.src = url;
+  });
+}
+function fotoRowHtml(i){
+  const v = F.voci[i];
+  return '<div class="ctrl"><div class="ctrl-t">Foto <span class="muted">(facoltative, si cancellano ' + FOTO_GIORNI + ' giorni dopo il rientro)</span></div>'
+    + '<div class="foto-row" data-fr="' + i + '">' + fotoThumbs(i) + '</div></div>';
+}
+function fotoThumbs(i){
+  const v = F.voci[i];
+  return (v.foto || []).map((f, k) => '<div class="thumb"><img src="' + f.dataUrl + '" alt="Foto ' + (k + 1) + '"><button type="button" class="thumb-x" data-fx="' + i + '.' + k + '" aria-label="Togli foto">✕</button></div>').join('')
+    + '<label class="foto-add">📷 Aggiungi foto<input type="file" accept="image/*" multiple data-fa="' + i + '" hidden></label>';
+}
+function wireFoto(box){
+  box.querySelectorAll('[data-fa]').forEach(inp => inp.addEventListener('change', async () => {
+    const i = +inp.dataset.fa, files = [...inp.files];
+    if(!files.length) return;
+    const row = box.querySelector('[data-fr="' + i + '"]');
+    row.insertAdjacentHTML('beforeend', '<span class="muted small" data-fwait>Preparo la foto…</span>');
+    for(const file of files){
+      try{ const f = await comprimiFoto(file); (F.voci[i].foto = F.voci[i].foto || []).push(f); }
+      catch(e){ toast(e.message === 'non_immagine' ? 'Questo file non è una foto.' : 'Foto troppo pesante, riprova.', true); }
+    }
+    row.innerHTML = fotoThumbs(i); wireFoto(row);
+  }));
+  box.querySelectorAll('[data-fx]').forEach(b => b.addEventListener('click', () => {
+    const [i, k] = b.dataset.fx.split('.').map(Number);
+    F.voci[i].foto.splice(k, 1);
+    const row = box.querySelector('[data-fr="' + i + '"]');
+    row.innerHTML = fotoThumbs(i); wireFoto(row);
+  }));
+}
+// Salva le foto del modulo aperto; ritorna quante non sono andate
+async function salvaFoto(nolId, numero, fase, voci, now){
+  let ko = 0;
+  for(const v of voci){
+    for(const f of (v.foto || [])){
+      try{
+        await addDoc(collection(fbDb, 'foto_noleggi'), {
+          nolId, numero, fase, attrezzoId: v.attrezzoId, attrezzo: v.nome,
+          dataUrl: f.dataUrl, w: f.w, h: f.h, at: now, da: nomeMio(), daEmail: me, nolChiusoMs: null
+        });
+      }catch(e){ ko++; }
+    }
+  }
+  delete fotoCache[nolId];
+  if(ko) toast(ko + (ko === 1 ? ' foto non salvata' : ' foto non salvate') + ': controlla la connessione. Il resto è salvato.', true);
+  return ko;
+}
+// Quando il noleggio si chiude, le sue foto prendono la data da cui contano i 15 giorni
+async function segnaFotoChiuse(nolId, quandoMs){
+  try{
+    const snap = await getDocs(query(collection(fbDb, 'foto_noleggi'), where('nolId', '==', nolId)));
+    await Promise.all(snap.docs.map(d => updateDoc(d.ref, {nolChiusoMs: quandoMs})));
+  }catch(e){}
+}
+// Cancella le foto dei noleggi chiusi da più di 15 giorni (le regole non permettono prima)
+async function pulisciFotoVecchie(){
+  try{
+    const snap = await getDocs(query(collection(fbDb, 'foto_noleggi'), where('nolChiusoMs', '<', Date.now() - FOTO_MS - 3600000), limit(50)));
+    await Promise.all(snap.docs.map(d => deleteDoc(d.ref).catch(() => {})));
+  }catch(e){}
+}
+async function caricaFoto(n){
+  const box = $('fotoBox'); if(!box) return;
+  if(!fotoCache[n.id]){
+    box.innerHTML = '<p class="muted small">Carico le foto…</p>';
+    try{
+      const snap = await getDocs(query(collection(fbDb, 'foto_noleggi'), where('nolId', '==', n.id)));
+      fotoCache[n.id] = snap.docs.map(d => d.data()).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+    }catch(e){ box.innerHTML = '<p class="muted small">' + esc(erroreFirebase(e)) + '</p>'; return; }
+  }
+  disegnaFoto(n);
+}
+function disegnaFoto(n){
+  const box = $('fotoBox'); if(!box) return;
+  const lista = fotoCache[n.id] || [];
+  if(!lista.length){ box.innerHTML = '<p class="muted small">Nessuna foto per questo noleggio.</p>'; return; }
+  const gruppi = [['uscita', 'All\'uscita'], ['rientro', 'Al rientro']];
+  box.innerHTML = gruppi.map(([f, t]) => {
+    const g = lista.filter(x => x.fase === f); if(!g.length) return '';
+    return '<div class="lbl" style="margin:6px 0">' + t + '</div><div class="foto-row">' + g.map(x => {
+      const k = lista.indexOf(x);
+      return '<button type="button" class="thumb big" data-fo="' + k + '"><img src="' + x.dataUrl + '" alt="Foto ' + esc(x.attrezzo) + '"><span>' + esc(x.attrezzo) + ' · ' + oraTxt(x.at) + '</span></button>';
+    }).join('') + '</div>';
+  }).join('') + (n.chiusoAt ? '<p class="muted small" style="margin-top:8px">Si cancellano dal ' + giornoTxt(addGiorni(n.chiusoAt.slice(0, 10), FOTO_GIORNI)) + '. Se ti serve una foto, aprila e salvala sul dispositivo.</p>' : '');
+  box.querySelectorAll('[data-fo]').forEach(b => b.addEventListener('click', () => apriFoto(lista[+b.dataset.fo], n)));
+}
+function apriFoto(x, n){
+  const ov = $('fotoOverlay');
+  ov.innerHTML = '<div class="fo-in"><img src="' + x.dataUrl + '" alt="Foto ' + esc(x.attrezzo) + '">'
+    + '<div class="fo-bar"><span>' + esc(x.attrezzo) + ' · ' + (x.fase === 'uscita' ? 'uscita' : 'rientro') + ' · ' + oraTxt(x.at) + ' · ' + esc(x.da) + '</span>'
+    + '<a class="btn primary" download="noleggio-' + esc(n.numero) + '-' + esc(x.fase) + '-' + String(x.at).slice(0, 16).replace(/[:T]/g, '') + '.jpg" href="' + x.dataUrl + '">Salva sul dispositivo</a>'
+    + '<button class="btn ghost" type="button" id="foClose">Chiudi</button></div></div>';
+  ov.hidden = false;
+  $('foClose').addEventListener('click', () => { ov.hidden = true; ov.innerHTML = ''; });
 }
 </script>
 </body>
