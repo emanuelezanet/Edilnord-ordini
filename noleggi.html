@@ -171,7 +171,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'noleggi passo 1.1';
+const VERSIONE = 'noleggi passo 1.2';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'amministrazione@edil-nord.com'];
@@ -578,36 +578,82 @@ async function caricaManutenzioni(a, forza){
   $('manutBox').innerHTML = '<div class="manut">'
     + (lista.length ? lista.map(m => '<div class="manut-item"><div class="manut-top"><span>' + fmtData(m.data) + '</span>'
         + (m.ore != null ? '<span>' + fmtN(m.ore) + ' h</span>' : '') + '<span>' + esc(m.chi || '') + '</span></div>'
-        + '<div class="manut-what">' + esc(m.cosa) + '</div>' + (m.note ? '<div class="muted">' + esc(m.note) + '</div>' : '') + '</div>').join('')
+        + '<div class="manut-what">' + esc(m.cosa) + '</div>' + (m.note ? '<div class="muted">' + esc(m.note) + '</div>' : '')
+        + (m.prossima ? '<div class="muted">↻ Prossima: ' + (m.prossima.tipo === 'ore' ? fmtN(m.prossima.ore) + ' h' : fmtData(m.prossima.data)) + '</div>' : '') + '</div>').join('')
       : '<p class="muted" style="margin:0">Nessuna manutenzione registrata.</p>')
     + (isUfficio ? '<button class="add-line" id="addManut" type="button">+ Registra una manutenzione</button><div id="manutForm"></div>' : '')
     + '</div>';
   if(isUfficio) $('addManut').addEventListener('click', () => formManutenzione(a));
 }
+function aggiungiMesi(iso, mesi){
+  const y = +iso.slice(0, 4), m = +iso.slice(5, 7) - 1, d = +iso.slice(8, 10);
+  const ultimo = new Date(Date.UTC(y, m + mesi + 1, 0)).getUTCDate();
+  const r = new Date(Date.UTC(y, m + mesi, Math.min(d, ultimo)));
+  return r.toISOString().slice(0, 10);
+}
+function normTesto(s){ return slug(s).replace(/-/g, ' '); }
+// Quale scadenza aggiornare: quella con lo stesso nome e lo stesso tipo, se c'è
+function scadenzaCollegata(scadenze, cosa, tipo){
+  const n = normTesto(cosa);
+  return scadenze.findIndex(s => s.tipo === tipo && normTesto(s.testo) === n);
+}
+window.__noleggiTest.aggiungiMesi = aggiungiMesi;
+window.__noleggiTest.scadenzaCollegata = scadenzaCollegata;
+
 function formManutenzione(a){
   $('addManut').hidden = true;
-  const scad = a.scadenze;
+  let tipoProx = '';
   $('manutForm').innerHTML = '<div class="box">'
     + '<div class="row"><div class="field"><label for="mCosa">Cosa è stato fatto</label><input class="inp" id="mCosa" placeholder="Es. Tagliando, cambio olio e filtri" maxlength="120"></div>'
     + '<div class="field"><label for="mData">Data</label><input class="inp" id="mData" type="date" value="' + oggiISO() + '"></div>'
     + '<div class="field"><label for="mOre">Ore' + (a.contaore ? ' *' : '') + '</label><input class="inp" id="mOre" type="number" inputmode="decimal" min="0" step="any"' + (a.contaore ? '' : ' disabled placeholder="—"') + '></div></div>'
     + '<div class="row"><div class="field"><label for="mChi">Chi l\'ha fatta</label><input class="inp" id="mChi" value="' + esc(nomeDaEmail(me)) + '" maxlength="60" placeholder="Es. officina Rossi"></div>'
     + '<div class="field" style="grid-column:span 2"><label for="mNote">Note</label><input class="inp" id="mNote" maxlength="300"></div></div>'
-    + (scad.length ? '<div class="field"><label for="mScad">Rinnova una scadenza (facoltativo)</label><div class="edit-row two" style="grid-template-columns:1fr 170px">'
-      + '<select class="inp" id="mScad"><option value="">— nessuna —</option>' + scad.map((s, i) => '<option value="' + i + '">' + esc(s.testo) + ' (' + (s.tipo === 'ore' ? 'a ore' : 'a data') + ')</option>').join('') + '</select>'
-      + '<input class="inp" id="mScadVal" disabled placeholder="nuova scadenza"></div></div>' : '')
+    + '<div class="field"><span class="lbl">Prossima volta</span><div class="actions" id="mProxTipo">'
+    + '<button type="button" class="btn ghost" data-pt="" aria-pressed="true">Non serve</button>'
+    + '<button type="button" class="btn ghost" data-pt="data" aria-pressed="false">A data</button>'
+    + (a.contaore ? '<button type="button" class="btn ghost" data-pt="ore" aria-pressed="false">A ore</button>' : '')
+    + '</div><div id="mProx" style="display:grid;gap:8px"></div></div>'
     + '<div class="actions"><button class="btn primary" id="mSave" type="button">Salva manutenzione</button><button class="btn ghost" id="mCancel" type="button">Annulla</button></div>'
     + '</div>';
   $('mCosa').focus();
-  const sel = $('mScad');
-  if(sel) sel.addEventListener('change', () => {
-    const v = $('mScadVal');
-    if(sel.value === ''){ v.disabled = true; v.value = ''; v.type = 'text'; return; }
-    const s = scad[+sel.value];
-    v.disabled = false; v.value = '';
-    v.type = s.tipo === 'ore' ? 'number' : 'date';
-    v.placeholder = s.tipo === 'ore' ? 'prossimo a ore' : '';
+
+  const segnaTipo = () => $('mProxTipo').querySelectorAll('[data-pt]').forEach(b => {
+    const on = b.dataset.pt === tipoProx;
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.className = 'btn ' + (on ? 'dark' : 'ghost');
   });
+  const disegnaProx = () => {
+    const box = $('mProx');
+    if(!tipoProx){ box.innerHTML = ''; return; }
+    const cosa = $('mCosa').value.trim() || 'questa manutenzione';
+    const idx = scadenzaCollegata(a.scadenze, cosa, tipoProx);
+    const altre = a.scadenze.map((s, i) => ({s, i})).filter(x => x.s.tipo === tipoProx);
+    box.innerHTML = (tipoProx === 'data'
+        ? '<div class="edit-row two" style="grid-template-columns:1fr auto auto"><input class="inp" id="mProxVal" type="date" aria-label="Data prossima">'
+          + '<button type="button" class="btn ghost" data-piu="6">+6 mesi</button><button type="button" class="btn ghost" data-piu="12">+1 anno</button></div>'
+        : '<div class="edit-row two" style="grid-template-columns:1fr auto auto"><input class="inp" id="mProxVal" type="number" inputmode="decimal" min="0" step="any" placeholder="a quante ore" aria-label="Ore prossima">'
+          + '<button type="button" class="btn ghost" data-piuh="250">+250 h</button><button type="button" class="btn ghost" data-piuh="500">+500 h</button></div>')
+      + '<div class="field"><label for="mProxScad">Scadenza da aggiornare</label><select class="inp" id="mProxScad">'
+      + '<option value="nuova">Nuova scadenza: «' + esc(cosa) + '»</option>'
+      + altre.map(x => '<option value="' + x.i + '"' + (x.i === idx ? ' selected' : '') + '>' + esc(x.s.testo) + ' (adesso: ' + esc(statoScadenza(x.s, a.oreAttuali, oggiISO()).testo) + ')</option>').join('')
+      + '</select></div>';
+    box.querySelectorAll('[data-piu]').forEach(b => b.addEventListener('click', () => {
+      const base = $('mData').value || oggiISO();
+      $('mProxVal').value = aggiungiMesi(base, +b.dataset.piu);
+    }));
+    box.querySelectorAll('[data-piuh]').forEach(b => b.addEventListener('click', () => {
+      const ore = parseFloat(String($('mOre').value).replace(',', '.'));
+      if(!isFinite(ore)){ toast('Scrivi prima le ore attuali, qui sopra.', true); $('mOre').focus(); return; }
+      $('mProxVal').value = ore + (+b.dataset.piuh);
+    }));
+  };
+  $('mProxTipo').querySelectorAll('[data-pt]').forEach(b => b.addEventListener('click', () => {
+    tipoProx = b.dataset.pt; segnaTipo(); disegnaProx();
+  }));
+  // se si cambia il nome mentre la parte "prossima volta" è aperta, si aggiorna la proposta
+  $('mCosa').addEventListener('change', () => { if(tipoProx){ const v = $('mProxVal') ? $('mProxVal').value : ''; disegnaProx(); if(v) $('mProxVal').value = v; } });
+
   $('mCancel').addEventListener('click', () => caricaManutenzioni(a));
   $('mSave').addEventListener('click', async () => {
     const cosa = $('mCosa').value.trim(), data = $('mData').value;
@@ -615,27 +661,37 @@ function formManutenzione(a){
     if(!cosa){ toast('Scrivi cosa è stato fatto.', true); $('mCosa').focus(); return; }
     if(!data){ toast('Manca la data.', true); return; }
     if(a.contaore && (ore == null || !isFinite(ore))){ toast('Questo attrezzo ha il contaore: scrivi le ore.', true); $('mOre').focus(); return; }
-    let nuovaScad = null;
-    if(sel && sel.value !== ''){
-      const s = scad[+sel.value], val = $('mScadVal').value.trim();
-      if(!val){ toast('Scrivi la nuova scadenza, oppure scegli «nessuna».', true); $('mScadVal').focus(); return; }
-      nuovaScad = {i: +sel.value, val: s.tipo === 'ore' ? parseFloat(val.replace(',', '.')) : val};
-      if(s.tipo === 'ore' && !isFinite(nuovaScad.val)){ toast('Le ore della scadenza devono essere un numero.', true); return; }
+    let prossima = null, scelta = null;
+    if(tipoProx){
+      const val = $('mProxVal').value.trim();
+      if(!val){ toast('Scrivi quando va rifatta, oppure scegli «Non serve».', true); $('mProxVal').focus(); return; }
+      if(tipoProx === 'ore'){
+        const n = parseFloat(val.replace(',', '.'));
+        if(!isFinite(n)){ toast('Le ore della prossima volta devono essere un numero.', true); return; }
+        if(ore != null && n <= ore){ toast('La prossima volta deve essere a più ore di quelle attuali.', true); return; }
+        prossima = {tipo: 'ore', ore: n, data: null};
+      }else{
+        if(val <= data){ toast('La data della prossima volta deve essere dopo quella di oggi.', true); return; }
+        prossima = {tipo: 'data', data: val, ore: null};
+      }
+      scelta = $('mProxScad').value;
     }
     const b = $('mSave'); b.disabled = true; b.textContent = 'Salvo...';
     try{
       await addDoc(collection(fbDb, 'attrezzi', a.id, 'manutenzioni'), {
         data, cosa, ore: (ore != null && isFinite(ore)) ? ore : null, chi: $('mChi').value.trim(), note: $('mNote').value.trim(),
-        registrataDa: me, registrataAt: new Date().toISOString()
+        prossima, registrataDa: me, registrataAt: new Date().toISOString()
       });
       const patch = {aggiornatoDa: me, aggiornatoAt: new Date().toISOString()};
       if(ore != null && isFinite(ore) && (a.oreAttuali == null || ore >= a.oreAttuali)){ patch.oreAttuali = ore; patch.oreAt = data; }
-      if(nuovaScad){
-        patch.scadenze = a.scadenze.map((s, i) => i !== nuovaScad.i ? s
-          : Object.assign({}, s, s.tipo === 'ore' ? {ore: nuovaScad.val, data: null} : {data: nuovaScad.val, ore: null}));
+      if(prossima){
+        const scad = a.scadenze.map(s => Object.assign({}, s));
+        if(scelta === 'nuova') scad.push({testo: cosa, tipo: prossima.tipo, data: prossima.data, ore: prossima.ore});
+        else scad[+scelta] = Object.assign(scad[+scelta], {data: prossima.data, ore: prossima.ore});
+        patch.scadenze = scad;
       }
       await updateDoc(doc(fbDb, 'attrezzi', a.id), patch);
-      toast('Manutenzione registrata ✓');
+      toast(prossima ? 'Manutenzione registrata ✓ Prossima: ' + (prossima.tipo === 'ore' ? fmtN(prossima.ore) + ' h' : fmtData(prossima.data)) : 'Manutenzione registrata ✓');
       caricaManutenzioni(a, true);
     }catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = 'Salva manutenzione'; }
   });
