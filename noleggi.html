@@ -111,6 +111,59 @@
   .login-card label{display:grid;gap:6px;font-size:14px;font-weight:600;color:var(--muted);}
   .login-error{background:var(--bad-bg);color:var(--stamp);border-radius:8px;padding:10px 12px;font-size:15px;font-weight:600;}
   .warnbox{background:var(--warn-bg);color:#6B4A0F;border:1px solid #E8C27A;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:600;margin-bottom:12px;}
+
+  /* ---------- Passo 2: schede, noleggi, calendario ---------- */
+  .tabsbar{background:var(--bg-shell);padding:0 16px 10px;display:flex;gap:6px;}
+  .tabsbar button{flex:1;max-width:220px;background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);border-radius:8px;padding:12px 8px;font-size:15px;font-weight:700;min-height:48px;}
+  .tabsbar button.active{background:var(--accent);border-color:var(--accent);color:#20221f;}
+  .bigbtns{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .btn.big{flex:1;min-width:200px;min-height:56px;font-size:17px;}
+  .btn.force{background:var(--stamp);color:#fff;}
+  .cnt{font-family:var(--font-mono);background:rgba(0,0,0,.08);border-radius:10px;padding:0 7px;margin-left:4px;}
+  .small{font-size:14px;margin:0;}
+  .nlist{display:grid;gap:8px;}
+  .ncard{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:left;color:var(--text);display:grid;gap:4px;width:100%;}
+  .ncard-top{display:flex;gap:10px;align-items:center;justify-content:space-between;}
+  .ncard-cli{font-weight:700;font-size:17px;}
+  .ncard-att{font-size:15px;}
+  .ncard-when{font-family:var(--font-mono);font-size:12.5px;color:var(--muted);}
+  .spill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px;white-space:nowrap;color:#fff;background:var(--muted);}
+  .s-in_ritardo{background:var(--stamp);} .s-da_consegnare{background:var(--accent);color:#20221f;}
+  .s-fuori{background:var(--info);} .s-prenotato{background:var(--bg-shell);} .s-chiuso{background:var(--success);}
+  .cal-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .cal-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px;}
+  .cal-legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px;}
+  .cal-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--border);border-radius:10px;}
+  .cal{border-collapse:collapse;width:100%;min-width:640px;font-size:13px;}
+  .cal th,.cal td{border-bottom:1px solid var(--border);padding:3px;text-align:center;}
+  .cal thead th{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);padding:8px 3px;white-space:nowrap;}
+  .cal .cal-name{text-align:left;font-weight:600;padding:6px 8px;position:sticky;left:0;background:var(--card);min-width:170px;max-width:220px;}
+  .cal-cat th{text-align:left;font-family:var(--font-mono);font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);background:var(--bg-paper);padding:6px 8px;}
+  .cal-cell{width:100%;min-width:56px;height:34px;border:1px solid transparent;border-radius:6px;background:transparent;font-family:var(--font-mono);font-weight:700;font-size:12.5px;color:var(--text);}
+  .c-part{background:rgba(232,163,61,.35) !important;} .c-full{background:var(--info) !important;color:#fff !important;}
+  .c-late{background:var(--stamp) !important;color:#fff !important;}
+  .c-today{border-color:var(--accent) !important;} .c-today-h{color:var(--accent-dark) !important;}
+  .c-sel{outline:3px solid var(--bg-shell);}
+  .nriga{display:grid;gap:4px;}
+  .disp{font-size:14px;font-weight:600;min-height:18px;}
+  .disp .ok{color:var(--success);} .disp .ko{color:var(--stamp);}
+  .voce{border:1px solid var(--border);border-radius:10px;padding:12px;display:grid;gap:12px;background:var(--bg-paper);}
+  .voce-head{font-weight:700;font-size:17px;display:flex;gap:8px;align-items:center;}
+  .ctrl{display:grid;gap:6px;}
+  .ctrl-t{font-weight:600;}
+  .prima{font-weight:500;font-size:13px;color:var(--info);margin-left:6px;}
+  .chipv{border:1.5px solid var(--border);background:#fff;color:var(--text);border-radius:8px;padding:10px 16px;min-height:48px;min-width:64px;font-size:16px;font-weight:600;}
+  .chipv.on{background:var(--bg-shell);border-color:var(--bg-shell);color:#fff;}
+  .diff{font-size:14px;font-weight:600;color:var(--stamp);}
+  .diff:empty{display:none;}
+  .accs{display:flex;flex-wrap:wrap;gap:8px;}
+  .acc{display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);background:#fff;border-radius:8px;padding:10px 14px;min-height:48px;font-size:15px;}
+  .acc input{width:22px;height:22px;}
+  .facts{display:flex;flex-wrap:wrap;gap:8px 22px;}
+  .facts > div{display:grid;gap:2px;}
+  .ctrl-line{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;padding:4px 0;border-bottom:1px dashed var(--border);}
+  .ctrl-line.bad{color:var(--stamp);font-weight:600;}
+  .segn .list li{background:var(--bad-bg);color:var(--stamp);font-weight:600;}
 </style>
 </head>
 <body>
@@ -135,11 +188,19 @@
     <button class="btn-top" id="logoutBtn" type="button">Esci</button>
   </div>
 </header>
-<div class="test-band">Pagina di prova dei noleggi, separata dall'app dei buoni. Per ora: schede attrezzi, controlli, scadenze e manutenzioni.</div>
+<nav class="tabsbar" aria-label="Sezioni">
+  <button type="button" data-tab="oggi" class="active">Oggi</button>
+  <button type="button" data-tab="cal">Calendario</button>
+  <button type="button" data-tab="att">Attrezzi</button>
+</nav>
+<div class="test-band">Pagina di prova dei noleggi, separata dall'app dei buoni. Per le prove usa clienti con «PROVA» nel nome.</div>
 
 <main>
   <div class="warnbox" id="rulesWarn" hidden></div>
-
+  <section id="tabOggi"></section>
+  <section id="tabCal" hidden></section>
+  <section id="nolView" hidden></section>
+  <section id="tabAtt" hidden>
   <section id="listView">
     <div class="toolbar">
       <input class="search" id="search" type="search" placeholder="Cerca attrezzo..." autocomplete="off">
@@ -150,6 +211,7 @@
   </section>
 
   <section id="detailView" hidden></section>
+  </section>
 </main>
 
 <div class="toast" id="toast" hidden role="status"></div>
@@ -157,7 +219,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, updateDoc, addDoc, getDocs, onSnapshot, collection, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, updateDoc, addDoc, getDocs, onSnapshot, collection, query, orderBy, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAbDjlaO8iX8PBmObY-SKHUgVBLKURHt9A",
@@ -171,7 +233,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'noleggi passo 1.2';
+const VERSIONE = 'noleggi passo 2';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'amministrazione@edil-nord.com'];
@@ -343,6 +405,7 @@ onAuthStateChanged(fbAuth, user => {
     $('rulesWarn').hidden = false;
     attrezzi = []; render();
   });
+  avviaNoleggi();
 });
 
 // ---------------- Elenco ----------------
@@ -350,7 +413,6 @@ $('search').addEventListener('input', () => renderList());
 $('showOff').addEventListener('change', () => renderList());
 $('newBtn').addEventListener('click', () => apriNuovo(null));
 
-function render(){ if(openId) renderDetail(); else renderList(); }
 function badgeScadenze(a, oggi){
   const p = statoPeggiore(a, oggi);
   if(p === 'scaduta') return '<span class="pill bad">Scadenza superata</span>';
@@ -443,6 +505,7 @@ function renderDetail(){
         return '<li><span>' + esc(s.testo) + '</span><span class="pill ' + cls + '" style="margin-left:auto">' + esc(st.testo) + '</span></li>';
       }).join('') + '</ul>' : '<p class="muted" style="margin:0">Nessuna scadenza.</p>') + '</div>'
 
+    + storicoAttrezzoHtml(a)
     + '<div class="sec"><h2>Manutenzioni</h2><div id="manutBox"><p class="muted" style="margin:0">Carico...</p></div></div>'
 
     + (isUfficio ? '<div class="actions"><button class="btn dark" id="editBtn" type="button">Modifica</button>'
@@ -462,7 +525,13 @@ function renderDetail(){
       catch(e){ toast(erroreFirebase(e), true); }
     });
   }
+  wireCards($('detailView'));
   caricaManutenzioni(a);
+}
+function storicoAttrezzoHtml(a){
+  const lista = noleggi.filter(n => n.stato !== 'annullato' && n.righe.some(r => r.attrezzoId === a.id))
+    .sort((x, y) => y.dal.localeCompare(x.dal)).slice(0, 10);
+  return '<div class="sec"><h2>Noleggi (ultimi 10)</h2>' + (lista.length ? '<div class="nlist">' + lista.map(cardNol).join('') + '</div>' : '<p class="muted" style="margin:0">Nessun noleggio ancora.</p>') + '</div>';
 }
 
 // ---------------- Modifica ----------------
@@ -694,6 +763,681 @@ function formManutenzione(a){
       toast(prossima ? 'Manutenzione registrata ✓ Prossima: ' + (prossima.tipo === 'ore' ? fmtN(prossima.ore) + ' h' : fmtData(prossima.data)) : 'Manutenzione registrata ✓');
       caricaManutenzioni(a, true);
     }catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = 'Salva manutenzione'; }
+  });
+}
+
+// =====================================================================
+// PASSO 2 — NOLEGGI: prenotazioni, uscita, rientro, calendario
+// =====================================================================
+
+// ---------------- Funzioni pure (provate prima della consegna) ----------------
+const LIVELLI = ['pieno', '3/4', '1/2', '1/4', 'vuoto'];
+const LIVELLI_TXT = {'pieno': 'Pieno', '3/4': '¾', '1/2': '½', '1/4': '¼', 'vuoto': 'Vuoto'};
+function addGiorni(iso, n){
+  const t = Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) + n * 86400000;
+  return new Date(t).toISOString().slice(0, 10);
+}
+function giornoDi(isoTime){ return oggiISO(new Date(isoTime)); }
+// Giorni in cui un noleggio tiene occupati gli attrezzi (estremi compresi).
+// Prenotato: dal → al. Fuori: dall'uscita reale (o dal) → al; se è in ritardo, fino a oggi.
+function periodoNoleggio(n, oggi){
+  if(n.stato === 'prenotato') return [n.dal, n.al];
+  if(n.stato === 'fuori'){
+    const inizio = n.uscita && n.uscita.at ? [n.dal, giornoDi(n.uscita.at)].sort()[0] : n.dal;
+    return [inizio, n.al < oggi ? oggi : n.al];
+  }
+  return null;
+}
+function pezziInUso(n, attrezzoId){
+  return (n.righe || []).filter(r => r.attrezzoId === attrezzoId)
+    .reduce((s, r) => s + Math.max(0, (r.qty || 0) - (r.rientrati || 0)), 0);
+}
+function occupatiGiorno(attrezzoId, giorno, noleggi, oggi, escludiId){
+  let tot = 0;
+  noleggi.forEach(n => {
+    if(n.id === escludiId) return;
+    const p = periodoNoleggio(n, oggi);
+    if(!p || giorno < p[0] || giorno > p[1]) return;
+    tot += pezziInUso(n, attrezzoId);
+  });
+  return tot;
+}
+// Pezzi liberi in TUTTI i giorni tra dal e al (il giorno peggiore decide)
+function liberiNelPeriodo(att, dal, al, noleggi, oggi, escludiId){
+  let peggio = 0;
+  for(let g = dal, k = 0; g <= al && k < 400; g = addGiorni(g, 1), k++){
+    peggio = Math.max(peggio, occupatiGiorno(att.id, g, noleggi, oggi, escludiId));
+  }
+  return att.quantita - peggio;
+}
+// Stato da mostrare: in_ritardo | da_consegnare | fuori | prenotato | chiuso | annullato
+function statoVisibile(n, oggi){
+  if(n.stato === 'fuori') return n.al < oggi ? 'in_ritardo' : 'fuori';
+  if(n.stato === 'prenotato') return n.dal <= oggi ? 'da_consegnare' : 'prenotato';
+  return n.stato;
+}
+// Confronto uscita → rientro di un controllo: true se è da segnalare all'ufficio
+function controlloPeggiorato(tipo, prima, dopo){
+  if(prima == null || dopo == null || dopo === '') return false;
+  if(tipo === 'livello') return LIVELLI.indexOf(dopo) > LIVELLI.indexOf(prima);
+  if(tipo === 'numero') return Number(dopo) < Number(prima);
+  if(tipo === 'si_no') return prima !== dopo;
+  return false;
+}
+function valoreTxt(tipo, v){
+  if(v == null || v === '') return '—';
+  if(tipo === 'livello') return LIVELLI_TXT[v] || v;
+  if(tipo === 'si_no') return v === 'si' ? 'Sì' : 'No';
+  return String(v);
+}
+function nuovoNumero(d){
+  d = d || new Date();
+  const z = n => String(n).padStart(2, '0');
+  const r = Math.random().toString(36).slice(2, 5).toUpperCase().replace(/[O0I1]/g, 'X');
+  return String(d.getFullYear()).slice(2) + z(d.getMonth() + 1) + z(d.getDate()) + '-' + r;
+}
+function normNoleggio(id, d){
+  d = d || {};
+  return {
+    id, numero: d.numero || id, cliente: String(d.cliente || ''), tipoCliente: d.tipoCliente || '',
+    note: String(d.note || ''), dal: d.dal || oggiISO(), al: d.al || d.dal || oggiISO(),
+    stato: ['prenotato', 'fuori', 'chiuso', 'annullato'].includes(d.stato) ? d.stato : 'prenotato',
+    righe: (Array.isArray(d.righe) ? d.righe : []).map(r => ({attrezzoId: r.attrezzoId, nome: r.nome || '', qty: r.qty || 0, rientrati: r.rientrati || 0})),
+    uscita: d.uscita || null, rientri: Array.isArray(d.rientri) ? d.rientri : [],
+    proroghe: Array.isArray(d.proroghe) ? d.proroghe : [],
+    creatoDa: d.creatoDa || '', creatoAt: d.creatoAt || null, chiusoAt: d.chiusoAt || null,
+    annullatoDa: d.annullatoDa || null, annullatoAt: d.annullatoAt || null
+  };
+}
+Object.assign(window.__noleggiTest, {addGiorni, periodoNoleggio, occupatiGiorno, liberiNelPeriodo, statoVisibile, controlloPeggiorato, normNoleggio, nuovoNumero});
+
+// ---------------- Stato ----------------
+let tab = 'oggi';
+let noleggi = [];
+let nolMode = null;      // null | 'dettaglio' | 'nuovo' | 'uscita' | 'rientro' | 'date'
+let nolId = null;
+let F = null;            // dati del modulo aperto
+let calInizio = null;    // lunedì della settimana mostrata
+let calSel = null;       // {attrezzoId, giorno}
+
+const STATI_TXT = {in_ritardo: 'In ritardo', da_consegnare: 'Da consegnare', fuori: 'Fuori', prenotato: 'Prenotato', chiuso: 'Rientrato', annullato: 'Annullato'};
+function pillStato(n){ const s = statoVisibile(n, oggiISO()); return '<span class="spill s-' + s + '">' + STATI_TXT[s] + '</span>'; }
+function oraTxt(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('it-IT', {weekday: 'short', day: '2-digit', month: '2-digit'}) + ' ' + d.toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
+}
+function giornoTxt(iso){ const [y, m, d] = iso.split('-'); return new Date(Date.UTC(+y, +m - 1, +d)).toLocaleDateString('it-IT', {weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC'}); }
+function attrezzoById(id){ return attrezzi.find(a => a.id === id) || null; }
+function nomeMio(){ return nomeDaEmail(me); }
+function findNol(id){ return noleggi.find(n => n.id === id) || null; }
+function nolErr(code){
+  const t = {
+    gia_uscito: 'Nel frattempo questo noleggio è già stato consegnato.',
+    gia_chiuso: 'Nel frattempo questo noleggio è già stato chiuso.',
+    annullato: 'Questo noleggio è stato annullato.',
+    sparito: 'Il noleggio non c\'è più.',
+    non_fuori: 'Il noleggio non risulta fuori.'
+  };
+  return t[code] || erroreFirebase({code});
+}
+async function txNoleggio(id, mutate){
+  try{
+    await runTransaction(fbDb, async tx => {
+      const ref = doc(fbDb, 'noleggi', id);
+      const snap = await tx.get(ref);
+      if(!snap.exists()) throw new Error('sparito');
+      const raw = snap.data();
+      const patch = mutate(raw, normNoleggio(id, raw));
+      tx.update(ref, Object.assign(patch, {aggiornatoAt: new Date().toISOString()}));
+    });
+    return '';
+  }catch(e){ return (e && (e.code || e.message)) || 'errore'; }
+}
+// Le ore del contaore scritte in uscita/rientro aggiornano l'attrezzo (solo se più alte)
+function aggiornaOre(voci, quando){
+  voci.forEach(v => {
+    const a = attrezzoById(v.attrezzoId);
+    const ore = parseFloat(String(v.ore || '').replace(',', '.'));
+    if(!a || !a.contaore || !isFinite(ore)) return;
+    if(a.oreAttuali != null && ore <= a.oreAttuali) return;
+    updateDoc(doc(fbDb, 'attrezzi', a.id), {oreAttuali: ore, oreAt: quando}).catch(() => {});
+  });
+}
+
+// ---------------- Navigazione ----------------
+document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
+  tab = b.dataset.tab; nolMode = null; nolId = null; F = null; openId = null; editing = false;
+  render(); window.scrollTo(0, 0);
+}));
+function render(){
+  document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab && !nolMode));
+  const inNol = !!nolMode;
+  $('nolView').hidden = !inNol;
+  $('tabOggi').hidden = inNol || tab !== 'oggi';
+  $('tabCal').hidden = inNol || tab !== 'cal';
+  $('tabAtt').hidden = inNol || tab !== 'att';
+  if(inNol){
+    // mentre si compila un modulo non si ridisegna (si perderebbe quello che si sta scrivendo)
+    if(nolMode === 'dettaglio') renderNolDettaglio();
+    return;
+  }
+  if(tab === 'oggi') renderOggi();
+  else if(tab === 'cal') renderCal();
+  else { if(openId) renderDetail(); else renderList(); }
+}
+function apriNol(id){ nolMode = 'dettaglio'; nolId = id; F = null; render(); window.scrollTo(0, 0); }
+function chiudiNol(){ nolMode = null; nolId = null; F = null; render(); window.scrollTo(0, 0); }
+
+// ---------------- Oggi ----------------
+function cardNol(n){
+  const righe = n.righe.map(r => esc(r.nome) + ' ×' + r.qty + (r.rientrati && r.rientrati < r.qty ? ' (' + r.rientrati + ' rientrati)' : '')).join(', ');
+  const quando = n.stato === 'fuori' ? 'uscito ' + (n.uscita ? oraTxt(n.uscita.at) : '') + ' · rientro previsto ' + giornoTxt(n.al)
+    : n.stato === 'chiuso' ? 'rientrato ' + oraTxt(n.chiusoAt)
+    : 'dal ' + giornoTxt(n.dal) + ' al ' + giornoTxt(n.al);
+  return '<button class="ncard" type="button" data-nol="' + esc(n.id) + '">'
+    + '<span class="ncard-top"><span class="ncard-cli">' + esc(n.cliente || 'Cliente non indicato') + '</span>' + pillStato(n) + '</span>'
+    + '<span class="ncard-att">' + righe + '</span>'
+    + '<span class="ncard-when">N. ' + esc(n.numero) + ' · ' + quando + '</span></button>';
+}
+function wireCards(box){ box.querySelectorAll('[data-nol]').forEach(b => b.addEventListener('click', () => apriNol(b.dataset.nol))); }
+function renderOggi(){
+  const box = $('tabOggi'), oggi = oggiISO();
+  const vis = noleggi.map(n => ({n, s: statoVisibile(n, oggi)}));
+  const sez = (titolo, lista, vuoto) => '<div class="cat-head">' + titolo + ' <span class="cnt">' + lista.length + '</span></div>'
+    + (lista.length ? '<div class="nlist">' + lista.map(cardNol).join('') + '</div>' : (vuoto ? '<p class="muted small">' + vuoto + '</p>' : ''));
+  const per = (s) => vis.filter(x => x.s === s).map(x => x.n);
+  const ritardo = per('in_ritardo').sort((a, b) => a.al.localeCompare(b.al));
+  const consegna = per('da_consegnare').sort((a, b) => a.dal.localeCompare(b.dal));
+  const rientranoOggi = per('fuori').filter(n => n.al === oggi);
+  const fuori = per('fuori').filter(n => n.al !== oggi).sort((a, b) => a.al.localeCompare(b.al));
+  const limite = addGiorni(oggi, 14);
+  const prossimi = per('prenotato').filter(n => n.dal <= limite).sort((a, b) => a.dal.localeCompare(b.dal));
+  const chiusi = noleggi.filter(n => n.stato === 'chiuso').sort((a, b) => String(b.chiusoAt).localeCompare(String(a.chiusoAt))).slice(0, 8);
+  box.innerHTML = '<div class="warnbox" id="nolWarn" hidden></div>'
+    + '<div class="bigbtns"><button class="btn primary big" id="esceBtn" type="button">+ Esce adesso</button>'
+    + '<button class="btn dark big" id="prenotaBtn" type="button">+ Prenota</button></div>'
+    + (attrezzi.length ? '' : '<p class="warnbox">Prima vanno caricati gli attrezzi (scheda «Attrezzi»).</p>')
+    + (ritardo.length ? sez('In ritardo', ritardo) : '')
+    + sez('Da consegnare', consegna, 'Nessuna prenotazione da consegnare oggi.')
+    + sez('Rientrano oggi', rientranoOggi, 'Nessun rientro previsto oggi.')
+    + sez('Fuori', fuori, 'Nessun altro attrezzo fuori.')
+    + sez('Prenotati nei prossimi 14 giorni', prossimi, 'Nessuna prenotazione nei prossimi 14 giorni.')
+    + (chiusi.length ? sez('Rientrati di recente', chiusi) : '');
+  wireCards(box);
+  $('esceBtn').addEventListener('click', () => apriNuovoNol(true));
+  $('prenotaBtn').addEventListener('click', () => apriNuovoNol(false));
+  mostraNolWarn();
+}
+let nolWarnTxt = '';
+function mostraNolWarn(){ const w = $('nolWarn'); if(!w) return; w.textContent = nolWarnTxt; w.hidden = !nolWarnTxt; }
+
+// ---------------- Calendario ----------------
+function lunedi(iso){
+  const d = new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)));
+  const dow = (d.getUTCDay() + 6) % 7;
+  return addGiorni(iso, -dow);
+}
+function renderCal(){
+  const oggi = oggiISO();
+  if(!calInizio) calInizio = lunedi(oggi);
+  const giorni = Array.from({length: 7}, (_, i) => addGiorni(calInizio, i));
+  const att = attrezzi.filter(a => a.attivo);
+  const cats = [...new Set(CATEGORIE.concat(att.map(a => a.categoria)))].filter(c => att.some(a => a.categoria === c));
+  let righe = '';
+  cats.forEach(c => {
+    righe += '<tr class="cal-cat"><th colspan="8">' + esc(c) + '</th></tr>';
+    att.filter(a => a.categoria === c).sort((x, y) => x.nome.localeCompare(y.nome, 'it')).forEach(a => {
+      righe += '<tr><th class="cal-name">' + esc(a.nome) + (a.quantita > 1 ? ' <span class="muted">×' + a.quantita + '</span>' : '') + '</th>';
+      giorni.forEach(g => {
+        const occ = occupatiGiorno(a.id, g, noleggi, oggi);
+        const ritardo = occ && noleggi.some(n => statoVisibile(n, oggi) === 'in_ritardo' && pezziInUso(n, a.id) && g >= n.al && g <= oggi);
+        const cls = !occ ? '' : ritardo ? 'c-late' : occ >= a.quantita ? 'c-full' : 'c-part';
+        const sel = calSel && calSel.attrezzoId === a.id && calSel.giorno === g ? ' c-sel' : '';
+        righe += '<td><button type="button" class="cal-cell ' + cls + sel + (g === oggi ? ' c-today' : '') + '" data-ca="' + esc(a.id) + '" data-cg="' + g + '" aria-label="' + esc(a.nome) + ' ' + giornoTxt(g) + '">'
+          + (occ ? (a.quantita > 1 ? occ + '/' + a.quantita : (ritardo ? '!' : '●')) : '') + '</button></td>';
+      });
+      righe += '</tr>';
+    });
+  });
+  let dett = '';
+  if(calSel){
+    const a = attrezzoById(calSel.attrezzoId);
+    const lista = noleggi.filter(n => { const p = periodoNoleggio(n, oggi); return p && calSel.giorno >= p[0] && calSel.giorno <= p[1] && pezziInUso(n, calSel.attrezzoId); });
+    dett = '<div class="cat-head">' + esc(a ? a.nome : '') + ' · ' + giornoTxt(calSel.giorno) + '</div>'
+      + (lista.length ? '<div class="nlist">' + lista.map(cardNol).join('') + '</div>' : '<p class="muted small">Libero in questo giorno.</p>');
+  }
+  $('tabCal').innerHTML = '<div class="cal-nav"><button class="btn ghost" id="calPrev" type="button">‹ Settimana prima</button>'
+    + '<button class="btn ghost" id="calOggi" type="button">Questa settimana</button>'
+    + '<button class="btn ghost" id="calNext" type="button">Settimana dopo ›</button></div>'
+    + '<div class="cal-legend"><span><i class="c-part"></i> in parte occupato</span><span><i class="c-full"></i> tutto occupato</span><span><i class="c-late"></i> in ritardo</span></div>'
+    + (att.length ? '<div class="cal-wrap"><table class="cal"><thead><tr><th></th>'
+      + giorni.map(g => '<th class="' + (g === oggi ? 'c-today-h' : '') + '">' + giornoTxt(g) + '</th>').join('') + '</tr></thead><tbody>' + righe + '</tbody></table></div>'
+      : '<p class="muted">Nessun attrezzo attivo.</p>')
+    + '<div id="calDett">' + dett + '</div>';
+  $('calPrev').addEventListener('click', () => { calInizio = addGiorni(calInizio, -7); calSel = null; renderCal(); });
+  $('calNext').addEventListener('click', () => { calInizio = addGiorni(calInizio, 7); calSel = null; renderCal(); });
+  $('calOggi').addEventListener('click', () => { calInizio = lunedi(oggiISO()); calSel = null; renderCal(); });
+  $('tabCal').querySelectorAll('[data-ca]').forEach(b => b.addEventListener('click', () => {
+    calSel = {attrezzoId: b.dataset.ca, giorno: b.dataset.cg}; renderCal();
+    $('calDett').scrollIntoView({behavior: 'smooth', block: 'nearest'});
+  }));
+  wireCards($('calDett'));
+}
+
+// ---------------- Nuovo noleggio / prenotazione ----------------
+function apriNuovoNol(esce){
+  const oggi = oggiISO();
+  nolMode = 'nuovo'; nolId = null;
+  F = {esce, cliente: '', tipoCliente: '', dal: oggi, al: addGiorni(oggi, 1), righe: [{attrezzoId: '', qty: 1}], note: '', forza: false};
+  render(); disegnaNuovo(); window.scrollTo(0, 0);
+}
+function opzioniAttrezzi(sel){
+  const att = attrezzi.filter(a => a.attivo);
+  const cats = [...new Set(CATEGORIE.concat(att.map(a => a.categoria)))].filter(c => att.some(a => a.categoria === c));
+  return '<option value="">— scegli l\'attrezzo —</option>' + cats.map(c => '<optgroup label="' + esc(c) + '">'
+    + att.filter(a => a.categoria === c).sort((x, y) => x.nome.localeCompare(y.nome, 'it'))
+      .map(a => '<option value="' + esc(a.id) + '"' + (a.id === sel ? ' selected' : '') + '>' + esc(a.nome) + (a.quantita > 1 ? ' (×' + a.quantita + ')' : '') + '</option>').join('')
+    + '</optgroup>').join('');
+}
+// Controllo disponibilità di tutte le righe: [{i, att, liberi, chiesti}]
+function controllaDisponibilita(righe, dal, al, escludiId){
+  const oggi = oggiISO();
+  // stesso attrezzo su più righe: si sommano
+  const chiesti = {};
+  righe.forEach(r => { if(r.attrezzoId) chiesti[r.attrezzoId] = (chiesti[r.attrezzoId] || 0) + (parseInt(r.qty, 10) || 0); });
+  return Object.keys(chiesti).map(id => {
+    const att = attrezzoById(id);
+    const liberi = att ? liberiNelPeriodo(att, dal, al, noleggi, oggi, escludiId) : 0;
+    return {id, att, liberi, chiesti: chiesti[id]};
+  });
+}
+function testoDisp(c){
+  if(!c.att) return '';
+  if(c.liberi >= c.chiesti) return '<span class="ok">✓ ' + c.liberi + ' di ' + c.att.quantita + ' liberi in quei giorni</span>';
+  return '<span class="ko">✕ solo ' + Math.max(0, c.liberi) + ' di ' + c.att.quantita + ' liberi in quei giorni</span>';
+}
+function disegnaNuovo(){
+  const v = $('nolView');
+  v.innerHTML = '<button class="btn ghost back" id="nBack" type="button">← Annulla</button>'
+    + '<div class="sheet form"><h1>' + (F.esce ? 'Esce adesso' : 'Nuova prenotazione') + '</h1>'
+    + '<div class="row"><div class="field"><label for="nCli">Cliente *</label><input class="inp" id="nCli" value="' + esc(F.cliente) + '" maxlength="80" placeholder="Nome cliente" autocomplete="off"></div>'
+    + '<div class="field" style="grid-column:span 2"><span class="lbl">Tipo di cliente</span><div class="actions">'
+    + ['privato', 'impresa'].map(t => '<button type="button" class="btn ' + (F.tipoCliente === t ? 'dark' : 'ghost') + '" data-tc="' + t + '">' + (t === 'privato' ? 'Privato' : 'Impresa') + '</button>').join('')
+    + '</div></div></div>'
+    + '<div class="row"><div class="field"><label for="nDal">' + (F.esce ? 'Esce oggi' : 'Ritira il') + '</label><input class="inp" id="nDal" type="date" value="' + F.dal + '"' + (F.esce ? ' disabled' : '') + '></div>'
+    + '<div class="field"><label for="nAl">Rientro previsto</label><input class="inp" id="nAl" type="date" value="' + F.al + '"></div>'
+    + '<div class="field"><span class="lbl">&nbsp;</span><div class="actions"><button type="button" class="btn ghost" data-pg="1">+1 g</button><button type="button" class="btn ghost" data-pg="2">+2 g</button><button type="button" class="btn ghost" data-pg="7">+7 g</button></div></div></div>'
+    + '<div class="field"><span class="lbl">Attrezzi</span><div id="nRighe" style="display:grid;gap:8px"></div>'
+    + '<button class="add-line" id="nAdd" type="button">+ Aggiungi un altro attrezzo</button></div>'
+    + '<div class="field"><label for="nNote">Note</label><textarea class="inp" id="nNote" rows="2" maxlength="500">' + esc(F.note) + '</textarea></div>'
+    + '<div class="actions"><button class="btn primary big" id="nSave" type="button">' + (F.esce ? 'Avanti: controlli di uscita' : 'Salva prenotazione') + '</button></div>'
+    + '</div>';
+  disegnaRigheNuovo();
+  $('nBack').addEventListener('click', chiudiNol);
+  $('nCli').addEventListener('input', e => F.cliente = e.target.value);
+  $('nNote').addEventListener('input', e => F.note = e.target.value);
+  v.querySelectorAll('[data-tc]').forEach(b => b.addEventListener('click', () => {
+    F.tipoCliente = F.tipoCliente === b.dataset.tc ? '' : b.dataset.tc;
+    v.querySelectorAll('[data-tc]').forEach(x => x.className = 'btn ' + (F.tipoCliente === x.dataset.tc ? 'dark' : 'ghost'));
+  }));
+  $('nDal').addEventListener('change', e => { F.dal = e.target.value; if(F.al < F.dal){ F.al = F.dal; $('nAl').value = F.al; } F.forza = false; aggiornaDisp(); });
+  $('nAl').addEventListener('change', e => { F.al = e.target.value; F.forza = false; aggiornaDisp(); });
+  v.querySelectorAll('[data-pg]').forEach(b => b.addEventListener('click', () => { F.al = addGiorni(F.dal, +b.dataset.pg); $('nAl').value = F.al; F.forza = false; aggiornaDisp(); }));
+  $('nAdd').addEventListener('click', () => { F.righe.push({attrezzoId: '', qty: 1}); disegnaRigheNuovo(); });
+  $('nSave').addEventListener('click', salvaNuovo);
+}
+function disegnaRigheNuovo(){
+  $('nRighe').innerHTML = F.righe.map((r, i) => {
+    const a = attrezzoById(r.attrezzoId);
+    return '<div class="nriga"><div class="edit-row" style="grid-template-columns:1fr 90px auto">'
+      + '<select class="inp" data-ra="' + i + '" aria-label="Attrezzo">' + opzioniAttrezzi(r.attrezzoId) + '</select>'
+      + '<input class="inp" data-rq="' + i + '" type="number" inputmode="numeric" min="1" step="1" value="' + r.qty + '" aria-label="Quanti"' + (a && a.quantita === 1 ? ' disabled' : '') + '>'
+      + '<button class="sq rm" type="button" data-rx="' + i + '" aria-label="Togli"' + (F.righe.length === 1 ? ' disabled' : '') + '>✕</button></div>'
+      + '<div class="disp" data-disp="' + i + '"></div></div>';
+  }).join('');
+  $('nRighe').querySelectorAll('[data-ra]').forEach(el => el.addEventListener('change', () => {
+    const r = F.righe[+el.dataset.ra]; r.attrezzoId = el.value;
+    const a = attrezzoById(r.attrezzoId); if(a && a.quantita === 1) r.qty = 1;
+    F.forza = false; disegnaRigheNuovo();
+  }));
+  $('nRighe').querySelectorAll('[data-rq]').forEach(el => el.addEventListener('change', () => { F.righe[+el.dataset.rq].qty = parseInt(el.value, 10) || 0; F.forza = false; aggiornaDisp(); }));
+  $('nRighe').querySelectorAll('[data-rx]').forEach(el => el.addEventListener('click', () => { F.righe.splice(+el.dataset.rx, 1); F.forza = false; disegnaRigheNuovo(); }));
+  aggiornaDisp();
+}
+function aggiornaDisp(){
+  const ok = F.al >= F.dal;
+  const contr = ok ? controllaDisponibilita(F.righe, F.dal, F.al, null) : [];
+  F.righe.forEach((r, i) => {
+    const el = document.querySelector('[data-disp="' + i + '"]'); if(!el) return;
+    if(!ok){ el.innerHTML = '<span class="ko">Il rientro è prima del ritiro.</span>'; return; }
+    const c = contr.find(x => x.id === r.attrezzoId);
+    el.innerHTML = c ? testoDisp(c) : '';
+  });
+  const b = $('nSave'); if(b && !F.forza){ b.textContent = F.esce ? 'Avanti: controlli di uscita' : 'Salva prenotazione'; b.classList.remove('force'); }
+}
+async function salvaNuovo(){
+  const b = $('nSave');
+  const cliente = F.cliente.trim();
+  if(!cliente){ toast('Scrivi il nome del cliente.', true); $('nCli').focus(); return; }
+  if(!F.dal || !F.al || F.al < F.dal){ toast('Controlla le date: il rientro non può essere prima del ritiro.', true); return; }
+  const righe = F.righe.filter(r => r.attrezzoId);
+  if(!righe.length){ toast('Scegli almeno un attrezzo.', true); return; }
+  if(righe.some(r => !Number.isInteger(r.qty) || r.qty < 1)){ toast('Le quantità devono essere numeri interi da 1 in su.', true); return; }
+  const mancanti = controllaDisponibilita(righe, F.dal, F.al, null).filter(c => c.liberi < c.chiesti);
+  if(mancanti.length && !F.forza){
+    const elenco = mancanti.map(c => c.att.nome + ' (liberi ' + Math.max(0, c.liberi) + ', chiesti ' + c.chiesti + ')').join(', ');
+    if(!isUfficio){ toast('Non disponibile in quei giorni: ' + elenco + '. Chiedi all\'ufficio.', true); return; }
+    F.forza = true; b.textContent = 'Tocca ancora: salva oltre la disponibilità'; b.classList.add('force');
+    toast('Non disponibile: ' + elenco + '. Puoi forzare perché sei ufficio.', true);
+    return;
+  }
+  // stesso attrezzo su più righe: le unisco
+  const unite = [];
+  righe.forEach(r => { const u = unite.find(x => x.attrezzoId === r.attrezzoId); if(u) u.qty += r.qty; else unite.push({attrezzoId: r.attrezzoId, nome: attrezzoById(r.attrezzoId).nome, qty: r.qty, rientrati: 0}); });
+  const numero = nuovoNumero();
+  const now = new Date().toISOString();
+  const data = {numero, cliente, tipoCliente: F.tipoCliente, note: F.note.trim(), dal: F.dal, al: F.al, stato: 'prenotato',
+    righe: unite, uscita: null, rientri: [], proroghe: [], forzato: mancanti.length ? true : false,
+    creatoDa: nomeMio(), creatoDaEmail: me, creatoAt: now, aggiornatoAt: now};
+  b.disabled = true; b.textContent = 'Salvo...';
+  try{
+    await setDoc(doc(fbDb, 'noleggi', numero), data);
+    const esce = F.esce;
+    noleggi = noleggi.concat([normNoleggio(numero, data)]);
+    if(esce) apriUscita(numero); else { toast('Prenotazione salvata ✓'); apriNol(numero); }
+  }catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = F.esce ? 'Avanti: controlli di uscita' : 'Salva prenotazione'; }
+}
+
+// ---------------- Controlli (uscita e rientro) ----------------
+function inputControllo(chiave, c){
+  const v = c.valore;
+  if(c.tipo === 'si_no') return '<div class="actions">' + ['si', 'no'].map(x => '<button type="button" class="chipv' + (v === x ? ' on' : '') + '" data-k="' + chiave + '" data-v="' + x + '">' + (x === 'si' ? 'Sì' : 'No') + '</button>').join('') + '</div>';
+  if(c.tipo === 'livello') return '<div class="actions">' + LIVELLI.map(x => '<button type="button" class="chipv' + (v === x ? ' on' : '') + '" data-k="' + chiave + '" data-v="' + x + '">' + LIVELLI_TXT[x] + '</button>').join('') + '</div>';
+  if(c.tipo === 'numero') return '<input class="inp" style="max-width:160px" type="number" inputmode="decimal" step="any" data-kn="' + chiave + '" value="' + (v == null ? '' : esc(v)) + '" aria-label="' + esc(c.testo) + '">';
+  return '<input class="inp" data-kn="' + chiave + '" value="' + (v == null ? '' : esc(v)) + '" maxlength="200" aria-label="' + esc(c.testo) + '">';
+}
+// collega pulsanti e campi dei controlli all'oggetto F.voci[i].controlli[j]
+function wireControlli(box, onChange){
+  box.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
+    const [i, j] = b.dataset.k.split('.').map(Number);
+    const c = F.voci[i].controlli[j];
+    c.valore = c.valore === b.dataset.v ? null : b.dataset.v;
+    box.querySelectorAll('[data-k="' + b.dataset.k + '"]').forEach(x => x.classList.toggle('on', x.dataset.v === c.valore));
+    if(onChange) onChange(i, j);
+  }));
+  box.querySelectorAll('[data-kn]').forEach(el => el.addEventListener('input', () => {
+    const [i, j] = el.dataset.kn.split('.').map(Number);
+    F.voci[i].controlli[j].valore = el.value.trim() === '' ? null : el.value.trim();
+    if(onChange) onChange(i, j);
+  }));
+  box.querySelectorAll('[data-acc]').forEach(el => el.addEventListener('change', () => {
+    const [i, j] = el.dataset.acc.split('.').map(Number);
+    F.voci[i].accessori[j].ok = el.checked;
+  }));
+  box.querySelectorAll('[data-ore]').forEach(el => el.addEventListener('input', () => { F.voci[+el.dataset.ore].ore = el.value; }));
+}
+function mancantiControlli(voci){
+  return voci.reduce((s, v) => s + (v.salta ? 0 : v.controlli.filter(c => c.valore == null || c.valore === '').length), 0);
+}
+
+// ---------------- Uscita ----------------
+function apriUscita(id){
+  const n = findNol(id); if(!n) return;
+  nolMode = 'uscita'; nolId = id;
+  F = {armed: false, note: '', accTitolo: 'Accessori consegnati (spunta quelli che escono)', voci: n.righe.map(r => {
+    const a = attrezzoById(r.attrezzoId) || {controlli: [], accessori: [], contaore: false};
+    return {attrezzoId: r.attrezzoId, nome: r.nome, qty: r.qty, contaore: a.contaore,
+      controlli: a.controlli.map(c => ({testo: c.testo, tipo: c.tipo, valore: null})),
+      accessori: a.accessori.map(x => ({nome: x, ok: false})), ore: ''};
+  })};
+  render(); disegnaUscita(n); window.scrollTo(0, 0);
+}
+function bloccoVoce(v, i, extra){
+  return '<div class="voce"><div class="voce-head">' + esc(v.nome) + ' <span class="pill qty">×' + v.qty + '</span></div>' + (extra || '')
+    + (v.controlli.length ? v.controlli.map((c, j) => '<div class="ctrl"><div class="ctrl-t">' + esc(c.testo)
+        + (c.prima !== undefined ? ' <span class="prima">all\'uscita: ' + esc(valoreTxt(c.tipo, c.prima)) + '</span>' : '') + '</div>'
+        + inputControllo(i + '.' + j, c) + '<div class="diff" data-diff="' + i + '.' + j + '"></div></div>').join('')
+      : '<p class="muted small">Nessun controllo per questo attrezzo.</p>')
+    + (v.accessori.length ? '<div class="ctrl"><div class="ctrl-t">' + (F.accTitolo || 'Accessori') + '</div><div class="accs">'
+        + v.accessori.map((x, j) => '<label class="acc"><input type="checkbox" data-acc="' + i + '.' + j + '"' + (x.ok ? ' checked' : '') + '> ' + esc(x.nome) + '</label>').join('') + '</div></div>' : '')
+    + (v.contaore ? '<div class="ctrl"><div class="ctrl-t">Ore contaore <span class="muted">(facoltativo)</span></div><input class="inp" style="max-width:160px" type="number" inputmode="decimal" step="any" data-ore="' + i + '" value="' + esc(v.ore) + '"></div>' : '')
+    + '</div>';
+}
+function disegnaUscita(n){
+  const v = $('nolView');
+  v.innerHTML = '<button class="btn ghost back" id="uBack" type="button">← Indietro</button>'
+    + '<div class="sheet form"><div><div class="cat-head" style="margin:0 0 4px">Uscita · N. ' + esc(n.numero) + '</div><h1>' + esc(n.cliente) + '</h1>'
+    + '<p class="muted" style="margin:6px 0 0">Rientro previsto ' + giornoTxt(n.al) + '. Spunta gli accessori che consegni.</p></div>'
+    + F.voci.map((x, i) => bloccoVoce(x, i, '')).join('')
+    + '<div class="field"><label for="uNote">Note all\'uscita</label><textarea class="inp" id="uNote" rows="2" maxlength="500" placeholder="Es. graffio sul cofano già presente"></textarea></div>'
+    + '<button class="btn primary big" id="uOk" type="button">Conferma uscita</button></div>';
+  wireControlli(v, () => resetArm('uOk', 'Conferma uscita'));
+  $('uNote').addEventListener('input', e => F.note = e.target.value);
+  $('uBack').addEventListener('click', () => apriNol(n.id));
+  $('uOk').addEventListener('click', confermaUscita);
+}
+function resetArm(id, testo){ if(F && F.armed){ F.armed = false; const b = $(id); if(b){ b.textContent = testo; b.classList.remove('force'); } } }
+async function confermaUscita(){
+  const b = $('uOk');
+  const manc = mancantiControlli(F.voci);
+  if(manc && !F.armed){ F.armed = true; b.textContent = 'Mancano ' + manc + (manc === 1 ? ' controllo' : ' controlli') + ': tocca ancora per confermare'; b.classList.add('force'); return; }
+  const now = new Date().toISOString();
+  const uscita = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(),
+    voci: F.voci.map(v => ({attrezzoId: v.attrezzoId, controlli: v.controlli.map(c => ({testo: c.testo, tipo: c.tipo, valore: c.valore})),
+      accessori: v.accessori.map(x => ({nome: x.nome, ok: x.ok})), ore: v.ore === '' ? null : parseFloat(String(v.ore).replace(',', '.'))}))};
+  b.disabled = true; b.textContent = 'Salvo...';
+  const err = await txNoleggio(nolId, (raw, n) => {
+    if(n.stato === 'fuori') throw new Error('gia_uscito');
+    if(n.stato === 'chiuso') throw new Error('gia_chiuso');
+    if(n.stato === 'annullato') throw new Error('annullato');
+    return {stato: 'fuori', uscita};
+  });
+  if(err){ toast(nolErr(err), true); b.disabled = false; b.textContent = 'Conferma uscita'; F.armed = false; return; }
+  aggiornaOre(F.voci, oggiISO());
+  toast('Uscita registrata ✓ ' + oraTxt(now));
+  apriNol(nolId);
+}
+
+// ---------------- Rientro ----------------
+function apriRientro(id){
+  const n = findNol(id); if(!n) return;
+  nolMode = 'rientro'; nolId = id;
+  F = {armed: false, note: '', accTitolo: 'Accessori rientrati (spunta quelli che tornano)', voci: n.righe.filter(r => r.qty - r.rientrati > 0).map(r => {
+    const a = attrezzoById(r.attrezzoId) || {controlli: [], accessori: [], contaore: false};
+    const u = n.uscita && (n.uscita.voci || []).find(x => x.attrezzoId === r.attrezzoId);
+    const controlli = (u ? u.controlli : a.controlli.map(c => ({testo: c.testo, tipo: c.tipo, valore: null})))
+      .map(c => ({testo: c.testo, tipo: c.tipo, prima: c.valore == null ? null : c.valore, valore: null}));
+    const accessori = (u ? u.accessori.filter(x => x.ok) : a.accessori.map(x => ({nome: x}))).map(x => ({nome: x.nome, ok: false}));
+    const rest = r.qty - r.rientrati;
+    return {attrezzoId: r.attrezzoId, nome: r.nome, qty: rest, rest, contaore: a.contaore, controlli, accessori, ore: '', salta: false};
+  })};
+  render(); disegnaRientro(n); window.scrollTo(0, 0);
+}
+function disegnaRientro(n){
+  const v = $('nolView');
+  const ritardo = n.al < oggiISO();
+  v.innerHTML = '<button class="btn ghost back" id="rBack" type="button">← Indietro</button>'
+    + '<div class="sheet form"><div><div class="cat-head" style="margin:0 0 4px">Rientro · N. ' + esc(n.numero) + '</div><h1>' + esc(n.cliente) + '</h1>'
+    + '<p class="muted" style="margin:6px 0 0">Uscito ' + (n.uscita ? oraTxt(n.uscita.at) : '') + ' · rientro previsto ' + giornoTxt(n.al)
+    + (ritardo ? ' <span class="spill s-in_ritardo">In ritardo</span>' : '') + '</p></div>'
+    + F.voci.map((x, i) => bloccoVoce(x, i, x.rest > 1
+        ? '<div class="ctrl"><div class="ctrl-t">Quanti rientrano adesso? <span class="muted">(fuori ' + x.rest + ')</span></div>'
+          + '<input class="inp" style="max-width:120px" type="number" inputmode="numeric" min="0" max="' + x.rest + '" step="1" data-rqty="' + i + '" value="' + x.qty + '"></div>'
+        : '<label class="acc"><input type="checkbox" data-rnon="' + i + '"> Non rientra adesso</label>')).join('')
+    + '<div class="field"><label for="rNote">Segnalazioni per l\'ufficio</label><textarea class="inp" id="rNote" rows="3" maxlength="800" placeholder="Es. da pulire, ammaccatura sul braccio, manca una benna"></textarea></div>'
+    + '<button class="btn primary big" id="rOk" type="button">Conferma rientro</button></div>';
+  wireControlli(v, (i, j) => { mostraDiff(i, j); resetArm('rOk', 'Conferma rientro'); });
+  F.voci.forEach((x, i) => x.controlli.forEach((c, j) => mostraDiff(i, j)));
+  v.querySelectorAll('[data-rqty]').forEach(el => el.addEventListener('change', () => {
+    const x = F.voci[+el.dataset.rqty];
+    let q = parseInt(el.value, 10); if(!Number.isFinite(q) || q < 0) q = 0; if(q > x.rest) q = x.rest;
+    el.value = q; x.qty = q; x.salta = q === 0; resetArm('rOk', 'Conferma rientro');
+  }));
+  v.querySelectorAll('[data-rnon]').forEach(el => el.addEventListener('change', () => {
+    const x = F.voci[+el.dataset.rnon]; x.salta = el.checked; x.qty = el.checked ? 0 : x.rest; resetArm('rOk', 'Conferma rientro');
+  }));
+  $('rNote').addEventListener('input', e => F.note = e.target.value);
+  $('rBack').addEventListener('click', () => apriNol(n.id));
+  $('rOk').addEventListener('click', confermaRientro);
+}
+function mostraDiff(i, j){
+  const el = document.querySelector('[data-diff="' + i + '.' + j + '"]'); if(!el) return;
+  const c = F.voci[i].controlli[j];
+  el.textContent = controlloPeggiorato(c.tipo, c.prima, c.valore) ? '⚠ Diverso dall\'uscita: verrà segnalato all\'ufficio' : '';
+}
+function segnalazioniDa(voci){
+  const out = [];
+  voci.forEach(v => {
+    if(v.salta) return;
+    v.controlli.forEach(c => { if(controlloPeggiorato(c.tipo, c.prima, c.valore)) out.push(v.nome + ': ' + c.testo + ' ' + valoreTxt(c.tipo, c.prima) + ' → ' + valoreTxt(c.tipo, c.valore)); });
+    v.accessori.forEach(x => { if(!x.ok) out.push(v.nome + ': accessorio non rientrato – ' + x.nome); });
+  });
+  return out;
+}
+async function confermaRientro(){
+  const b = $('rOk');
+  const voci = F.voci.filter(v => !v.salta && v.qty > 0);
+  if(!voci.length){ toast('Non hai segnato niente che rientra.', true); return; }
+  const manc = mancantiControlli(F.voci);
+  if(manc && !F.armed){ F.armed = true; b.textContent = 'Mancano ' + manc + (manc === 1 ? ' controllo' : ' controlli') + ': tocca ancora per confermare'; b.classList.add('force'); return; }
+  const now = new Date().toISOString();
+  const segnalazioni = segnalazioniDa(F.voci);
+  const rientro = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(), segnalazioni,
+    voci: voci.map(v => ({attrezzoId: v.attrezzoId, qty: v.qty, controlli: v.controlli.map(c => ({testo: c.testo, tipo: c.tipo, prima: c.prima, valore: c.valore})),
+      accessori: v.accessori.map(x => ({nome: x.nome, ok: x.ok})), ore: v.ore === '' ? null : parseFloat(String(v.ore).replace(',', '.'))}))};
+  b.disabled = true; b.textContent = 'Salvo...';
+  let chiuso = false;
+  const err = await txNoleggio(nolId, (raw, n) => {
+    if(n.stato !== 'fuori') throw new Error(n.stato === 'chiuso' ? 'gia_chiuso' : 'non_fuori');
+    const righe = (raw.righe || []).map(r => {
+      const v = voci.find(x => x.attrezzoId === r.attrezzoId);
+      return v ? Object.assign({}, r, {rientrati: Math.min(r.qty, (r.rientrati || 0) + v.qty)}) : r;
+    });
+    chiuso = righe.every(r => (r.rientrati || 0) >= r.qty);
+    const patch = {righe, rientri: (raw.rientri || []).concat([rientro])};
+    if(chiuso){ patch.stato = 'chiuso'; patch.chiusoAt = now; }
+    return patch;
+  });
+  if(err){ toast(nolErr(err), true); b.disabled = false; b.textContent = 'Conferma rientro'; F.armed = false; return; }
+  aggiornaOre(voci, oggiISO());
+  toast(chiuso ? 'Rientro registrato ✓ Noleggio chiuso.' : 'Rientro parziale registrato ✓ Il resto risulta ancora fuori.');
+  apriNol(nolId);
+}
+
+// ---------------- Cambio date / proroga ----------------
+function apriDate(id){
+  const n = findNol(id); if(!n) return;
+  nolMode = 'date'; nolId = id;
+  F = {dal: n.dal, al: n.al, forza: false, fuori: n.stato === 'fuori'};
+  render();
+  const v = $('nolView');
+  v.innerHTML = '<button class="btn ghost back" id="dBack" type="button">← Indietro</button>'
+    + '<div class="sheet form"><h1>' + (F.fuori ? 'Proroga' : 'Cambia date') + '</h1><p class="muted" style="margin:0">' + esc(n.cliente) + ' · N. ' + esc(n.numero) + '</p>'
+    + '<div class="row"><div class="field"><label for="dDal">' + (F.fuori ? 'Uscito il' : 'Ritira il') + '</label><input class="inp" id="dDal" type="date" value="' + F.dal + '"' + (F.fuori ? ' disabled' : '') + '></div>'
+    + '<div class="field"><label for="dAl">Rientro previsto</label><input class="inp" id="dAl" type="date" value="' + F.al + '"></div>'
+    + '<div class="field"><span class="lbl">&nbsp;</span><div class="actions"><button type="button" class="btn ghost" data-pp="1">+1 g</button><button type="button" class="btn ghost" data-pp="2">+2 g</button></div></div></div>'
+    + '<div id="dDisp" class="disp"></div>'
+    + '<button class="btn primary big" id="dOk" type="button">Salva</button></div>';
+  const disp = () => {
+    if(F.al < F.dal){ $('dDisp').innerHTML = '<span class="ko">Il rientro è prima del ritiro.</span>'; return; }
+    $('dDisp').innerHTML = controllaDisponibilita(n.righe.map(r => ({attrezzoId: r.attrezzoId, qty: r.qty - r.rientrati})), F.dal, F.al, n.id)
+      .map(c => esc(c.att ? c.att.nome : '') + ': ' + testoDisp(c)).join('<br>');
+    F.forza = false; $('dOk').textContent = 'Salva'; $('dOk').classList.remove('force');
+  };
+  $('dDal').addEventListener('change', e => { F.dal = e.target.value; disp(); });
+  $('dAl').addEventListener('change', e => { F.al = e.target.value; disp(); });
+  v.querySelectorAll('[data-pp]').forEach(b => b.addEventListener('click', () => { F.al = addGiorni(F.al, +b.dataset.pp); $('dAl').value = F.al; disp(); }));
+  $('dBack').addEventListener('click', () => apriNol(id));
+  $('dOk').addEventListener('click', async () => {
+    if(!F.al || F.al < F.dal){ toast('Il rientro non può essere prima del ritiro.', true); return; }
+    const manc = controllaDisponibilita(n.righe.map(r => ({attrezzoId: r.attrezzoId, qty: r.qty - r.rientrati})), F.dal, F.al, n.id).filter(c => c.liberi < c.chiesti);
+    if(manc.length && !F.forza){
+      if(!isUfficio){ toast('In quei giorni non è disponibile: chiedi all\'ufficio.', true); return; }
+      F.forza = true; $('dOk').textContent = 'Tocca ancora: salva oltre la disponibilità'; $('dOk').classList.add('force'); return;
+    }
+    const now = new Date().toISOString();
+    const err = await txNoleggio(id, (raw, nn) => {
+      if(nn.stato === 'chiuso') throw new Error('gia_chiuso');
+      if(nn.stato === 'annullato') throw new Error('annullato');
+      const patch = {al: F.al, proroghe: (raw.proroghe || []).concat([{at: now, da: nomeMio(), dalPrima: nn.dal, alPrima: nn.al, dal: nn.stato === 'fuori' ? nn.dal : F.dal, al: F.al}])};
+      if(nn.stato === 'prenotato') patch.dal = F.dal;
+      return patch;
+    });
+    if(err){ toast(nolErr(err), true); return; }
+    toast('Date aggiornate ✓');
+    apriNol(id);
+  });
+  disp();
+}
+
+// ---------------- Dettaglio noleggio ----------------
+function renderNolDettaglio(){
+  const n = findNol(nolId);
+  const v = $('nolView');
+  if(!n){ v.innerHTML = '<button class="btn ghost back" id="xBack" type="button">← Indietro</button><p class="muted">Noleggio non trovato.</p>'; $('xBack').addEventListener('click', chiudiNol); return; }
+  const s = statoVisibile(n, oggiISO());
+  const segn = n.rientri.flatMap(r => r.segnalazioni || []).concat(n.rientri.filter(r => r.note).map(r => 'Nota al rientro (' + oraTxt(r.at) + '): ' + r.note));
+  const voceTxt = (vv, conPrima) => {
+    const a = n.righe.find(r => r.attrezzoId === vv.attrezzoId);
+    return '<div class="voce"><div class="voce-head">' + esc(a ? a.nome : vv.attrezzoId) + (vv.qty != null ? ' <span class="pill qty">×' + vv.qty + '</span>' : '') + '</div>'
+      + (vv.controlli || []).map(c => '<div class="ctrl-line' + (conPrima && controlloPeggiorato(c.tipo, c.prima, c.valore) ? ' bad' : '') + '"><span>' + esc(c.testo) + '</span><span>'
+        + (conPrima ? esc(valoreTxt(c.tipo, c.prima)) + ' → ' : '') + '<b>' + esc(valoreTxt(c.tipo, c.valore)) + '</b></span></div>').join('')
+      + ((vv.accessori || []).length ? '<div class="ctrl-line"><span>Accessori</span><span>' + vv.accessori.map(x => (x.ok ? '✓ ' : '✕ ') + esc(x.nome)).join(' · ') + '</span></div>' : '')
+      + (vv.ore != null ? '<div class="ctrl-line"><span>Contaore</span><span><b>' + fmtN(vv.ore) + ' h</b></span></div>' : '')
+      + '</div>';
+  };
+  v.innerHTML = '<button class="btn ghost back" id="xBack" type="button">← ' + (tab === 'cal' ? 'Calendario' : tab === 'att' ? 'Attrezzi' : 'Oggi') + '</button>'
+    + '<div class="sheet"><div><div class="cat-head" style="margin:0 0 4px">Noleggio N. ' + esc(n.numero) + '</div><h1>' + esc(n.cliente) + '</h1>'
+    + '<div class="card-meta" style="margin-top:8px">' + pillStato(n) + (n.tipoCliente ? '<span class="pill">' + (n.tipoCliente === 'impresa' ? 'Impresa' : 'Privato') + '</span>' : '') + '</div></div>'
+    + '<div class="facts">'
+    + '<div><span class="lbl">Previsto</span><b>' + giornoTxt(n.dal) + ' → ' + giornoTxt(n.al) + '</b></div>'
+    + (n.uscita ? '<div><span class="lbl">Uscito</span><b>' + oraTxt(n.uscita.at) + '</b> <span class="muted">' + esc(n.uscita.da) + '</span></div>' : '')
+    + (n.rientri.length ? '<div><span class="lbl">' + (n.stato === 'chiuso' ? 'Rientrato' : 'Ultimo rientro') + '</span><b>' + oraTxt(n.rientri[n.rientri.length - 1].at) + '</b> <span class="muted">' + esc(n.rientri[n.rientri.length - 1].da) + '</span></div>' : '')
+    + '</div>'
+    + '<div class="sec"><h2>Attrezzi</h2><ul class="list">' + n.righe.map(r => '<li><span>' + esc(r.nome) + '</span><span class="kind">×' + r.qty
+      + (n.stato !== 'prenotato' ? ' · rientrati ' + r.rientrati : '') + '</span></li>').join('') + '</ul></div>'
+    + (segn.length ? '<div class="sec segn"><h2>Segnalazioni per l\'ufficio</h2><ul class="list">' + segn.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' : '')
+    + (n.note ? '<div class="sec"><h2>Note</h2><p style="margin:0">' + esc(n.note) + '</p></div>' : '')
+    + '<div class="actions">'
+    + (n.stato === 'prenotato' ? '<button class="btn primary big" id="xUscita" type="button">Consegna adesso</button><button class="btn ghost" id="xDate" type="button">Cambia date</button><button class="btn danger" id="xAnn" type="button">Annulla prenotazione</button>' : '')
+    + (n.stato === 'fuori' ? '<button class="btn primary big" id="xRientro" type="button">Rientro</button><button class="btn ghost" id="xDate" type="button">Proroga</button>' : '')
+    + '</div>'
+    + (n.uscita ? '<div class="sec"><h2>Controlli all\'uscita · ' + oraTxt(n.uscita.at) + ' · ' + esc(n.uscita.da) + '</h2>' + (n.uscita.voci || []).map(vv => voceTxt(vv, false)).join('')
+      + (n.uscita.note ? '<p class="muted" style="margin:6px 0 0">Nota: ' + esc(n.uscita.note) + '</p>' : '') + '</div>' : '')
+    + n.rientri.map(r => '<div class="sec"><h2>Rientro · ' + oraTxt(r.at) + ' · ' + esc(r.da) + '</h2>' + (r.voci || []).map(vv => voceTxt(vv, true)).join('') + '</div>').join('')
+    + (n.proroghe.length ? '<div class="sec"><h2>Cambi di data</h2><ul class="list">' + n.proroghe.map(p => '<li><span>' + esc(p.da) + ' · ' + oraTxt(p.at) + '</span><span class="kind">rientro ' + giornoTxt(p.alPrima) + ' → ' + giornoTxt(p.al) + '</span></li>').join('') + '</ul></div>' : '')
+    + (n.stato === 'annullato' ? '<p class="muted">Annullato da ' + esc(n.annullatoDa || '?') + ' · ' + oraTxt(n.annullatoAt) + '</p>' : '')
+    + '<p class="muted small" style="margin:0">Creato da ' + esc(n.creatoDa) + ' · ' + oraTxt(n.creatoAt) + '</p>'
+    + '</div>';
+  $('xBack').addEventListener('click', chiudiNol);
+  if($('xUscita')) $('xUscita').addEventListener('click', () => apriUscita(n.id));
+  if($('xRientro')) $('xRientro').addEventListener('click', () => apriRientro(n.id));
+  if($('xDate')) $('xDate').addEventListener('click', () => apriDate(n.id));
+  const ann = $('xAnn');
+  if(ann) ann.addEventListener('click', async () => {
+    if(ann.dataset.armed !== '1'){ ann.dataset.armed = '1'; ann.textContent = 'Tocca ancora per annullare'; ann.classList.add('confirm'); return; }
+    const err = await txNoleggio(n.id, (raw, nn) => {
+      if(nn.stato !== 'prenotato') throw new Error(nn.stato === 'fuori' ? 'gia_uscito' : 'gia_chiuso');
+      return {stato: 'annullato', annullatoDa: nomeMio(), annullatoAt: new Date().toISOString()};
+    });
+    if(err) toast(nolErr(err), true); else toast('Prenotazione annullata');
+  });
+}
+
+// ---------------- Collegamento a Firebase ----------------
+let unsubNol = null;
+function avviaNoleggi(){
+  if(unsubNol) return;
+  unsubNol = onSnapshot(collection(fbDb, 'noleggi'), snap => {
+    nolWarnTxt = '';
+    noleggi = snap.docs.map(d => normNoleggio(d.id, d.data()));
+    render();
+  }, err => {
+    nolWarnTxt = (err && err.code === 'permission-denied')
+      ? '⚠️ Firebase non fa leggere i noleggi: vanno aggiornate le regole (raccolta «noleggi»).'
+      : '⚠️ Non riesco a leggere i noleggi: controlla la connessione e ricarica.';
+    noleggi = []; render();
   });
 }
 </script>
