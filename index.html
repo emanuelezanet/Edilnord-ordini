@@ -904,6 +904,24 @@
   }
   .operator-bar .logout-btn.confirm{border-color:var(--stamp);color:var(--stamp);}
 
+  /* ---------- v19: righe di reso ---------- */
+  .reso-btn{
+    flex:none;background:#fff;border:1px solid var(--border);color:var(--muted);
+    border-radius:5px;padding:3px 7px;font-size:11.5px;font-weight:700;white-space:nowrap;
+  }
+  .cart-item.reso{background:rgba(178,59,59,0.07);border-radius:6px;padding-left:6px;padding-right:6px;box-shadow:inset 4px 0 0 var(--stamp);}
+  .cart-item.reso .reso-btn{background:var(--stamp);border-color:var(--stamp);color:#fff;}
+  .ci-tag.reso{background:var(--stamp);color:#fff;}
+  .oi-section{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:0.6px;color:var(--muted);margin:2px 0 4px;}
+  .oi-section.reso{color:var(--stamp);margin-top:10px;}
+  .order-item-row.reso .oi-name,.order-item-row.reso .oi-qty{color:var(--stamp);}
+  .cart-reso-sum{font-size:12.5px;color:var(--stamp);font-weight:600;margin-top:8px;}
+  @media (max-width:700px), (pointer:coarse){
+    .reso-btn{font-size:15px;padding:0 12px;min-height:48px;border-radius:8px;}
+    .oi-section{font-size:13px;}
+    .cart-reso-sum{font-size:15px;}
+  }
+
   /* ---------- v19: privato/impresa + numero colli ---------- */
   .opt{font-weight:400;color:var(--muted);font-size:0.85em;margin-left:4px;}
   .ctype-row{display:flex;gap:8px;margin-top:8px;border-radius:9px;}
@@ -1649,7 +1667,7 @@ function flashAdded(btn){
 // Evidenzia in verde le righe dei prodotti già nel carrello, con la quantità.
 function markInCart(){
   const qtyBy = new Map();
-  for(const c of cart){ if(!c.manual) qtyBy.set(c.desc, (qtyBy.get(c.desc)||0) + c.qty); }
+  for(const c of cart){ if(!c.manual && !c.reso) qtyBy.set(c.desc, (qtyBy.get(c.desc)||0) + c.qty); }
   document.querySelectorAll('.result-row[data-idx]').forEach(row=>{
     const p = PRODUCTS[parseInt(row.dataset.idx, 10)];
     const q = p ? (qtyBy.get(p[0]) || 0) : 0;
@@ -1772,7 +1790,7 @@ function computeTopOrdered(limit){
   const counts = new Map();
   for(const o of ordersCache){
     for(const it of (o.items||[])){
-      if(it.manual) continue;
+      if(it.manual || it.reso) continue;
       const idx = PRODUCTS_BY_DESC.get(it.desc);
       if(idx === undefined) continue;
       counts.set(idx, (counts.get(idx)||0) + 1);
@@ -1917,7 +1935,7 @@ document.getElementById('manualConfirm').addEventListener('click', ()=>{
 // ---------------- Cart ----------------
 function addCatalogItemToCart(p){
   const desc = p[0], um = p[1] ? p[1].toUpperCase() : '', price = p[2];
-  const existing = cart.find(c => !c.manual && c.desc === desc && c.um === um);
+  const existing = cart.find(c => !c.manual && !c.reso && c.desc === desc && c.um === um);
   if(existing){ existing.qty += 1; lastAddedId = existing.id; }
   else { lastAddedId = cartIdCounter; cart.push({id: cartIdCounter++, desc, um, price, qty:1, manual:false, note:''}); }
   renderCart();
@@ -1981,7 +1999,7 @@ function restoreDraft(){
   if(!d || !Array.isArray(d.cart) || (Date.now() - (d.at || 0)) > DRAFT_MAX_AGE_MS){ saveDraft(); return; }
   if(cart.length) return; // c'è già qualcosa nel carrello: non si mescola
   cart = d.cart.filter(c => c && typeof c.desc === 'string' && typeof c.qty === 'number')
-    .map((c, n) => ({id: n + 1, desc: c.desc, um: c.um || '', price: 0, qty: c.qty, manual: !!c.manual, note: c.note || ''}));
+    .map((c, n) => ({id: n + 1, desc: c.desc, um: c.um || '', price: 0, qty: c.qty, manual: !!c.manual, note: c.note || '', reso: !!c.reso}));
   cartIdCounter = cart.length + 1;
   document.getElementById('customerInput').value = d.customer || '';
   document.getElementById('noteInput').value = d.note || '';
@@ -2005,11 +2023,12 @@ function renderCart(){
     cartList.innerHTML = '<div class="cart-empty">Nessun articolo. Cerca un prodotto o aggiungine uno manuale.</div>';
     return;
   }
+  const nResi = cart.filter(c => c.reso).length;
   const flashId = lastAddedId;
   lastAddedId = null;
   cartList.innerHTML = cart.map(item=>{
     const hasNote = !!(item.note && item.note.trim());
-    return '<div class="cart-item' + (item.id === flashId ? ' just-added' : '') + '" data-id="'+item.id+'">'
+    return '<div class="cart-item' + (item.id === flashId ? ' just-added' : '') + (item.reso ? ' reso' : '') + '" data-id="'+item.id+'">'
       + '<div class="ci-row">'
       + '<div><div class="ci-desc">' + escapeHtml(item.desc) + (item.manual ? '<span class="ci-tag">MANUALE</span>' : '') + '</div></div>'
       + '<div class="ci-controls">'
@@ -2017,6 +2036,7 @@ function renderCart(){
       + '<button class="qty-btn" data-act="dec">-</button>'
       + '<input class="qty-input" type="number" step="any" min="0" value="'+item.qty+'">'
       + '<button class="qty-btn" data-act="inc">+</button>'
+      + '<button class="reso-btn" data-act="reso" aria-pressed="' + (item.reso ? 'true' : 'false') + '" title="Segna come materiale reso dal cliente">&#8617; Reso</button>'
       + '<button class="remove-btn" data-act="rm">&#10005;</button>'
       + '</div></div>'
       + '<div class="ci-note-row">'
@@ -2028,7 +2048,7 @@ function renderCart(){
       + '<button class="nick-save ci-note-save">Salva</button>'
       + '</div></div>'
       + '</div>';
-  }).join('');
+  }).join('') + (nResi ? '<div class="cart-reso-sum">&#8617; ' + nResi + (nResi === 1 ? ' riga segnata come reso' : ' righe segnate come reso') + '</div>' : '');
 
   cartList.querySelectorAll('.cart-item').forEach(row=>{
     const id = parseInt(row.dataset.id);
@@ -2036,6 +2056,11 @@ function renderCart(){
     row.querySelector('[data-act="inc"]').addEventListener('click', ()=>{ item.qty += 1; renderCart(); });
     row.querySelector('[data-act="dec"]').addEventListener('click', ()=>{ item.qty = Math.max(0, item.qty - 1); if(item.qty === 0){ removeCartItem(id); return; } renderCart(); });
     row.querySelector('[data-act="rm"]').addEventListener('click', ()=> removeCartItem(id));
+    row.querySelector('[data-act="reso"]').addEventListener('click', ()=>{
+      item.reso = !item.reso;
+      try{ if(navigator.vibrate) navigator.vibrate(25); }catch(e){}
+      renderCart();
+    });
     row.querySelector('.um-input').addEventListener('change', (e)=>{
       // The magazziniere can override the catalog's default unit of measure
       // for this specific load (e.g. count a product by PZ instead of MQ).
@@ -2189,7 +2214,7 @@ submitOrderBtn.addEventListener('click', async ()=>{
     customerType: getCustomerType(),
     colli: readColli(),
     note: document.getElementById('noteInput').value.trim(),
-    items: cart.map(c=>({desc:c.desc, um:c.um, qty:c.qty, price:c.price||0, manual:!!c.manual, note:c.note||''})),
+    items: cart.map(c=>({desc:c.desc, um:c.um, qty:c.qty, price:c.price||0, manual:!!c.manual, note:c.note||'', reso:!!c.reso})),
     total: cart.reduce((s,c)=> s + c.qty*(c.price||0), 0),
     createdAt: new Date().toISOString(),
     status: 'in_attesa'
@@ -2266,11 +2291,15 @@ function renderOrders(){
   empty.classList.add('hidden');
   list.innerHTML = orders.map(o=>{
     const isEvaso = o.status === 'evaso';
-    const itemsHtml = o.items.map(it=>
-      '<div class="order-item-row"><span class="oi-name">' + escapeHtml(it.desc) + (it.manual ? ' <span class="ci-tag">MANUALE</span>' : '') + '</span>'
+    const itemRowHtml = (it)=>
+      '<div class="order-item-row' + (it.reso ? ' reso' : '') + '"><span class="oi-name">' + escapeHtml(it.desc) + (it.manual ? ' <span class="ci-tag">MANUALE</span>' : '') + '</span>'
       + '<span class="oi-qty">' + it.qty + ' ' + (it.um||'') + '</span></div>'
-      + (it.note ? '<div class="ci-note-display" style="margin:-2px 0 5px;">📝 <span>' + escapeHtml(it.note) + '</span></div>' : '')
-    ).join('');
+      + (it.note ? '<div class="ci-note-display" style="margin:-2px 0 5px;">📝 <span>' + escapeHtml(it.note) + '</span></div>' : '');
+    const caricati = (o.items||[]).filter(it => !it.reso), resi = (o.items||[]).filter(it => it.reso);
+    // senza resi il buono si vede come prima; con i resi, due blocchi separati
+    const itemsHtml = !resi.length ? caricati.map(itemRowHtml).join('')
+      : (caricati.length ? '<div class="oi-section">CARICATO</div>' + caricati.map(itemRowHtml).join('') : '')
+        + '<div class="oi-section reso">&#8617; RESO DAL CLIENTE</div>' + resi.map(itemRowHtml).join('');
     return '<div class="order-card ' + (isEvaso ? 'evaso' : '') + '" data-id="' + o.id + '">'
       + (isEvaso ? '<div class="stamp">EVASO</div>' : '')
       + '<div class="order-head"><div><div class="order-code">' + o.id + '</div>'
@@ -2489,7 +2518,7 @@ const myOrderIds = new Set(); // buoni inviati da questo dispositivo: niente not
 function notificaBuoniNuovi(nuovi){
   nuovi.filter(o => !myOrderIds.has(o.id)).forEach(o=>{
     showNotif('Nuovo buono di carico',
-      (o.customer || 'Cliente non specificato') + (CTYPE_LABEL[o.customerType] ? ' (' + o.customerType + ')' : '') + ' · ' + righeTxt((o.items || []).length) + (o.colli ? ' · ' + colliTxt(o.colli) : '') + (o.operator ? ' · da ' + o.operator : ''),
+      (o.customer || 'Cliente non specificato') + (CTYPE_LABEL[o.customerType] ? ' (' + o.customerType + ')' : '') + ' · ' + righeTxt((o.items || []).length) + ((o.items||[]).some(it => it.reso) ? ' · con reso' : '') + (o.colli ? ' · ' + colliTxt(o.colli) : '') + (o.operator ? ' · da ' + o.operator : ''),
       'buono-' + o.id, ()=> vaiAScheda('ordini'));
   });
 }
