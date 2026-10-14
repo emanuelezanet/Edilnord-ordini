@@ -151,7 +151,7 @@
   .voce-head{font-weight:700;font-size:17px;display:flex;gap:8px;align-items:center;}
   .ctrl{display:grid;gap:6px;}
   .ctrl-t{font-weight:600;}
-  .prima{font-weight:500;font-size:13px;color:var(--info);margin-left:6px;}
+  .prima{font-weight:600;font-size:13px;color:var(--muted);background:rgba(0,0,0,.06);border-radius:6px;padding:2px 8px;margin-left:8px;white-space:nowrap;}
   .chipv{border:1.5px solid var(--border);background:#fff;color:var(--text);border-radius:8px;padding:10px 16px;min-height:48px;min-width:64px;font-size:16px;font-weight:600;}
   .chipv.on{background:var(--bg-shell);border-color:var(--bg-shell);color:#fff;}
   .diff{font-size:14px;font-weight:600;color:var(--stamp);}
@@ -233,7 +233,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'noleggi passo 2';
+const VERSIONE = 'noleggi passo 2.3';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'amministrazione@edil-nord.com'];
@@ -845,7 +845,7 @@ function normNoleggio(id, d){
     righe: (Array.isArray(d.righe) ? d.righe : []).map(r => ({attrezzoId: r.attrezzoId, nome: r.nome || '', qty: r.qty || 0, rientrati: r.rientrati || 0})),
     uscita: d.uscita || null, rientri: Array.isArray(d.rientri) ? d.rientri : [],
     proroghe: Array.isArray(d.proroghe) ? d.proroghe : [],
-    creatoDa: d.creatoDa || '', creatoAt: d.creatoAt || null, chiusoAt: d.chiusoAt || null,
+    creatoDa: d.creatoDa || '', creatoAt: d.creatoAt || null, chiusoAt: d.chiusoAt || null, esceSubito: d.esceSubito === true,
     annullatoDa: d.annullatoDa || null, annullatoAt: d.annullatoAt || null
   };
 }
@@ -860,7 +860,7 @@ let F = null;            // dati del modulo aperto
 let calInizio = null;    // lunedì della settimana mostrata
 let calSel = null;       // {attrezzoId, giorno}
 
-const STATI_TXT = {in_ritardo: 'In ritardo', da_consegnare: 'Da consegnare', fuori: 'Fuori', prenotato: 'Prenotato', chiuso: 'Rientrato', annullato: 'Annullato'};
+const STATI_TXT = {in_ritardo: 'In ritardo', da_consegnare: 'Da ritirare', fuori: 'Fuori', prenotato: 'Prenotato', chiuso: 'Rientrato', annullato: 'Annullato'};
 function pillStato(n){ const s = statoVisibile(n, oggiISO()); return '<span class="spill s-' + s + '">' + STATI_TXT[s] + '</span>'; }
 function oraTxt(iso){
   if(!iso) return '';
@@ -907,7 +907,7 @@ function aggiornaOre(voci, quando){
 
 // ---------------- Navigazione ----------------
 document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
-  tab = b.dataset.tab; nolMode = null; nolId = null; F = null; openId = null; editing = false;
+  tab = b.dataset.tab; pendingEsce = null; nolMode = null; nolId = null; F = null; openId = null; editing = false;
   render(); window.scrollTo(0, 0);
 }));
 function render(){
@@ -927,14 +927,15 @@ function render(){
   else { if(openId) renderDetail(); else renderList(); }
 }
 function apriNol(id){ nolMode = 'dettaglio'; nolId = id; F = null; render(); window.scrollTo(0, 0); }
-function chiudiNol(){ nolMode = null; nolId = null; F = null; render(); window.scrollTo(0, 0); }
+function chiudiNol(){ pendingEsce = null; nolMode = null; nolId = null; F = null; render(); window.scrollTo(0, 0); }
 
 // ---------------- Oggi ----------------
 function cardNol(n){
   const righe = n.righe.map(r => esc(r.nome) + ' ×' + r.qty + (r.rientrati && r.rientrati < r.qty ? ' (' + r.rientrati + ' rientrati)' : '')).join(', ');
-  const quando = n.stato === 'fuori' ? 'uscito ' + (n.uscita ? oraTxt(n.uscita.at) : '') + ' · rientro previsto ' + giornoTxt(n.al)
-    : n.stato === 'chiuso' ? 'rientrato ' + oraTxt(n.chiusoAt)
-    : 'dal ' + giornoTxt(n.dal) + ' al ' + giornoTxt(n.al);
+  const ultimo = n.rientri.length ? n.rientri[n.rientri.length - 1] : null;
+  const quando = n.stato === 'fuori' ? 'uscito ' + (n.uscita ? oraTxt(n.uscita.at) + ' (' + esc(n.uscita.da) + ')' : '') + ' · rientro previsto ' + giornoTxt(n.al)
+    : n.stato === 'chiuso' ? 'rientrato ' + oraTxt(n.chiusoAt) + (ultimo ? ' (' + esc(ultimo.da) + ')' : '')
+    : 'dal ' + giornoTxt(n.dal) + ' al ' + giornoTxt(n.al) + ' · prenotato da ' + esc(n.creatoDa);
   return '<button class="ncard" type="button" data-nol="' + esc(n.id) + '">'
     + '<span class="ncard-top"><span class="ncard-cli">' + esc(n.cliente || 'Cliente non indicato') + '</span>' + pillStato(n) + '</span>'
     + '<span class="ncard-att">' + righe + '</span>'
@@ -959,7 +960,7 @@ function renderOggi(){
     + '<button class="btn dark big" id="prenotaBtn" type="button">+ Prenota</button></div>'
     + (attrezzi.length ? '' : '<p class="warnbox">Prima vanno caricati gli attrezzi (scheda «Attrezzi»).</p>')
     + (ritardo.length ? sez('In ritardo', ritardo) : '')
-    + sez('Da consegnare', consegna, 'Nessuna prenotazione da consegnare oggi.')
+    + sez('Da ritirare', consegna, 'Nessun attrezzo prenotato da ritirare oggi.')
     + sez('Rientrano oggi', rientranoOggi, 'Nessun rientro previsto oggi.')
     + sez('Fuori', fuori, 'Nessun altro attrezzo fuori.')
     + sez('Prenotati nei prossimi 14 giorni', prossimi, 'Nessuna prenotazione nei prossimi 14 giorni.')
@@ -1140,11 +1141,18 @@ async function salvaNuovo(){
   const data = {numero, cliente, tipoCliente: F.tipoCliente, note: F.note.trim(), dal: F.dal, al: F.al, stato: 'prenotato',
     righe: unite, uscita: null, rientri: [], proroghe: [], forzato: mancanti.length ? true : false,
     creatoDa: nomeMio(), creatoDaEmail: me, creatoAt: now, aggiornatoAt: now};
+  if(F.esce){
+    // "Esce adesso": non si salva niente finché non si conferma l'uscita
+    pendingEsce = {data, form: F};
+    apriUscita(numero, normNoleggio(numero, data));
+    return;
+  }
   b.disabled = true; b.textContent = 'Salvo...';
   try{
     await setDoc(doc(fbDb, 'noleggi', numero), data);
     const esce = F.esce;
-    noleggi = noleggi.concat([normNoleggio(numero, data)]);
+    // di solito Firebase l'ha già fatta arrivare: la aggiungo solo se manca
+    if(!noleggi.some(x => x.id === numero)) noleggi = noleggi.concat([normNoleggio(numero, data)]);
     if(esce) apriUscita(numero); else { toast('Prenotazione salvata ✓'); apriNol(numero); }
   }catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = F.esce ? 'Avanti: controlli di uscita' : 'Salva prenotazione'; }
 }
@@ -1182,10 +1190,12 @@ function mancantiControlli(voci){
 }
 
 // ---------------- Uscita ----------------
-function apriUscita(id){
-  const n = findNol(id); if(!n) return;
+let pendingEsce = null; // {data, form}: uscita al banco non ancora confermata
+function apriUscita(id, nPronto){
+  const n = nPronto || findNol(id); if(!n) return;
+  if(!nPronto) pendingEsce = null;
   nolMode = 'uscita'; nolId = id;
-  F = {armed: false, note: '', accTitolo: 'Accessori consegnati (spunta quelli che escono)', voci: n.righe.map(r => {
+  F = {armed: false, note: '', ritira: '', accTitolo: 'Accessori consegnati (spunta quelli che escono)', voci: n.righe.map(r => {
     const a = attrezzoById(r.attrezzoId) || {controlli: [], accessori: [], contaore: false};
     return {attrezzoId: r.attrezzoId, nome: r.nome, qty: r.qty, contaore: a.contaore,
       controlli: a.controlli.map(c => ({testo: c.testo, tipo: c.tipo, valore: null})),
@@ -1196,7 +1206,7 @@ function apriUscita(id){
 function bloccoVoce(v, i, extra){
   return '<div class="voce"><div class="voce-head">' + esc(v.nome) + ' <span class="pill qty">×' + v.qty + '</span></div>' + (extra || '')
     + (v.controlli.length ? v.controlli.map((c, j) => '<div class="ctrl"><div class="ctrl-t">' + esc(c.testo)
-        + (c.prima !== undefined ? ' <span class="prima">all\'uscita: ' + esc(valoreTxt(c.tipo, c.prima)) + '</span>' : '') + '</div>'
+        + (c.prima !== undefined ? ' <span class="prima">Alla consegna: ' + esc(valoreTxt(c.tipo, c.prima)) + '</span>' : '') + '</div>'
         + inputControllo(i + '.' + j, c) + '<div class="diff" data-diff="' + i + '.' + j + '"></div></div>').join('')
       : '<p class="muted small">Nessun controllo per questo attrezzo.</p>')
     + (v.accessori.length ? '<div class="ctrl"><div class="ctrl-t">' + (F.accTitolo || 'Accessori') + '</div><div class="accs">'
@@ -1208,25 +1218,40 @@ function disegnaUscita(n){
   const v = $('nolView');
   v.innerHTML = '<button class="btn ghost back" id="uBack" type="button">← Indietro</button>'
     + '<div class="sheet form"><div><div class="cat-head" style="margin:0 0 4px">Uscita · N. ' + esc(n.numero) + '</div><h1>' + esc(n.cliente) + '</h1>'
-    + '<p class="muted" style="margin:6px 0 0">Rientro previsto ' + giornoTxt(n.al) + '. Spunta gli accessori che consegni.</p></div>'
+    + '<p class="muted" style="margin:6px 0 0">Rientro previsto ' + giornoTxt(n.al) + '. I controlli sono un promemoria: compila quelli che servono, non sono obbligatori.</p></div>'
     + F.voci.map((x, i) => bloccoVoce(x, i, '')).join('')
+    + '<div class="field"><label for="uRitira">Chi lo ritira <span class="muted">(facoltativo, es. operaio dell\'impresa)</span></label><input class="inp" id="uRitira" maxlength="80" autocomplete="off"></div>'
     + '<div class="field"><label for="uNote">Note all\'uscita</label><textarea class="inp" id="uNote" rows="2" maxlength="500" placeholder="Es. graffio sul cofano già presente"></textarea></div>'
     + '<button class="btn primary big" id="uOk" type="button">Conferma uscita</button></div>';
   wireControlli(v, () => resetArm('uOk', 'Conferma uscita'));
   $('uNote').addEventListener('input', e => F.note = e.target.value);
-  $('uBack').addEventListener('click', () => apriNol(n.id));
+  $('uRitira').addEventListener('input', e => F.ritira = e.target.value);
+  $('uBack').addEventListener('click', () => {
+    if(pendingEsce){ const form = pendingEsce.form; pendingEsce = null; nolMode = 'nuovo'; nolId = null; F = form; render(); disegnaNuovo(); window.scrollTo(0, 0); }
+    else apriNol(n.id);
+  });
   $('uOk').addEventListener('click', confermaUscita);
 }
 function resetArm(id, testo){ if(F && F.armed){ F.armed = false; const b = $(id); if(b){ b.textContent = testo; b.classList.remove('force'); } } }
 async function confermaUscita(){
   const b = $('uOk');
-  const manc = mancantiControlli(F.voci);
-  if(manc && !F.armed){ F.armed = true; b.textContent = 'Mancano ' + manc + (manc === 1 ? ' controllo' : ' controlli') + ': tocca ancora per confermare'; b.classList.add('force'); return; }
+  // all'uscita i controlli sono un promemoria: nessuna conferma in più se non sono compilati
   const now = new Date().toISOString();
-  const uscita = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(),
+  const uscita = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(), ritiratoDa: (F.ritira || '').trim(),
     voci: F.voci.map(v => ({attrezzoId: v.attrezzoId, controlli: v.controlli.map(c => ({testo: c.testo, tipo: c.tipo, valore: c.valore})),
       accessori: v.accessori.map(x => ({nome: x.nome, ok: x.ok})), ore: v.ore === '' ? null : parseFloat(String(v.ore).replace(',', '.'))}))};
   b.disabled = true; b.textContent = 'Salvo...';
+  if(pendingEsce){
+    const data = Object.assign({}, pendingEsce.data, {stato: 'fuori', uscita, esceSubito: true, aggiornatoAt: now});
+    try{ await setDoc(doc(fbDb, 'noleggi', data.numero), data); }
+    catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = 'Conferma uscita'; return; }
+    pendingEsce = null;
+    if(!noleggi.some(x => x.id === data.numero)) noleggi = noleggi.concat([normNoleggio(data.numero, data)]);
+    aggiornaOre(F.voci, oggiISO());
+    toast('Uscita registrata ✓ ' + oraTxt(now));
+    apriNol(data.numero);
+    return;
+  }
   const err = await txNoleggio(nolId, (raw, n) => {
     if(n.stato === 'fuori') throw new Error('gia_uscito');
     if(n.stato === 'chiuso') throw new Error('gia_chiuso');
@@ -1243,7 +1268,7 @@ async function confermaUscita(){
 function apriRientro(id){
   const n = findNol(id); if(!n) return;
   nolMode = 'rientro'; nolId = id;
-  F = {armed: false, note: '', accTitolo: 'Accessori rientrati (spunta quelli che tornano)', voci: n.righe.filter(r => r.qty - r.rientrati > 0).map(r => {
+  F = {armed: false, note: '', riporta: '', accTitolo: 'Accessori rientrati (spunta quelli che tornano)', voci: n.righe.filter(r => r.qty - r.rientrati > 0).map(r => {
     const a = attrezzoById(r.attrezzoId) || {controlli: [], accessori: [], contaore: false};
     const u = n.uscita && (n.uscita.voci || []).find(x => x.attrezzoId === r.attrezzoId);
     const controlli = (u ? u.controlli : a.controlli.map(c => ({testo: c.testo, tipo: c.tipo, valore: null})))
@@ -1264,7 +1289,8 @@ function disegnaRientro(n){
     + F.voci.map((x, i) => bloccoVoce(x, i, x.rest > 1
         ? '<div class="ctrl"><div class="ctrl-t">Quanti rientrano adesso? <span class="muted">(fuori ' + x.rest + ')</span></div>'
           + '<input class="inp" style="max-width:120px" type="number" inputmode="numeric" min="0" max="' + x.rest + '" step="1" data-rqty="' + i + '" value="' + x.qty + '"></div>'
-        : '<label class="acc"><input type="checkbox" data-rnon="' + i + '"> Non rientra adesso</label>')).join('')
+        : (F.voci.length > 1 ? '<label class="acc"><input type="checkbox" data-rnon="' + i + '"> Questo attrezzo non rientra adesso</label>' : ''))).join('')
+    + '<div class="field"><label for="rRiporta">Chi lo riporta <span class="muted">(facoltativo)</span></label><input class="inp" id="rRiporta" maxlength="80" autocomplete="off"></div>'
     + '<div class="field"><label for="rNote">Segnalazioni per l\'ufficio</label><textarea class="inp" id="rNote" rows="3" maxlength="800" placeholder="Es. da pulire, ammaccatura sul braccio, manca una benna"></textarea></div>'
     + '<button class="btn primary big" id="rOk" type="button">Conferma rientro</button></div>';
   wireControlli(v, (i, j) => { mostraDiff(i, j); resetArm('rOk', 'Conferma rientro'); });
@@ -1278,13 +1304,14 @@ function disegnaRientro(n){
     const x = F.voci[+el.dataset.rnon]; x.salta = el.checked; x.qty = el.checked ? 0 : x.rest; resetArm('rOk', 'Conferma rientro');
   }));
   $('rNote').addEventListener('input', e => F.note = e.target.value);
+  $('rRiporta').addEventListener('input', e => F.riporta = e.target.value);
   $('rBack').addEventListener('click', () => apriNol(n.id));
   $('rOk').addEventListener('click', confermaRientro);
 }
 function mostraDiff(i, j){
   const el = document.querySelector('[data-diff="' + i + '.' + j + '"]'); if(!el) return;
   const c = F.voci[i].controlli[j];
-  el.textContent = controlloPeggiorato(c.tipo, c.prima, c.valore) ? '⚠ Diverso dall\'uscita: verrà segnalato all\'ufficio' : '';
+  el.textContent = controlloPeggiorato(c.tipo, c.prima, c.valore) ? '⚠ Diverso da quando è uscito: verrà segnalato all\'ufficio' : '';
 }
 function segnalazioniDa(voci){
   const out = [];
@@ -1303,7 +1330,7 @@ async function confermaRientro(){
   if(manc && !F.armed){ F.armed = true; b.textContent = 'Mancano ' + manc + (manc === 1 ? ' controllo' : ' controlli') + ': tocca ancora per confermare'; b.classList.add('force'); return; }
   const now = new Date().toISOString();
   const segnalazioni = segnalazioniDa(F.voci);
-  const rientro = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(), segnalazioni,
+  const rientro = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(), riportatoDa: (F.riporta || '').trim(), segnalazioni,
     voci: voci.map(v => ({attrezzoId: v.attrezzoId, qty: v.qty, controlli: v.controlli.map(c => ({testo: c.testo, tipo: c.tipo, prima: c.prima, valore: c.valore})),
       accessori: v.accessori.map(x => ({nome: x.nome, ok: x.ok})), ore: v.ore === '' ? null : parseFloat(String(v.ore).replace(',', '.'))}))};
   b.disabled = true; b.textContent = 'Salvo...';
@@ -1392,15 +1419,18 @@ function renderNolDettaglio(){
     + '<div class="card-meta" style="margin-top:8px">' + pillStato(n) + (n.tipoCliente ? '<span class="pill">' + (n.tipoCliente === 'impresa' ? 'Impresa' : 'Privato') + '</span>' : '') + '</div></div>'
     + '<div class="facts">'
     + '<div><span class="lbl">Previsto</span><b>' + giornoTxt(n.dal) + ' → ' + giornoTxt(n.al) + '</b></div>'
-    + (n.uscita ? '<div><span class="lbl">Uscito</span><b>' + oraTxt(n.uscita.at) + '</b> <span class="muted">' + esc(n.uscita.da) + '</span></div>' : '')
-    + (n.rientri.length ? '<div><span class="lbl">' + (n.stato === 'chiuso' ? 'Rientrato' : 'Ultimo rientro') + '</span><b>' + oraTxt(n.rientri[n.rientri.length - 1].at) + '</b> <span class="muted">' + esc(n.rientri[n.rientri.length - 1].da) + '</span></div>' : '')
+    + (n.esceSubito ? '' : '<div><span class="lbl">Prenotato da</span><b>' + esc(n.creatoDa) + '</b> <span class="muted">' + oraTxt(n.creatoAt) + '</span></div>')
+    + (n.uscita ? '<div><span class="lbl">' + (n.esceSubito ? 'Uscito al banco · fatto uscire da' : 'Fatto uscire da') + '</span><b>' + esc(n.uscita.da) + '</b> <span class="muted">' + oraTxt(n.uscita.at) + '</span>'
+        + (n.uscita.ritiratoDa ? '<span class="muted">ritirato da ' + esc(n.uscita.ritiratoDa) + '</span>' : '') + '</div>' : '')
+    + n.rientri.map((r, k) => '<div><span class="lbl">' + (n.rientri.length > 1 ? 'Rientro ' + (k + 1) + ' ricevuto da' : 'Rientro ricevuto da') + '</span><b>' + esc(r.da) + '</b> <span class="muted">' + oraTxt(r.at) + '</span>'
+        + (r.riportatoDa ? '<span class="muted">riportato da ' + esc(r.riportatoDa) + '</span>' : '') + '</div>').join('')
     + '</div>'
     + '<div class="sec"><h2>Attrezzi</h2><ul class="list">' + n.righe.map(r => '<li><span>' + esc(r.nome) + '</span><span class="kind">×' + r.qty
       + (n.stato !== 'prenotato' ? ' · rientrati ' + r.rientrati : '') + '</span></li>').join('') + '</ul></div>'
     + (segn.length ? '<div class="sec segn"><h2>Segnalazioni per l\'ufficio</h2><ul class="list">' + segn.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' : '')
     + (n.note ? '<div class="sec"><h2>Note</h2><p style="margin:0">' + esc(n.note) + '</p></div>' : '')
     + '<div class="actions">'
-    + (n.stato === 'prenotato' ? '<button class="btn primary big" id="xUscita" type="button">Consegna adesso</button><button class="btn ghost" id="xDate" type="button">Cambia date</button><button class="btn danger" id="xAnn" type="button">Annulla prenotazione</button>' : '')
+    + (n.stato === 'prenotato' ? '<button class="btn primary big" id="xUscita" type="button">Esce adesso</button><button class="btn ghost" id="xDate" type="button">Cambia date</button><button class="btn danger" id="xAnn" type="button">Annulla prenotazione</button>' : '')
     + (n.stato === 'fuori' ? '<button class="btn primary big" id="xRientro" type="button">Rientro</button><button class="btn ghost" id="xDate" type="button">Proroga</button>' : '')
     + '</div>'
     + (n.uscita ? '<div class="sec"><h2>Controlli all\'uscita · ' + oraTxt(n.uscita.at) + ' · ' + esc(n.uscita.da) + '</h2>' + (n.uscita.voci || []).map(vv => voceTxt(vv, false)).join('')
@@ -1435,9 +1465,12 @@ function avviaNoleggi(){
     render();
   }, err => {
     nolWarnTxt = (err && err.code === 'permission-denied')
-      ? '⚠️ Firebase non fa leggere i noleggi: vanno aggiornate le regole (raccolta «noleggi»).'
-      : '⚠️ Non riesco a leggere i noleggi: controlla la connessione e ricarica.';
+      ? '⚠️ Firebase non fa leggere i noleggi: vanno aggiornate le regole (raccolta «noleggi»). Riprovo da solo ogni 15 secondi.'
+      : '⚠️ Non riesco a leggere i noleggi: controlla la connessione. Riprovo da solo ogni 15 secondi.';
     noleggi = []; render();
+    // la lettura si è fermata: si riprova da soli, così non restano dati vecchi sullo schermo
+    unsubNol = null;
+    setTimeout(avviaNoleggi, 15000);
   });
 }
 </script>
