@@ -171,7 +171,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'noleggi passo 1';
+const VERSIONE = 'noleggi passo 1.1';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'amministrazione@edil-nord.com'];
@@ -370,7 +370,8 @@ function renderList(){
     const ib = $('importBtn'); if(ib) ib.addEventListener('click', importa);
     return;
   }
-  const q = slug($('search').value).replace(/-/g, ' ').trim();
+  const raw = $('search').value.trim();
+  const q = raw ? slug(raw).replace(/-/g, ' ').trim() : '';
   const off = $('showOff').checked;
   const oggi = oggiISO();
   const vis = attrezzi.filter(a => (off || a.attivo) && (!q || slug(a.nome + ' ' + a.categoria).replace(/-/g, ' ').includes(q)));
