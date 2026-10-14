@@ -60,6 +60,11 @@
   .pill.bad{background:var(--stamp);color:#fff;}
   .pill.warn{background:var(--accent);color:#20221f;}
   .pill.todo{background:var(--warn-bg);color:#6B4A0F;}
+  .pill.pay{background:#7a1f1f;color:#fff;letter-spacing:.02em;}
+  .acc.pay{border-color:#7a1f1f;}
+  .accv{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0;}
+  .accv .an{min-width:160px;font-weight:600;}
+  .buono-ko{border:1.5px solid var(--stamp);border-radius:8px;padding:10px 12px;margin:8px 0;}
 
   .empty{background:var(--card);border:1.5px dashed var(--border);border-radius:12px;padding:22px;text-align:center;display:grid;gap:12px;justify-items:center;}
   .empty p{margin:0;color:var(--muted);max-width:52ch;}
@@ -236,7 +241,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, updateDoc, addDoc, getDocs, onSnapshot, collection, query, orderBy, writeBatch, runTransaction, where, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, getDocs, onSnapshot, collection, query, orderBy, writeBatch, runTransaction, where, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAbDjlaO8iX8PBmObY-SKHUgVBLKURHt9A",
@@ -250,7 +255,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'noleggi passo 3';
+const VERSIONE = 'noleggi passo 4';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'amministrazione@edil-nord.com'];
@@ -342,7 +347,7 @@ function normAttrezzo(id, d){
     oreAttuali: typeof d.oreAttuali === 'number' ? d.oreAttuali : null,
     oreAt: d.oreAt || null,
     controlli: (Array.isArray(d.controlli) ? d.controlli : []).filter(c => c && c.testo).map(c => ({testo: String(c.testo), tipo: TIPI[c.tipo] ? c.tipo : SN})),
-    accessori: (Array.isArray(d.accessori) ? d.accessori : []).filter(Boolean).map(String),
+    accessori: (Array.isArray(d.accessori) ? d.accessori : []).map(normAcc).filter(x => x.nome),
     scadenze: (Array.isArray(d.scadenze) ? d.scadenze : []).filter(s => s && s.testo).map(s => ({
       testo: String(s.testo), tipo: s.tipo === 'ore' ? 'ore' : 'data',
       data: s.tipo === 'ore' ? null : (s.data || null), ore: s.tipo === 'ore' && typeof s.ore === 'number' ? s.ore : null
@@ -353,16 +358,22 @@ function normAttrezzo(id, d){
     aggiornatoAt: d.aggiornatoAt || null
   };
 }
+// Accessorio/extra: {nome, pagamento}. Le vecchie schede avevano solo il nome.
+function normAcc(x){
+  if(x && typeof x === 'object') return {nome: String(x.nome || '').trim(), pagamento: x.pagamento === true};
+  const s = String(x == null ? '' : x).trim();
+  return {nome: s, pagamento: /maggiorat|a pagamento/i.test(s)};
+}
 function docDaImport(r){
   return {
     categoria: r[0], nome: r[1], quantita: r[2], contaore: r[3],
     controlli: r[4].map(c => ({testo: c[0], tipo: c[1]})),
-    accessori: r[5].slice(),
+    accessori: r[5].map(normAcc),
     scadenze: (r[6] || []).map(s => ({testo: s[0], tipo: s[1], data: null, ore: null})),
     note: '', attivo: true, oreAttuali: null
   };
 }
-window.__noleggiTest = {statoScadenza, statoPeggiore, slug, normAttrezzo, docDaImport, IMPORT};
+window.__noleggiTest = {statoScadenza, statoPeggiore, slug, normAttrezzo, docDaImport, IMPORT, normAcc};
 
 // ---------------- Stato ----------------
 let me = '';
@@ -514,8 +525,8 @@ function renderDetail(){
     + (a.controlli.length ? '<ul class="list">' + a.controlli.map(c => '<li><span>' + esc(c.testo) + '</span><span class="kind">' + TIPI[c.tipo] + '</span></li>').join('') + '</ul>'
       : '<p class="muted" style="margin:0">Nessun controllo scritto.' + (isUfficio ? ' Tocca «Modifica» per aggiungerli.' : '') + '</p>') + '</div>'
 
-    + '<div class="sec"><h2>Accessori che escono con l\'attrezzo</h2>'
-    + (a.accessori.length ? '<ul class="list">' + a.accessori.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '<p class="muted" style="margin:0">Nessuno.</p>') + '</div>'
+    + '<div class="sec"><h2>Accessori ed extra</h2>'
+    + (a.accessori.length ? '<ul class="list">' + a.accessori.map(x => '<li><span>' + esc(x.nome) + '</span>' + (x.pagamento ? '<span class="pill pay" style="margin-left:auto">A PAGAMENTO</span>' : '<span class="kind">in comodato</span>') + '</li>').join('') + '</ul>' : '<p class="muted" style="margin:0">Nessuno.</p>') + '</div>'
 
     + '<div class="sec"><h2>Scadenze</h2>'
     + (a.scadenze.length ? '<ul class="list">' + a.scadenze.map(s => {
@@ -567,7 +578,7 @@ function renderEdit(v, a){
     + '<div class="field"><span class="lbl">Controlli in uscita e al rientro</span><div id="ctrlRows" style="display:grid;gap:6px"></div>'
     + '<button class="add-line" id="addCtrl" type="button">+ Aggiungi controllo</button></div>'
 
-    + '<div class="field"><span class="lbl">Accessori che escono con l\'attrezzo</span><div id="accRows" style="display:grid;gap:6px"></div>'
+    + '<div class="field"><span class="lbl">Accessori ed extra <span class="muted">(es. benne, rampe in comodato · martello a pagamento)</span></span><div id="accRows" style="display:grid;gap:6px"></div>'
     + '<button class="add-line" id="addAcc" type="button">+ Aggiungi accessorio</button></div>'
 
     + '<div class="field"><span class="lbl">Scadenze</span><div id="scadRows" style="display:grid;gap:6px"></div>'
@@ -596,9 +607,11 @@ function renderEdit(v, a){
   };
   const drawAcc = () => {
     $('accRows').innerHTML = d.accessori.map((x, i) =>
-      '<div class="edit-row two"><input class="inp" data-a="' + i + '" value="' + esc(x) + '" placeholder="Es. Rampe" maxlength="80" aria-label="Accessorio ' + (i + 1) + '">'
+      '<div class="edit-row" style="grid-template-columns:1fr auto auto"><input class="inp" data-a="' + i + '" value="' + esc(x.nome) + '" placeholder="Es. Benna 40 cm" maxlength="80" aria-label="Accessorio ' + (i + 1) + '">'
+      + '<label class="acc' + (x.pagamento ? ' pay' : '') + '" style="min-height:44px;padding:6px 10px"><input type="checkbox" data-ap="' + i + '"' + (x.pagamento ? ' checked' : '') + '> A pagamento</label>'
       + '<button class="sq rm" type="button" data-ax="' + i + '" aria-label="Togli">✕</button></div>').join('') || '<p class="muted" style="margin:0">Nessun accessorio.</p>';
-    $('accRows').querySelectorAll('[data-a]').forEach(el => el.addEventListener('input', () => d.accessori[+el.dataset.a] = el.value));
+    $('accRows').querySelectorAll('[data-a]').forEach(el => el.addEventListener('input', () => d.accessori[+el.dataset.a].nome = el.value));
+    $('accRows').querySelectorAll('[data-ap]').forEach(el => el.addEventListener('change', () => { d.accessori[+el.dataset.ap].pagamento = el.checked; el.parentNode.classList.toggle('pay', el.checked); }));
     $('accRows').querySelectorAll('[data-ax]').forEach(el => el.addEventListener('click', () => { d.accessori.splice(+el.dataset.ax, 1); drawAcc(); }));
   };
   const drawScad = () => {
@@ -619,7 +632,7 @@ function renderEdit(v, a){
   };
   drawCtrl(); drawAcc(); drawScad();
   $('addCtrl').addEventListener('click', () => { d.controlli.push({testo: '', tipo: SN}); drawCtrl(); const els = $('ctrlRows').querySelectorAll('[data-c]'); els[els.length - 1].focus(); });
-  $('addAcc').addEventListener('click', () => { d.accessori.push(''); drawAcc(); const els = $('accRows').querySelectorAll('[data-a]'); els[els.length - 1].focus(); });
+  $('addAcc').addEventListener('click', () => { d.accessori.push({nome: '', pagamento: false}); drawAcc(); const els = $('accRows').querySelectorAll('[data-a]'); els[els.length - 1].focus(); });
   $('addScad').addEventListener('click', () => { d.scadenze.push({testo: '', tipo: 'data', data: null, ore: null}); drawScad(); const els = $('scadRows').querySelectorAll('[data-s]'); els[els.length - 1].focus(); });
 
   const annulla = () => { editing = false; draft = null; if(openId === '__nuovo__') openId = null; render(); };
@@ -633,7 +646,7 @@ function renderEdit(v, a){
     const pulito = {
       nome, categoria: d.categoria.trim() || 'Altro', quantita: d.quantita, contaore: d.contaore,
       controlli: d.controlli.map(c => ({testo: c.testo.trim(), tipo: c.tipo})).filter(c => c.testo),
-      accessori: d.accessori.map(x => x.trim()).filter(Boolean),
+      accessori: d.accessori.map(x => ({nome: String(x.nome || '').trim(), pagamento: x.pagamento === true})).filter(x => x.nome),
       scadenze: d.scadenze.map(s => ({testo: s.testo.trim(), tipo: s.tipo, data: s.tipo === 'data' ? (s.data || null) : null, ore: s.tipo === 'ore' ? s.ore : null})).filter(s => s.testo),
       note: d.note.trim(), attivo: d.attivo !== false,
       oreAttuali: d.oreAttuali == null ? null : d.oreAttuali,
@@ -865,10 +878,68 @@ function normNoleggio(id, d){
     uscita: d.uscita || null, rientri: Array.isArray(d.rientri) ? d.rientri : [],
     proroghe: Array.isArray(d.proroghe) ? d.proroghe : [],
     creatoDa: d.creatoDa || '', creatoAt: d.creatoAt || null, chiusoAt: d.chiusoAt || null, esceSubito: d.esceSubito === true,
-    annullatoDa: d.annullatoDa || null, annullatoAt: d.annullatoAt || null
+    annullatoDa: d.annullatoDa || null, annullatoAt: d.annullatoAt || null,
+    datiPrivato: d.datiPrivato === true, buoniInviati: (d.buoniInviati && typeof d.buoniInviati === 'object') ? d.buoniInviati : {}
   };
 }
-Object.assign(window.__noleggiTest, {addGiorni, periodoNoleggio, occupatiGiorno, liberiNelPeriodo, statoVisibile, controlloPeggiorato, normNoleggio, nuovoNumero});
+
+// ---------------- PASSO 4: buoni di carico automatici (raccolta "orders", stesso formato della v19) ----------------
+// Numero del buono fisso per noleggio e fase: se si reinvia, si sovrascrive lo stesso buono (niente doppioni).
+function idBuono(numero, fase, k){ return 'BC-N' + numero + (fase === 'uscita' ? '-U' : '-R' + k); }
+function giorniTra(da, a){
+  const t = iso => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+  return Math.round((t(a) - t(da)) / 86400000);
+}
+function rigaBuono(desc, qty, note){ return {desc, um: 'PZ', qty, price: 0, manual: true, note: note || '', reso: false}; }
+function righeAccessori(nomeAtt, accessori, fase){
+  return (accessori || []).filter(x => fase === 'uscita' ? x.ok : true).map(x => {
+    const desc = x.pagamento ? x.nome.toUpperCase() + ' – A PAGAMENTO' : '+ ' + x.nome + ' (comodato)';
+    const note = fase === 'uscita'
+      ? (x.pagamento ? 'Extra a pagamento con ' + nomeAtt : 'Accessorio di ' + nomeAtt + ': deve rientrare')
+      : (x.ok === true ? 'Rientrato con ' + nomeAtt : x.ok === false ? '⚠ NON RIENTRATO' : '⚠ non controllato al rientro');
+    return rigaBuono(desc, 1, note);
+  });
+}
+// n = noleggio normalizzato, uscita = oggetto salvato nel noleggio, nFoto = foto fatte
+function buonoUscita(n, uscita, nFoto){
+  const items = [];
+  const giorno = giornoDi(uscita.at);
+  (uscita.voci || []).forEach(v => {
+    const r = n.righe.find(x => x.attrezzoId === v.attrezzoId) || {nome: v.attrezzoId, qty: 1};
+    items.push(rigaBuono('NOLEGGIO ' + r.nome.toUpperCase(), r.qty,
+      'Dal ' + fmtData(giorno) + ' al ' + fmtData(n.al) + ' (previsto)' + (v.ore != null && isFinite(v.ore) ? ' · contaore ' + fmtN(v.ore) + ' h' : '')));
+    righeAccessori(r.nome, v.accessori, 'uscita').forEach(x => items.push(x));
+  });
+  const note = ['NOLEGGIO N. ' + n.numero + ' – USCITA', 'Rientro previsto ' + fmtData(n.al)]
+    .concat(uscita.note ? ['Nota: ' + uscita.note] : []).concat(nFoto ? [nFoto + ' foto nell\'app noleggi'] : []).join(' · ');
+  return {id: idBuono(n.numero, 'uscita'), operator: uscita.da, customer: n.cliente, customerType: n.tipoCliente || '', colli: null,
+    note, items, total: 0, createdAt: uscita.at, status: 'in_attesa', noleggio: {id: n.id, numero: n.numero, fase: 'uscita'}};
+}
+// k = numero del rientro (1, 2… se rientra a pezzi); righeDopo = righe del noleggio dopo questo rientro
+function buonoRientro(n, rientro, k, righeDopo, nFoto){
+  const items = [];
+  const giornoU = n.uscita && n.uscita.at ? giornoDi(n.uscita.at) : n.dal;
+  const giornoR = giornoDi(rientro.at);
+  const gg = Math.max(1, giorniTra(giornoU, giornoR));
+  const ritardo = giorniTra(n.al, giornoR);
+  (rientro.voci || []).forEach(v => {
+    const r = n.righe.find(x => x.attrezzoId === v.attrezzoId) || {nome: v.attrezzoId};
+    items.push(rigaBuono('RIENTRO NOLEGGIO ' + r.nome.toUpperCase(), v.qty,
+      'Uscito ' + fmtData(giornoU) + ', rientrato ' + fmtData(giornoR) + ': ' + gg + (gg === 1 ? ' giorno' : ' giorni')
+      + (ritardo > 0 ? ' (previsto ' + fmtData(n.al) + ', ' + ritardo + ' g di ritardo)' : '')
+      + (v.ore != null && isFinite(v.ore) ? ' · contaore ' + fmtN(v.ore) + ' h' : '')));
+    righeAccessori(r.nome, v.accessori, 'rientro').forEach(x => items.push(x));
+  });
+  const fuori = (righeDopo || []).filter(r => (r.rientrati || 0) < r.qty).map(r => r.nome + ' ×' + (r.qty - (r.rientrati || 0)));
+  const note = ['NOLEGGIO N. ' + n.numero + ' – RIENTRO' + (k > 1 || fuori.length ? ' ' + k : '')]
+    .concat(fuori.length ? ['RIENTRO PARZIALE, ancora fuori: ' + fuori.join(', ')] : [])
+    .concat((rientro.segnalazioni || []).length ? ['⚠ ' + rientro.segnalazioni.join('; ')] : [])
+    .concat(rientro.note ? ['Nota: ' + rientro.note] : [])
+    .concat(nFoto ? [nFoto + ' foto nell\'app noleggi'] : []).join(' · ');
+  return {id: idBuono(n.numero, 'rientro', k), operator: rientro.da, customer: n.cliente, customerType: n.tipoCliente || '', colli: null,
+    note, items, total: 0, createdAt: rientro.at, status: 'in_attesa', noleggio: {id: n.id, numero: n.numero, fase: 'rientro', k}};
+}
+Object.assign(window.__noleggiTest, {addGiorni, periodoNoleggio, occupatiGiorno, liberiNelPeriodo, statoVisibile, controlloPeggiorato, normNoleggio, nuovoNumero, buonoUscita, buonoRientro, idBuono, giorniTra});
 
 // ---------------- Stato ----------------
 let tab = 'oggi';
@@ -938,7 +1009,8 @@ function render(){
   $('tabAtt').hidden = inNol || tab !== 'att';
   if(inNol){
     // mentre si compila un modulo non si ridisegna (si perderebbe quello che si sta scrivendo)
-    if(nolMode === 'dettaglio') renderNolDettaglio();
+    // se l'ufficio sta scrivendo i dati del privato, non si ridisegna
+    if(nolMode === 'dettaglio' && !$('pTel')) renderNolDettaglio();
     return;
   }
   if(tab === 'oggi') renderOggi();
@@ -974,10 +1046,16 @@ function renderOggi(){
   const limite = addGiorni(oggi, 14);
   const prossimi = per('prenotato').filter(n => n.dal <= limite).sort((a, b) => a.dal.localeCompare(b.dal));
   const chiusi = noleggi.filter(n => n.stato === 'chiuso').sort((a, b) => String(b.chiusoAt).localeCompare(String(a.chiusoAt))).slice(0, 8);
+  const limiteChiusi = addGiorni(oggi, -30);
+  const privati = isUfficio ? noleggi.filter(n => n.tipoCliente === 'privato' && !n.datiPrivato && n.stato !== 'annullato'
+    && !(n.stato === 'chiuso' && String(n.chiusoAt).slice(0, 10) < limiteChiusi)).sort((a, b) => a.dal.localeCompare(b.dal)) : [];
+  const buoniKo = noleggi.filter(n => (n.uscita && n.uscita.buono && !buonoInviato(n, n.uscita.buono)) || n.rientri.some(r => r.buono && !buonoInviato(n, r.buono)));
   box.innerHTML = '<div class="warnbox" id="nolWarn" hidden></div>'
     + '<div class="bigbtns"><button class="btn primary big" id="esceBtn" type="button">+ Esce adesso</button>'
     + '<button class="btn dark big" id="prenotaBtn" type="button">+ Prenota</button></div>'
     + (attrezzi.length ? '' : '<p class="warnbox">Prima vanno caricati gli attrezzi (scheda «Attrezzi»).</p>')
+    + (buoniKo.length ? sez('⚠ Buono non inviato', buoniKo) : '')
+    + (privati.length ? sez('Privati: dati da completare', privati) : '')
     + (ritardo.length ? sez('In ritardo', ritardo) : '')
     + sez('Da ritirare', consegna, 'Nessun attrezzo prenotato da ritirare oggi.')
     + sez('Rientrano oggi', rientranoOggi, 'Nessun rientro previsto oggi.')
@@ -1049,7 +1127,7 @@ function renderCal(){
 function apriNuovoNol(esce){
   const oggi = oggiISO();
   nolMode = 'nuovo'; nolId = null;
-  F = {esce, cliente: '', tipoCliente: '', dal: oggi, al: addGiorni(oggi, 1), righe: [{attrezzoId: '', qty: 1}], note: '', forza: false};
+  F = {esce, cliente: '', tipoCliente: '', telefono: '', documento: '', dal: oggi, al: addGiorni(oggi, 1), righe: [{attrezzoId: '', qty: 1}], note: '', forza: false};
   render(); disegnaNuovo(); window.scrollTo(0, 0);
 }
 function opzioniAttrezzi(sel){
@@ -1085,6 +1163,7 @@ function disegnaNuovo(){
     + '<div class="field" style="grid-column:span 2"><span class="lbl">Tipo di cliente</span><div class="actions">'
     + ['privato', 'impresa'].map(t => '<button type="button" class="btn ' + (F.tipoCliente === t ? 'dark' : 'ghost') + '" data-tc="' + t + '">' + (t === 'privato' ? 'Privato' : 'Impresa') + '</button>').join('')
     + '</div></div></div>'
+    + '<div id="nPriv"></div>'
     + '<div class="row"><div class="field"><label for="nDal">' + (F.esce ? 'Esce oggi' : 'Ritira il') + '</label><input class="inp" id="nDal" type="date" value="' + F.dal + '"' + (F.esce ? ' disabled' : '') + '></div>'
     + '<div class="field"><label for="nAl">Rientro previsto</label><input class="inp" id="nAl" type="date" value="' + F.al + '"></div>'
     + '<div class="field"><span class="lbl">&nbsp;</span><div class="actions"><button type="button" class="btn ghost" data-pg="1">+1 g</button><button type="button" class="btn ghost" data-pg="2">+2 g</button><button type="button" class="btn ghost" data-pg="7">+7 g</button></div></div></div>'
@@ -1097,9 +1176,20 @@ function disegnaNuovo(){
   $('nBack').addEventListener('click', chiudiNol);
   $('nCli').addEventListener('input', e => F.cliente = e.target.value);
   $('nNote').addEventListener('input', e => F.note = e.target.value);
+  const disegnaPriv = () => {
+    const box = $('nPriv');
+    if(F.tipoCliente !== 'privato'){ box.innerHTML = ''; return; }
+    if(!isUfficio){ box.innerHTML = '<p class="muted small" style="margin:0">Privato: telefono e documento li aggiunge l\'ufficio.</p>'; return; }
+    box.innerHTML = '<div class="row"><div class="field"><label for="nTel">Telefono <span class="muted">(solo ufficio)</span></label><input class="inp" id="nTel" type="tel" inputmode="tel" maxlength="30" value="' + esc(F.telefono) + '"></div>'
+      + '<div class="field" style="grid-column:span 2"><label for="nDoc">Documento <span class="muted">(tipo e numero, solo ufficio)</span></label><input class="inp" id="nDoc" maxlength="80" placeholder="Es. C.I. CA12345BC" value="' + esc(F.documento) + '"></div></div>';
+    $('nTel').addEventListener('input', e => F.telefono = e.target.value);
+    $('nDoc').addEventListener('input', e => F.documento = e.target.value);
+  };
+  disegnaPriv();
   v.querySelectorAll('[data-tc]').forEach(b => b.addEventListener('click', () => {
     F.tipoCliente = F.tipoCliente === b.dataset.tc ? '' : b.dataset.tc;
     v.querySelectorAll('[data-tc]').forEach(x => x.className = 'btn ' + (F.tipoCliente === x.dataset.tc ? 'dark' : 'ghost'));
+    disegnaPriv();
   }));
   $('nDal').addEventListener('change', e => { F.dal = e.target.value; if(F.al < F.dal){ F.al = F.dal; $('nAl').value = F.al; } F.forza = false; aggiornaDisp(); });
   $('nAl').addEventListener('change', e => { F.al = e.target.value; F.forza = false; aggiornaDisp(); });
@@ -1158,7 +1248,7 @@ async function salvaNuovo(){
   const numero = nuovoNumero();
   const now = new Date().toISOString();
   const data = {numero, cliente, tipoCliente: F.tipoCliente, note: F.note.trim(), dal: F.dal, al: F.al, stato: 'prenotato',
-    righe: unite, uscita: null, rientri: [], proroghe: [], forzato: mancanti.length ? true : false,
+    righe: unite, uscita: null, rientri: [], proroghe: [], forzato: mancanti.length ? true : false, datiPrivato: false,
     creatoDa: nomeMio(), creatoDaEmail: me, creatoAt: now, aggiornatoAt: now};
   if(F.esce){
     // "Esce adesso": non si salva niente finché non si conferma l'uscita
@@ -1172,6 +1262,7 @@ async function salvaNuovo(){
     const esce = F.esce;
     // di solito Firebase l'ha già fatta arrivare: la aggiungo solo se manca
     if(!noleggi.some(x => x.id === numero)) noleggi = noleggi.concat([normNoleggio(numero, data)]);
+    if(isUfficio && F.tipoCliente === 'privato') await salvaDatiPrivato(numero, cliente, F.telefono, F.documento, '');
     if(esce) apriUscita(numero); else { toast('Prenotazione salvata ✓'); apriNol(numero); }
   }catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = F.esce ? 'Avanti: controlli di uscita' : 'Salva prenotazione'; }
 }
@@ -1202,10 +1293,18 @@ function wireControlli(box, onChange){
     const [i, j] = el.dataset.acc.split('.').map(Number);
     F.voci[i].accessori[j].ok = el.checked;
   }));
+  box.querySelectorAll('[data-accv]').forEach(b => b.addEventListener('click', () => {
+    const [i, j] = b.dataset.accv.split('.').map(Number);
+    const x = F.voci[i].accessori[j], val = b.dataset.v === 'si';
+    x.ok = x.ok === val ? null : val;
+    box.querySelectorAll('[data-accv="' + b.dataset.accv + '"]').forEach(y => y.classList.toggle('on', x.ok === (y.dataset.v === 'si')));
+    if(onChange) onChange(-1, -1);
+  }));
   box.querySelectorAll('[data-ore]').forEach(el => el.addEventListener('input', () => { F.voci[+el.dataset.ore].ore = el.value; }));
 }
 function mancantiControlli(voci){
-  return voci.reduce((s, v) => s + (v.salta ? 0 : v.controlli.filter(c => c.valore == null || c.valore === '').length), 0);
+  return voci.reduce((s, v) => s + (v.salta ? 0 : v.controlli.filter(c => c.valore == null || c.valore === '').length
+    + (v.accessori || []).filter(x => x.ok == null).length), 0);
 }
 
 // ---------------- Uscita ----------------
@@ -1214,11 +1313,11 @@ function apriUscita(id, nPronto){
   const n = nPronto || findNol(id); if(!n) return;
   if(!nPronto) pendingEsce = null;
   nolMode = 'uscita'; nolId = id;
-  F = {armed: false, note: '', ritira: '', accTitolo: 'Accessori consegnati (spunta quelli che escono)', voci: n.righe.map(r => {
+  F = {fase: 'uscita', armed: false, note: '', voci: n.righe.map(r => {
     const a = attrezzoById(r.attrezzoId) || {controlli: [], accessori: [], contaore: false};
     return {attrezzoId: r.attrezzoId, nome: r.nome, qty: r.qty, contaore: a.contaore,
       controlli: a.controlli.map(c => ({testo: c.testo, tipo: c.tipo, valore: null})),
-      accessori: a.accessori.map(x => ({nome: x, ok: false})), ore: ''};
+      accessori: a.accessori.map(x => ({nome: x.nome, pagamento: x.pagamento, ok: false})), ore: ''};
   })};
   render(); disegnaUscita(n); window.scrollTo(0, 0);
 }
@@ -1228,8 +1327,13 @@ function bloccoVoce(v, i, extra){
         + (c.prima !== undefined ? ' <span class="prima">Alla consegna: ' + esc(valoreTxt(c.tipo, c.prima)) + '</span>' : '') + '</div>'
         + inputControllo(i + '.' + j, c) + '<div class="diff" data-diff="' + i + '.' + j + '"></div></div>').join('')
       : '<p class="muted small">Nessun controllo per questo attrezzo.</p>')
-    + (v.accessori.length ? '<div class="ctrl"><div class="ctrl-t">' + (F.accTitolo || 'Accessori') + '</div><div class="accs">'
-        + v.accessori.map((x, j) => '<label class="acc"><input type="checkbox" data-acc="' + i + '.' + j + '"' + (x.ok ? ' checked' : '') + '> ' + esc(x.nome) + '</label>').join('') + '</div></div>' : '')
+    + (v.accessori.length ? (F.fase === 'rientro'
+        ? '<div class="ctrl"><div class="ctrl-t">Accessori ed extra usciti: sono rientrati?</div>'
+          + v.accessori.map((x, j) => '<div class="accv"><span class="an">' + esc(x.nome) + (x.pagamento ? ' <span class="pill pay">A PAGAMENTO</span>' : '') + '</span>'
+            + ['si', 'no'].map(y => '<button type="button" class="chipv' + (x.ok === (y === 'si') ? ' on' : '') + '" data-accv="' + i + '.' + j + '" data-v="' + y + '">' + (y === 'si' ? 'Rientrato' : 'Manca') + '</button>').join('') + '</div>').join('') + '</div>'
+        : '<div class="ctrl"><div class="ctrl-t">Accessori ed extra: spunta quelli che escono <span class="muted">(finiscono nel buono)</span></div><div class="accs">'
+          + v.accessori.map((x, j) => '<label class="acc' + (x.pagamento ? ' pay' : '') + '"><input type="checkbox" data-acc="' + i + '.' + j + '"' + (x.ok ? ' checked' : '') + '> ' + esc(x.nome) + (x.pagamento ? ' <span class="pill pay">A PAGAMENTO</span>' : '') + '</label>').join('') + '</div></div>')
+      : '')
     + (v.contaore ? '<div class="ctrl"><div class="ctrl-t">Ore contaore <span class="muted">(facoltativo)</span></div><input class="inp" style="max-width:160px" type="number" inputmode="decimal" step="any" data-ore="' + i + '" value="' + esc(v.ore) + '"></div>' : '')
     + fotoRowHtml(i)
     + '</div>';
@@ -1240,13 +1344,12 @@ function disegnaUscita(n){
     + '<div class="sheet form"><div><div class="cat-head" style="margin:0 0 4px">Uscita · N. ' + esc(n.numero) + '</div><h1>' + esc(n.cliente) + '</h1>'
     + '<p class="muted" style="margin:6px 0 0">Rientro previsto ' + giornoTxt(n.al) + '. I controlli sono un promemoria: compila quelli che servono, non sono obbligatori.</p></div>'
     + F.voci.map((x, i) => bloccoVoce(x, i, '')).join('')
-    + '<div class="field"><label for="uRitira">Chi lo ritira <span class="muted">(facoltativo, es. operaio dell\'impresa)</span></label><input class="inp" id="uRitira" maxlength="80" autocomplete="off"></div>'
     + '<div class="field"><label for="uNote">Note all\'uscita</label><textarea class="inp" id="uNote" rows="2" maxlength="500" placeholder="Es. graffio sul cofano già presente"></textarea></div>'
+    + '<p class="muted small" style="margin:0">Alla conferma parte in automatico il buono di carico per l\'ufficio.</p>'
     + '<button class="btn primary big" id="uOk" type="button">Conferma uscita</button></div>';
   wireControlli(v, () => resetArm('uOk', 'Conferma uscita'));
   wireFoto(v);
   $('uNote').addEventListener('input', e => F.note = e.target.value);
-  $('uRitira').addEventListener('input', e => F.ritira = e.target.value);
   $('uBack').addEventListener('click', () => {
     if(pendingEsce){ const form = pendingEsce.form; pendingEsce = null; nolMode = 'nuovo'; nolId = null; F = form; render(); disegnaNuovo(); window.scrollTo(0, 0); }
     else apriNol(n.id);
@@ -1258,45 +1361,67 @@ async function confermaUscita(){
   const b = $('uOk');
   // all'uscita i controlli sono un promemoria: nessuna conferma in più se non sono compilati
   const now = new Date().toISOString();
-  const uscita = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(), ritiratoDa: (F.ritira || '').trim(),
+  const uscita = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(),
     voci: F.voci.map(v => ({attrezzoId: v.attrezzoId, controlli: v.controlli.map(c => ({testo: c.testo, tipo: c.tipo, valore: c.valore})),
-      accessori: v.accessori.map(x => ({nome: x.nome, ok: x.ok})), ore: v.ore === '' ? null : parseFloat(String(v.ore).replace(',', '.'))}))};
+      accessori: v.accessori.map(x => ({nome: x.nome, pagamento: x.pagamento === true, ok: x.ok})), ore: v.ore === '' ? null : parseFloat(String(v.ore).replace(',', '.'))}))};
+  const nFoto = F.voci.reduce((s, v) => s + (v.foto || []).length, 0);
   b.disabled = true; b.textContent = 'Salvo...';
+  let id = nolId;
   if(pendingEsce){
+    const form = pendingEsce.form;
+    uscita.buono = idBuono(pendingEsce.data.numero, 'uscita');
     const data = Object.assign({}, pendingEsce.data, {stato: 'fuori', uscita, esceSubito: true, aggiornatoAt: now});
     try{ await setDoc(doc(fbDb, 'noleggi', data.numero), data); }
     catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = 'Conferma uscita'; return; }
     pendingEsce = null;
-    if(!noleggi.some(x => x.id === data.numero)) noleggi = noleggi.concat([normNoleggio(data.numero, data)]);
-    if(F.voci.some(v => (v.foto || []).length)){ b.textContent = 'Salvo le foto...'; await salvaFoto(data.numero, data.numero, 'uscita', F.voci, now); }
-    aggiornaOre(F.voci, oggiISO());
-    toast('Uscita registrata ✓ ' + oraTxt(now));
-    apriNol(data.numero);
-    return;
+    id = data.numero;
+    if(!noleggi.some(x => x.id === id)) noleggi = noleggi.concat([normNoleggio(id, data)]);
+    if(isUfficio && data.tipoCliente === 'privato') await salvaDatiPrivato(id, data.cliente, form.telefono, form.documento, '');
+  }else{
+    const err = await txNoleggio(nolId, (raw, n) => {
+      if(n.stato === 'fuori') throw new Error('gia_uscito');
+      if(n.stato === 'chiuso') throw new Error('gia_chiuso');
+      if(n.stato === 'annullato') throw new Error('annullato');
+      uscita.buono = idBuono(n.numero, 'uscita');
+      return {stato: 'fuori', uscita};
+    });
+    if(err){ toast(nolErr(err), true); b.disabled = false; b.textContent = 'Conferma uscita'; F.armed = false; return; }
   }
-  const err = await txNoleggio(nolId, (raw, n) => {
-    if(n.stato === 'fuori') throw new Error('gia_uscito');
-    if(n.stato === 'chiuso') throw new Error('gia_chiuso');
-    if(n.stato === 'annullato') throw new Error('annullato');
-    return {stato: 'fuori', uscita};
-  });
-  if(err){ toast(nolErr(err), true); b.disabled = false; b.textContent = 'Conferma uscita'; F.armed = false; return; }
-  if(F.voci.some(v => (v.foto || []).length)){ b.textContent = 'Salvo le foto...'; await salvaFoto(nolId, (findNol(nolId) || {}).numero || nolId, 'uscita', F.voci, now); }
+  b.textContent = 'Invio il buono...';
+  const nn = Object.assign({}, findNol(id) || {}, {uscita});
+  const okBuono = await inviaBuono(buonoUscita(nn, uscita, nFoto), id);
+  if(nFoto){ b.textContent = 'Salvo le foto...'; await salvaFoto(id, nn.numero || id, 'uscita', F.voci, now); }
   aggiornaOre(F.voci, oggiISO());
-  toast('Uscita registrata ✓ ' + oraTxt(now));
-  apriNol(nolId);
+  toast('Uscita registrata ✓ ' + oraTxt(now) + (okBuono ? ' · buono inviato all\'ufficio' : ''));
+  apriNol(id);
 }
+// Scrive il buono nella raccolta degli ordini (la vede la v19) e lo segna come inviato nel noleggio
+async function inviaBuono(order, id){
+  try{
+    await setDoc(doc(fbDb, 'orders', order.id), order);
+  }catch(e){
+    toast('⚠ Buono NON inviato: ' + erroreFirebase(e) + ' Riprova dal noleggio con «Invia di nuovo il buono».', true);
+    return false;
+  }
+  try{ await updateDoc(doc(fbDb, 'noleggi', id), {['buoniInviati.' + order.id.replace(/[^A-Za-z0-9_-]/g, '_')]: new Date().toISOString()}); }catch(e){}
+  return true;
+}
+function buonoInviato(n, idB){ return !!n.buoniInviati[idB.replace(/[^A-Za-z0-9_-]/g, '_')]; }
 
 // ---------------- Rientro ----------------
 function apriRientro(id){
   const n = findNol(id); if(!n) return;
   nolMode = 'rientro'; nolId = id;
-  F = {armed: false, note: '', riporta: '', accTitolo: 'Accessori rientrati (spunta quelli che tornano)', voci: n.righe.filter(r => r.qty - r.rientrati > 0).map(r => {
+  F = {fase: 'rientro', armed: false, note: '', voci: n.righe.filter(r => r.qty - r.rientrati > 0).map(r => {
     const a = attrezzoById(r.attrezzoId) || {controlli: [], accessori: [], contaore: false};
     const u = n.uscita && (n.uscita.voci || []).find(x => x.attrezzoId === r.attrezzoId);
     const controlli = (u ? u.controlli : a.controlli.map(c => ({testo: c.testo, tipo: c.tipo, valore: null})))
       .map(c => ({testo: c.testo, tipo: c.tipo, prima: c.valore == null ? null : c.valore, valore: null}));
-    const accessori = (u ? u.accessori.filter(x => x.ok) : a.accessori.map(x => ({nome: x}))).map(x => ({nome: x.nome, ok: false}));
+    // al rientro si controllano solo quelli usciti e non ancora rientrati in un rientro precedente
+    const giaRientrati = new Set(n.rientri.flatMap(rr => (rr.voci || []).filter(x => x.attrezzoId === r.attrezzoId).flatMap(x => (x.accessori || []).filter(y => y.ok === true).map(y => y.nome))));
+    const accessori = (u ? (u.accessori || []).filter(x => x.ok) : a.accessori)
+      .filter(x => !giaRientrati.has(x.nome))
+      .map(x => ({nome: x.nome, pagamento: x.pagamento === true, ok: null}));
     const rest = r.qty - r.rientrati;
     return {attrezzoId: r.attrezzoId, nome: r.nome, qty: rest, rest, contaore: a.contaore, controlli, accessori, ore: '', salta: false};
   })};
@@ -1313,8 +1438,8 @@ function disegnaRientro(n){
         ? '<div class="ctrl"><div class="ctrl-t">Quanti rientrano adesso? <span class="muted">(fuori ' + x.rest + ')</span></div>'
           + '<input class="inp" style="max-width:120px" type="number" inputmode="numeric" min="0" max="' + x.rest + '" step="1" data-rqty="' + i + '" value="' + x.qty + '"></div>'
         : (F.voci.length > 1 ? '<label class="acc"><input type="checkbox" data-rnon="' + i + '"> Questo attrezzo non rientra adesso</label>' : ''))).join('')
-    + '<div class="field"><label for="rRiporta">Chi lo riporta <span class="muted">(facoltativo)</span></label><input class="inp" id="rRiporta" maxlength="80" autocomplete="off"></div>'
     + '<div class="field"><label for="rNote">Segnalazioni per l\'ufficio</label><textarea class="inp" id="rNote" rows="3" maxlength="800" placeholder="Es. da pulire, ammaccatura sul braccio, manca una benna"></textarea></div>'
+    + '<p class="muted small" style="margin:0">Alla conferma parte in automatico il buono di rientro per l\'ufficio.</p>'
     + '<button class="btn primary big" id="rOk" type="button">Conferma rientro</button></div>';
   wireControlli(v, (i, j) => { mostraDiff(i, j); resetArm('rOk', 'Conferma rientro'); });
   wireFoto(v);
@@ -1328,7 +1453,6 @@ function disegnaRientro(n){
     const x = F.voci[+el.dataset.rnon]; x.salta = el.checked; x.qty = el.checked ? 0 : x.rest; resetArm('rOk', 'Conferma rientro');
   }));
   $('rNote').addEventListener('input', e => F.note = e.target.value);
-  $('rRiporta').addEventListener('input', e => F.riporta = e.target.value);
   $('rBack').addEventListener('click', () => apriNol(n.id));
   $('rOk').addEventListener('click', confermaRientro);
 }
@@ -1342,7 +1466,10 @@ function segnalazioniDa(voci){
   voci.forEach(v => {
     if(v.salta) return;
     v.controlli.forEach(c => { if(controlloPeggiorato(c.tipo, c.prima, c.valore)) out.push(v.nome + ': ' + c.testo + ' ' + valoreTxt(c.tipo, c.prima) + ' → ' + valoreTxt(c.tipo, c.valore)); });
-    v.accessori.forEach(x => { if(!x.ok) out.push(v.nome + ': accessorio non rientrato – ' + x.nome); });
+    v.accessori.forEach(x => {
+      if(x.ok === false) out.push(v.nome + ': NON rientrato – ' + x.nome + (x.pagamento ? ' (a pagamento)' : ''));
+      else if(x.ok == null) out.push(v.nome + ': non controllato se è rientrato – ' + x.nome);
+    });
   });
   return out;
 }
@@ -1354,11 +1481,12 @@ async function confermaRientro(){
   if(manc && !F.armed){ F.armed = true; b.textContent = 'Mancano ' + manc + (manc === 1 ? ' controllo' : ' controlli') + ': tocca ancora per confermare'; b.classList.add('force'); return; }
   const now = new Date().toISOString();
   const segnalazioni = segnalazioniDa(F.voci);
-  const rientro = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(), riportatoDa: (F.riporta || '').trim(), segnalazioni,
+  const rientro = {at: now, da: nomeMio(), daEmail: me, note: F.note.trim(), segnalazioni,
     voci: voci.map(v => ({attrezzoId: v.attrezzoId, qty: v.qty, controlli: v.controlli.map(c => ({testo: c.testo, tipo: c.tipo, prima: c.prima, valore: c.valore})),
-      accessori: v.accessori.map(x => ({nome: x.nome, ok: x.ok})), ore: v.ore === '' ? null : parseFloat(String(v.ore).replace(',', '.'))}))};
+      accessori: v.accessori.map(x => ({nome: x.nome, pagamento: x.pagamento === true, ok: x.ok == null ? null : x.ok})), ore: v.ore === '' ? null : parseFloat(String(v.ore).replace(',', '.'))}))};
+  const nFoto = voci.reduce((s, v) => s + (v.foto || []).length, 0);
   b.disabled = true; b.textContent = 'Salvo...';
-  let chiuso = false;
+  let chiuso = false, k = 1, righeDopo = [], nPrima = null;
   const err = await txNoleggio(nolId, (raw, n) => {
     if(n.stato !== 'fuori') throw new Error(n.stato === 'chiuso' ? 'gia_chiuso' : 'non_fuori');
     const righe = (raw.righe || []).map(r => {
@@ -1366,15 +1494,19 @@ async function confermaRientro(){
       return v ? Object.assign({}, r, {rientrati: Math.min(r.qty, (r.rientrati || 0) + v.qty)}) : r;
     });
     chiuso = righe.every(r => (r.rientrati || 0) >= r.qty);
+    k = (raw.rientri || []).length + 1; righeDopo = righe; nPrima = n;
+    rientro.buono = idBuono(n.numero, 'rientro', k);
     const patch = {righe, rientri: (raw.rientri || []).concat([rientro])};
     if(chiuso){ patch.stato = 'chiuso'; patch.chiusoAt = now; }
     return patch;
   });
   if(err){ toast(nolErr(err), true); b.disabled = false; b.textContent = 'Conferma rientro'; F.armed = false; return; }
+  b.textContent = 'Invio il buono...';
+  const okBuono = await inviaBuono(buonoRientro(nPrima, rientro, k, righeDopo, nFoto), nolId);
   if(voci.some(v => (v.foto || []).length)){ b.textContent = 'Salvo le foto...'; await salvaFoto(nolId, (findNol(nolId) || {}).numero || nolId, 'rientro', voci, now); }
   if(chiuso) segnaFotoChiuse(nolId, Date.parse(now));
   aggiornaOre(voci, oggiISO());
-  toast(chiuso ? 'Rientro registrato ✓ Noleggio chiuso.' : 'Rientro parziale registrato ✓ Il resto risulta ancora fuori.');
+  toast((chiuso ? 'Rientro registrato ✓ Noleggio chiuso.' : 'Rientro parziale registrato ✓ Il resto risulta ancora fuori.') + (okBuono ? ' Buono inviato.' : ''));
   apriNol(nolId);
 }
 
@@ -1436,7 +1568,8 @@ function renderNolDettaglio(){
     return '<div class="voce"><div class="voce-head">' + esc(a ? a.nome : vv.attrezzoId) + (vv.qty != null ? ' <span class="pill qty">×' + vv.qty + '</span>' : '') + '</div>'
       + (vv.controlli || []).map(c => '<div class="ctrl-line' + (conPrima && controlloPeggiorato(c.tipo, c.prima, c.valore) ? ' bad' : '') + '"><span>' + esc(c.testo) + '</span><span>'
         + (conPrima ? esc(valoreTxt(c.tipo, c.prima)) + ' → ' : '') + '<b>' + esc(valoreTxt(c.tipo, c.valore)) + '</b></span></div>').join('')
-      + ((vv.accessori || []).length ? '<div class="ctrl-line"><span>Accessori</span><span>' + vv.accessori.map(x => (x.ok ? '✓ ' : '✕ ') + esc(x.nome)).join(' · ') + '</span></div>' : '')
+      + ((vv.accessori || []).filter(x => conPrima || x.ok).length ? '<div class="ctrl-line"><span>' + (conPrima ? 'Accessori rientrati' : 'Accessori ed extra usciti') + '</span><span>'
+        + vv.accessori.filter(x => conPrima || x.ok).map(x => (conPrima ? (x.ok === true ? '✓ ' : x.ok === false ? '✕ ' : '? ') : '') + esc(x.nome) + (x.pagamento ? ' <span class="pill pay">A PAGAMENTO</span>' : '')).join(' · ') + '</span></div>' : '')
       + (vv.ore != null ? '<div class="ctrl-line"><span>Contaore</span><span><b>' + fmtN(vv.ore) + ' h</b></span></div>' : '')
       + '</div>';
   };
@@ -1453,6 +1586,10 @@ function renderNolDettaglio(){
     + '</div>'
     + '<div class="sec"><h2>Attrezzi</h2><ul class="list">' + n.righe.map(r => '<li><span>' + esc(r.nome) + '</span><span class="kind">×' + r.qty
       + (n.stato !== 'prenotato' ? ' · rientrati ' + r.rientrati : '') + '</span></li>').join('') + '</ul></div>'
+    + buoniHtml(n)
+    + (isUfficio && n.tipoCliente === 'privato' ? '<div class="sec"><h2>Dati del cliente privato <span class="muted small">(li vede solo l\'ufficio)</span></h2><div id="privBox">'
+        + (n.datiPrivato ? '<button class="btn ghost" id="privLoad" type="button">Mostra telefono e documento</button>' : '<p class="warnbox" style="margin:0 0 8px">Mancano telefono e/o documento.</p><button class="btn dark" id="privLoad" type="button">Completa i dati</button>')
+        + '</div></div>' : '')
     + (segn.length ? '<div class="sec segn"><h2>Segnalazioni per l\'ufficio</h2><ul class="list">' + segn.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' : '')
     + (n.note ? '<div class="sec"><h2>Note</h2><p style="margin:0">' + esc(n.note) + '</p></div>' : '')
     + '<div class="actions">'
@@ -1468,6 +1605,22 @@ function renderNolDettaglio(){
     + '<p class="muted small" style="margin:0">Creato da ' + esc(n.creatoDa) + ' · ' + oraTxt(n.creatoAt) + '</p>'
     + '</div>';
   $('xBack').addEventListener('click', chiudiNol);
+  v.querySelectorAll('[data-rebuono]').forEach(bb => bb.addEventListener('click', async () => {
+    bb.disabled = true; bb.textContent = 'Invio...';
+    const nn = findNol(n.id); if(!nn) return;
+    const [fase, kk] = bb.dataset.rebuono.split('.');
+    let order;
+    if(fase === 'uscita') order = buonoUscita(nn, nn.uscita, 0);
+    else {
+      const k = +kk;
+      // righe come erano dopo quel rientro: si ricalcolano dai rientri fino a k
+      const righeDopo = nn.righe.map(r => Object.assign({}, r, {rientrati: nn.rientri.slice(0, k).reduce((s, rr) => s + (rr.voci || []).filter(x => x.attrezzoId === r.attrezzoId).reduce((t, x) => t + (x.qty || 0), 0), 0)}));
+      order = buonoRientro(nn, nn.rientri[k - 1], k, righeDopo, 0);
+    }
+    const ok = await inviaBuono(order, n.id);
+    if(ok) toast('Buono ' + order.id + ' inviato ✓'); else { bb.disabled = false; bb.textContent = 'Invia di nuovo il buono'; }
+  }));
+  if($('privLoad')) $('privLoad').addEventListener('click', () => apriDatiPrivato(n));
   if(fotoCache[n.id]) disegnaFoto(n);
   if($('xFoto')) $('xFoto').addEventListener('click', () => caricaFoto(n));
   if($('xUscita')) $('xUscita').addEventListener('click', () => apriUscita(n.id));
@@ -1481,6 +1634,46 @@ function renderNolDettaglio(){
       return {stato: 'annullato', annullatoDa: nomeMio(), annullatoAt: new Date().toISOString()};
     });
     if(err) toast(nolErr(err), true); else toast('Prenotazione annullata');
+  });
+}
+
+function buoniHtml(n){
+  const lista = [];
+  if(n.uscita) lista.push({fase: 'uscita', k: 0, id: n.uscita.buono || idBuono(n.numero, 'uscita'), titolo: 'Uscita', vecchio: !n.uscita.buono});
+  n.rientri.forEach((r, i) => lista.push({fase: 'rientro', k: i + 1, id: r.buono || idBuono(n.numero, 'rientro', i + 1), titolo: n.rientri.length > 1 ? 'Rientro ' + (i + 1) : 'Rientro', vecchio: !r.buono}));
+  const vis = lista.filter(x => !x.vecchio); // i noleggi fatti prima del passo 4 non hanno buoni automatici
+  if(!vis.length) return '';
+  return '<div class="sec"><h2>Buoni di carico</h2><ul class="list">' + vis.map(x => buonoInviato(n, x.id)
+    ? '<li><span>' + x.titolo + '</span><span class="kind">✓ inviato · ' + esc(x.id) + '</span></li>'
+    : '<li class="buono-ko"><span>' + x.titolo + ' · <b>non inviato</b></span><button class="btn dark" type="button" style="margin-left:auto" data-rebuono="' + x.fase + '.' + x.k + '">Invia di nuovo il buono</button></li>').join('') + '</ul></div>';
+}
+
+// ---------------- Dati del cliente privato (solo ufficio: raccolta "clienti_noleggio") ----------------
+async function salvaDatiPrivato(id, cliente, telefono, documento, note){
+  telefono = String(telefono || '').trim(); documento = String(documento || '').trim(); note = String(note || '').trim();
+  if(!telefono && !documento && !note) return true;
+  try{
+    await setDoc(doc(fbDb, 'clienti_noleggio', id), {cliente, telefono, documento, note, aggiornatoDa: nomeMio(), aggiornatoAt: new Date().toISOString()}, {merge: true});
+    await updateDoc(doc(fbDb, 'noleggi', id), {datiPrivato: !!(telefono && documento)});
+    return true;
+  }catch(e){ toast('Dati del privato non salvati: ' + erroreFirebase(e), true); return false; }
+}
+async function apriDatiPrivato(n){
+  const box = $('privBox'); if(!box) return;
+  box.innerHTML = '<p class="muted small">Carico…</p>';
+  let d = {};
+  try{ const snap = await getDoc(doc(fbDb, 'clienti_noleggio', n.id)); if(snap.exists()) d = snap.data(); }
+  catch(e){ box.innerHTML = '<p class="muted small">' + esc(erroreFirebase(e)) + '</p>'; return; }
+  box.innerHTML = '<div class="row"><div class="field"><label for="pTel">Telefono</label><input class="inp" id="pTel" type="tel" inputmode="tel" maxlength="30" value="' + esc(d.telefono || '') + '"></div>'
+    + '<div class="field" style="grid-column:span 2"><label for="pDoc">Documento (tipo e numero)</label><input class="inp" id="pDoc" maxlength="80" placeholder="Es. C.I. CA12345BC" value="' + esc(d.documento || '') + '"></div></div>'
+    + '<div class="field"><label for="pNote">Note</label><input class="inp" id="pNote" maxlength="200" value="' + esc(d.note || '') + '"></div>'
+    + (d.aggiornatoAt ? '<p class="muted small" style="margin:0">Ultima modifica: ' + esc(d.aggiornatoDa || '') + ' · ' + oraTxt(d.aggiornatoAt) + '</p>' : '')
+    + '<div class="actions"><button class="btn primary" id="pSave" type="button">Salva dati</button></div>';
+  $('pSave').addEventListener('click', async () => {
+    const b = $('pSave'); b.disabled = true; b.textContent = 'Salvo...';
+    const ok = await salvaDatiPrivato(n.id, n.cliente, $('pTel').value, $('pDoc').value, $('pNote').value);
+    if(ok){ toast(($('pTel').value.trim() && $('pDoc').value.trim()) ? 'Dati salvati ✓' : 'Salvato, ma manca ancora telefono o documento'); }
+    b.disabled = false; b.textContent = 'Salva dati';
   });
 }
 
