@@ -903,6 +903,29 @@
     .results-list{max-height:62vh;}
   }
   .operator-bar .logout-btn.confirm{border-color:var(--stamp);color:var(--stamp);}
+
+  /* ---------- v19: privato/impresa + numero colli ---------- */
+  .opt{font-weight:400;color:var(--muted);font-size:0.85em;margin-left:4px;}
+  .ctype-row{display:flex;gap:8px;margin-top:8px;border-radius:9px;}
+  .ctype-btn{
+    flex:1;background:#fff;border:1.5px solid var(--border);color:var(--text);
+    border-radius:8px;padding:10px 8px;font-size:14px;font-weight:600;min-height:44px;
+  }
+  .ctype-btn.active{background:var(--bg-shell);color:#fff;border-color:var(--bg-shell);}
+  .ctype-row.missing .ctype-btn{border-color:var(--stamp);box-shadow:0 0 0 2px rgba(178,59,59,0.25);}
+  .colli-row{display:flex;align-items:center;gap:6px;}
+  .colli-row .field-input{width:90px;flex:none;text-align:center;font-family:var(--font-mono);font-weight:600;}
+  .order-tag{
+    display:inline-block;font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:0.4px;
+    padding:2px 7px;border-radius:4px;margin:4px 6px 0 0;background:rgba(62,106,138,0.13);color:#3E6A8A;
+  }
+  .order-tag.colli{background:rgba(232,163,61,0.18);color:var(--accent-dark);}
+  @media (max-width:700px), (pointer:coarse){
+    .ctype-btn{font-size:17px;min-height:52px;border-radius:10px;}
+    .colli-row{gap:8px;}
+    .colli-row .field-input{width:96px;font-size:19px;}
+    .order-tag{font-size:13px;padding:3px 8px;}
+  }
 </style>
 </head>
 <body>
@@ -990,10 +1013,22 @@
           <div id="cartList"></div>
           <div class="order-meta">
             <div>
+              <label>Numero colli</label>
+              <div class="colli-row">
+                <button type="button" class="qty-btn" id="colliDec" aria-label="Un collo in meno">-</button>
+                <input class="field-input" id="colliInput" type="number" inputmode="numeric" min="0" step="1" placeholder="—">
+                <button type="button" class="qty-btn" id="colliInc" aria-label="Un collo in più">+</button>
+              </div>
+            </div>
+            <div>
               <label>Cliente <span class="req">obbligatorio</span></label>
               <div class="customer-row">
                 <input class="field-input" id="customerInput" placeholder="Nome cliente" autocomplete="off">
                 <button type="button" class="btn-secondary gen-num-btn" id="genNumBtn">&#128290; Genera numero</button>
+              </div>
+              <div class="ctype-row" id="ctypeRow" role="radiogroup" aria-label="Tipo di cliente">
+                <button type="button" class="ctype-btn" data-ctype="privato" role="radio" aria-checked="false">&#128100; Privato</button>
+                <button type="button" class="ctype-btn" data-ctype="impresa" role="radio" aria-checked="false">&#127970; Impresa</button>
               </div>
               <div class="gen-num-hint hidden" id="genNumHint"></div>
             </div>
@@ -1295,7 +1330,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = 18;
+const APP_VERSION = 19;
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -1931,9 +1966,11 @@ function saveDraft(){
   if(!k || !draftReady) return;
   const customer = document.getElementById('customerInput').value;
   const note = document.getElementById('noteInput').value;
+  const customerType = getCustomerType();
+  const colli = document.getElementById('colliInput').value;
   try{
-    if(!cart.length && !customer.trim() && !note.trim()) localStorage.removeItem(k);
-    else localStorage.setItem(k, JSON.stringify({cart, customer, note, at: Date.now()}));
+    if(!cart.length && !customer.trim() && !note.trim() && !customerType && !colli) localStorage.removeItem(k);
+    else localStorage.setItem(k, JSON.stringify({cart, customer, note, customerType, colli, at: Date.now()}));
   }catch(e){}
 }
 function restoreDraft(){
@@ -1948,6 +1985,8 @@ function restoreDraft(){
   cartIdCounter = cart.length + 1;
   document.getElementById('customerInput').value = d.customer || '';
   document.getElementById('noteInput').value = d.note || '';
+  setCustomerType(d.customerType || '');
+  document.getElementById('colliInput').value = d.colli || '';
   syncGenHint();
   renderCart();
   if(cart.length) showQuickFeedback('Ripreso il buono che stavi scrivendo (' + cart.length + (cart.length === 1 ? ' articolo' : ' articoli') + ')');
@@ -2080,6 +2119,42 @@ document.getElementById('genNumBtn').addEventListener('click', ()=>{
   saveDraft();
 });
 
+// ---- v19: privato / impresa (obbligatorio) ----
+function getCustomerType(){
+  const b = document.querySelector('.ctype-btn.active');
+  return b ? b.dataset.ctype : '';
+}
+function setCustomerType(t){
+  document.querySelectorAll('.ctype-btn').forEach(b=>{
+    const on = b.dataset.ctype === t;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+  if(t) document.getElementById('ctypeRow').classList.remove('missing');
+}
+document.querySelectorAll('.ctype-btn').forEach(b => b.addEventListener('click', ()=>{
+  setCustomerType(b.dataset.ctype);
+  saveDraft();
+}));
+const CTYPE_LABEL = {privato: 'PRIVATO', impresa: 'IMPRESA'};
+
+// ---- v19: numero colli (facoltativo, numero intero) ----
+const colliInput = document.getElementById('colliInput');
+function readColli(){
+  const v = parseInt(colliInput.value, 10);
+  return (isFinite(v) && v > 0) ? v : null;
+}
+function stepColli(d){
+  const v = Math.max(0, (readColli() || 0) + d);
+  colliInput.value = v ? v : '';
+  saveDraft();
+}
+document.getElementById('colliInc').addEventListener('click', ()=> stepColli(1));
+document.getElementById('colliDec').addEventListener('click', ()=> stepColli(-1));
+colliInput.addEventListener('input', saveDraft);
+colliInput.addEventListener('change', ()=>{ const v = readColli(); colliInput.value = v ? v : ''; saveDraft(); });
+function colliTxt(n){ return n + (n === 1 ? ' collo' : ' colli'); }
+
 // ---------------- Submit order ----------------
 submitOrderBtn.addEventListener('click', async ()=>{
   if(cart.length === 0) return;
@@ -2104,12 +2179,26 @@ submitOrderBtn.addEventListener('click', async ()=>{
     toast._t = setTimeout(()=>{ toast.classList.add('hidden'); toast.classList.remove('warn'); }, 4000);
     return;
   }
+  if(!getCustomerType()){
+    const row = document.getElementById('ctypeRow');
+    row.classList.add('missing');
+    row.scrollIntoView({behavior:'smooth', block:'center'});
+    const toast = document.getElementById('orderToast');
+    toast.classList.remove('hidden');
+    toast.classList.add('warn');
+    toast.textContent = 'Scegli se il cliente è un privato o un\'impresa.';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>{ toast.classList.add('hidden'); toast.classList.remove('warn'); }, 4000);
+    return;
+  }
   submitOrderBtn.disabled = true;
   submitOrderBtn.textContent = 'Invio in corso...';
   const order = {
     id: 'BC-' + makeOrderCode(),
     operator: operatorName,
     customer: document.getElementById('customerInput').value.trim(),
+    customerType: getCustomerType(),
+    colli: readColli(),
     note: document.getElementById('noteInput').value.trim(),
     items: cart.map(c=>({desc:c.desc, um:c.um, qty:c.qty, price:c.price||0, manual:!!c.manual, note:c.note||''})),
     total: cart.reduce((s,c)=> s + c.qty*(c.price||0), 0),
@@ -2139,6 +2228,8 @@ submitOrderBtn.addEventListener('click', async ()=>{
     renderCart();
     document.getElementById('customerInput').value = '';
     document.getElementById('noteInput').value = '';
+    setCustomerType('');
+    colliInput.value = '';
     saveDraft(); // inviato: la bozza sul tablet si cancella
     syncGenHint();
     searchInput.value = '';
@@ -2195,6 +2286,10 @@ function renderOrders(){
       + (isEvaso ? '<div class="stamp">EVASO</div>' : '')
       + '<div class="order-head"><div><div class="order-code">' + o.id + '</div>'
       + '<div class="order-customer">' + (o.customer ? escapeHtml(o.customer) : 'Cliente non specificato') + '</div>'
+      + ((CTYPE_LABEL[o.customerType] || o.colli) ? '<div>'
+          + (CTYPE_LABEL[o.customerType] ? '<span class="order-tag">' + CTYPE_LABEL[o.customerType] + '</span>' : '')
+          + (o.colli ? '<span class="order-tag colli">📦 ' + colliTxt(o.colli) + '</span>' : '')
+          + '</div>' : '')
       + '<div class="order-operator">' + (o.operator ? 'Preparato da ' + escapeHtml(o.operator) : 'Operatore non specificato') + '</div></div>'
       + '<div class="order-time">' + formatOrderTime(o.createdAt) + '</div></div>'
       + '<div class="order-items">' + itemsHtml + '</div>'
@@ -2405,7 +2500,7 @@ const myOrderIds = new Set(); // buoni inviati da questo dispositivo: niente not
 function notificaBuoniNuovi(nuovi){
   nuovi.filter(o => !myOrderIds.has(o.id)).forEach(o=>{
     showNotif('Nuovo buono di carico',
-      (o.customer || 'Cliente non specificato') + ' · ' + righeTxt((o.items || []).length) + (o.operator ? ' · da ' + o.operator : ''),
+      (o.customer || 'Cliente non specificato') + (CTYPE_LABEL[o.customerType] ? ' (' + o.customerType + ')' : '') + ' · ' + righeTxt((o.items || []).length) + (o.colli ? ' · ' + colliTxt(o.colli) : '') + (o.operator ? ' · da ' + o.operator : ''),
       'buono-' + o.id, ()=> vaiAScheda('ordini'));
   });
 }
