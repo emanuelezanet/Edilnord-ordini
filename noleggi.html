@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1C1F22">
+<title>Noleggi Edil Nord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Stessi colori e caratteri dell'app dei buoni di carico */
+  :root{
+    --bg-shell:#1C1F22; --bg-paper:#EDEAE2; --card:#FBF9F5;
+    --accent:#E8A33D; --accent-dark:#C6822A; --stamp:#B23B3B; --success:#4C7A52; --info:#3E6A8A;
+    --warn-bg:#FFF1D6; --bad-bg:#F8E4E1; --ok-bg:#E6EFE6;
+    --text:#26292B; --muted:#767A7C; --border:#DBD5C8;
+    --font-display:'Archivo Black', sans-serif;
+    --font-body:'Inter', system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{margin:0;padding:0;height:100%;background:var(--bg-shell);}
+  body{margin:0;min-height:100%;font-family:var(--font-body);background:var(--bg-paper);color:var(--text);font-size:16px;-webkit-tap-highlight-color:transparent;}
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea,select{font-family:inherit;font-size:16px;}
+  [hidden]{display:none !important;}
+
+  .topbar{background:var(--bg-shell);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .brand{font-family:var(--font-display);font-size:18px;letter-spacing:.5px;}
+  .brand span{color:var(--accent);}
+  .top-right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .top-link{color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.25);border-radius:7px;padding:8px 12px;font-size:14px;font-weight:600;}
+  .who{font-family:var(--font-mono);font-size:12px;color:rgba(255,255,255,.7);}
+  .ver{font-family:var(--font-mono);font-size:11px;color:var(--accent);}
+  .btn-top{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:7px;padding:8px 12px;font-size:14px;font-weight:600;}
+
+  .test-band{background:var(--warn-bg);color:#6B4A0F;border-bottom:1px solid #E8C27A;padding:10px 16px;font-size:14px;font-weight:600;}
+  main{max-width:900px;margin:0 auto;padding:16px 14px 80px;}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .search{flex:1;min-width:200px;border:1px solid var(--border);background:var(--card);border-radius:10px;padding:12px 14px;}
+  .chk{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);}
+  .btn{border:none;border-radius:9px;padding:12px 16px;font-size:15px;font-weight:700;min-height:46px;}
+  .btn.primary{background:var(--accent);color:#20221f;}
+  .btn.dark{background:var(--bg-shell);color:#fff;}
+  .btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+  .btn.danger{background:transparent;border:1.5px solid var(--stamp);color:var(--stamp);}
+  .btn.danger.confirm{background:var(--stamp);color:#fff;}
+  .btn:disabled{opacity:.5;}
+
+  .cat-head{font-family:var(--font-mono);font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:18px 2px 8px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:left;color:var(--text);display:grid;gap:8px;}
+  .card.off{opacity:.55;}
+  .card-name{font-weight:700;font-size:16px;line-height:1.3;}
+  .card-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .pill{display:inline-block;font-family:var(--font-mono);font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:12px;background:rgba(0,0,0,.06);color:var(--text);}
+  .pill.qty{background:var(--bg-shell);color:#fff;}
+  .pill.ore{background:rgba(62,106,138,.14);color:var(--info);}
+  .pill.bad{background:var(--stamp);color:#fff;}
+  .pill.warn{background:var(--accent);color:#20221f;}
+  .pill.todo{background:var(--warn-bg);color:#6B4A0F;}
+
+  .empty{background:var(--card);border:1.5px dashed var(--border);border-radius:12px;padding:22px;text-align:center;display:grid;gap:12px;justify-items:center;}
+  .empty p{margin:0;color:var(--muted);max-width:52ch;}
+
+  .back{margin-bottom:12px;}
+  .sheet{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;display:grid;gap:18px;}
+  .sheet h1{font-family:var(--font-display);font-size:24px;margin:0;line-height:1.15;}
+  .sec h2{font-size:13px;font-family:var(--font-mono);letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
+  .list{margin:0;padding:0;list-style:none;display:grid;gap:6px;}
+  .list li{display:flex;gap:10px;align-items:baseline;padding:8px 10px;background:rgba(0,0,0,.03);border-radius:8px;}
+  .list .kind{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap;}
+  .muted{color:var(--muted);}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+  .form{display:grid;gap:14px;}
+  .row{display:grid;grid-template-columns:2fr 1fr 110px;gap:10px;}
+  @media (max-width:620px){ .row{grid-template-columns:1fr;} }
+  .field{display:grid;gap:5px;min-width:0;}
+  .field label,.lbl{font-size:13px;font-weight:600;color:var(--muted);}
+  .inp{width:100%;border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:#fff;color:var(--text);}
+  .inp:focus{outline:none;border-color:var(--accent-dark);}
+  .edit-row{display:grid;grid-template-columns:1fr 150px auto auto auto;gap:6px;align-items:center;}
+  .edit-row.two{grid-template-columns:1fr auto;}
+  .edit-row.scad{grid-template-columns:1fr 120px 150px auto;}
+  @media (max-width:620px){
+    .edit-row{grid-template-columns:1fr 1fr;}
+    .edit-row .inp:first-child{grid-column:1 / -1;}
+    .edit-row.two{grid-template-columns:1fr auto;}
+    .edit-row.two .inp:first-child{grid-column:auto;}
+    .edit-row.scad{grid-template-columns:1fr 1fr;}
+  }
+  .sq{width:44px;height:44px;border:1px solid var(--border);background:#fff;border-radius:8px;font-size:18px;color:var(--text);}
+  .sq.rm{color:var(--stamp);}
+  .add-line{background:transparent;border:1.5px dashed var(--border);color:var(--muted);border-radius:8px;padding:10px;font-weight:600;font-size:14px;}
+
+  .manut{display:grid;gap:8px;}
+  .manut-item{padding:10px 12px;border-radius:8px;background:rgba(0,0,0,.03);display:grid;gap:3px;}
+  .manut-top{display:flex;gap:10px;flex-wrap:wrap;font-family:var(--font-mono);font-size:13px;color:var(--muted);}
+  .manut-what{font-weight:600;}
+  .box{border:1px solid var(--border);border-radius:10px;padding:14px;display:grid;gap:12px;background:var(--bg-paper);}
+
+  .toast{position:fixed;left:12px;right:12px;bottom:18px;z-index:60;background:var(--bg-shell);color:#fff;border-radius:10px;padding:14px 16px;font-size:15px;font-weight:600;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3);}
+  .toast.err{background:var(--stamp);}
+  @media(min-width:900px){ .toast{left:auto;right:24px;max-width:440px;} }
+
+  .login-overlay{position:fixed;inset:0;z-index:9999;background:var(--bg-shell);display:flex;align-items:center;justify-content:center;padding:16px;}
+  .login-card{width:100%;max-width:420px;background:var(--card);border-radius:12px;padding:24px 20px;display:grid;gap:14px;}
+  .login-card h2{font-family:var(--font-display);margin:0;font-size:22px;}
+  .login-card label{display:grid;gap:6px;font-size:14px;font-weight:600;color:var(--muted);}
+  .login-error{background:var(--bad-bg);color:var(--stamp);border-radius:8px;padding:10px 12px;font-size:15px;font-weight:600;}
+  .warnbox{background:var(--warn-bg);color:#6B4A0F;border:1px solid #E8C27A;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:600;margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay" hidden>
+  <form class="login-card" id="loginForm" novalidate>
+    <h2>Accesso</h2>
+    <p class="muted" style="margin:0">Stesse email e password dell'app dei buoni di carico.</p>
+    <label>Email <input class="inp" id="loginEmail" type="email" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+    <label>Password <input class="inp" id="loginPassword" type="password" autocomplete="current-password"></label>
+    <div class="login-error" id="loginError" hidden></div>
+    <button class="btn primary" id="loginBtn" type="submit">Entra</button>
+  </form>
+</div>
+
+<header class="topbar">
+  <div class="brand">EDIL NORD <span>· NOLEGGI</span></div>
+  <span class="ver" id="ver"></span>
+  <div class="top-right">
+    <span class="who" id="who"></span>
+    <a class="top-link" href="index.html">Buoni di carico</a>
+    <button class="btn-top" id="logoutBtn" type="button">Esci</button>
+  </div>
+</header>
+<div class="test-band">Pagina di prova dei noleggi, separata dall'app dei buoni. Per ora: schede attrezzi, controlli, scadenze e manutenzioni.</div>
+
+<main>
+  <div class="warnbox" id="rulesWarn" hidden></div>
+
+  <section id="listView">
+    <div class="toolbar">
+      <input class="search" id="search" type="search" placeholder="Cerca attrezzo..." autocomplete="off">
+      <label class="chk"><input type="checkbox" id="showOff"> Mostra disattivati</label>
+      <button class="btn primary" id="newBtn" type="button" hidden>+ Nuovo attrezzo</button>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <section id="detailView" hidden></section>
+</main>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, updateDoc, addDoc, getDocs, onSnapshot, collection, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAbDjlaO8iX8PBmObY-SKHUgVBLKURHt9A",
+  authDomain: "edilnord-ordini.firebaseapp.com",
+  projectId: "edilnord-ordini",
+  storageBucket: "edilnord-ordini.firebasestorage.app",
+  messagingSenderId: "129596707362",
+  appId: "1:129596707362:web:8d092cbf4905a20ab5b07b"
+};
+const fbApp = initializeApp(firebaseConfig);
+const fbAuth = getAuth(fbApp);
+const fbDb = getFirestore(fbApp);
+
+const VERSIONE = 'noleggi passo 1';
+// Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
+// usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
+const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'amministrazione@edil-nord.com'];
+
+// ---------------- Dati di partenza: i 31 attrezzi decisi il 14/10/2026 ----------------
+const SN = 'si_no', LV = 'livello', NM = 'numero', TX = 'testo';
+const C_ESC = [['Carburante', LV], ['Pulito?', SN], ['Benne rientrate?', SN], ['Rampe rientrate?', SN]];
+const C_GEN = [['Si avvia?', SN], ['Carburante', LV]];
+const C_TAG = [['Benzina', LV], ['Disco presente e integro?', SN]];
+const IMPORT = [
+  ['Escavatori', 'Escavatore CAT 300.9D (piccolo)', 1, true, C_ESC, ['Benne', 'Martello demolitore (costo maggiorato)', 'Rampe']],
+  ['Escavatori', 'Escavatore CAT 301.7', 1, true, C_ESC, ['Benne', 'Martello demolitore (costo maggiorato)', 'Rampe']],
+  ['Escavatori', 'Escavatore CAT 301.7CR (medio)', 1, true, C_ESC, []],
+  ['Escavatori', 'Rampa da carico', 3, false, [], []],
+  ['Generatori', 'Generatore Pramac 30 kW', 1, true, C_GEN, []],
+  ['Generatori', 'Generatore PX8000 4,5/5,5 kW', 1, true, C_GEN, []],
+  ['Generatori', 'Generatore Mosa 2,8 kW', 1, false, C_GEN, []],
+  ['Generatori', 'Generatore Mosa 10 kW', 1, false, C_GEN, []],
+  ['Calcestruzzo e malta', 'Betoniera', 1, false, [['Pulita?', SN]], []],
+  ['Calcestruzzo e malta', 'Turbomalt LT100', 1, false, [['Si avvia?', SN], ['Pulita?', SN]], []],
+  ['Calcestruzzo e malta', 'Elicottero grande Level 100', 1, false, [['Pulito?', SN], ['Pale a posto?', SN]], []],
+  ['Calcestruzzo e malta', 'Elicottero piccolo Geitek', 1, false, [['Pulito?', SN], ['Pale a posto?', SN]], []],
+  ['Taglio', 'Tagliapavimenti Husqvarna FS 400', 1, false, C_TAG, []],
+  ['Taglio', 'Tagliapavimenti grande Geitek', 1, false, C_TAG, []],
+  ['Taglio', 'Troncatrice K970', 1, false, [['Miscela', LV], ['Disco presente e integro?', SN], ['Si accende?', SN]], []],
+  ['Taglio', 'Taglierina ad acqua', 1, false, [['Disco consumato?', SN]], []],
+  ['Taglio', 'Taglierina polistirolo', 1, false, [], []],
+  ['Taglio', 'Trancia blocchi T41 Batmatic', 1, false, [], []],
+  ['Taglio', 'Scanalatrice Geitek', 1, false, [['Disco consumato?', SN]], []],
+  ['Taglio', 'Carotatrice Geitec + supporto', 2, false, [['Si avvia?', SN], ['Corone rientrate?', SN]], ['Corone']],
+  ['Demolizione', 'Demolitore Dewalt', 1, false, [['Pulito?', SN], ['Punte presenti?', SN]], []],
+  ['Demolizione', 'Martello demolitore DM952', 1, false, [], []],
+  ['Demolizione', 'Martello demolitore DMS50', 1, false, [], []],
+  ['Levigatura e pulizia', 'Levigatrice a muro Geitek', 1, false, [['Disco consumato?', SN]], []],
+  ['Levigatura e pulizia', 'Levigatrice pavimenti Geitek', 1, false, [['Pulita?', SN], ['Disco consumato?', SN]], ['Dischi']],
+  ['Levigatura e pulizia', 'Idropulitrice a scoppio', 2, false, [['Benzina', LV]], [], [['Tagliando annuale', 'data']]],
+  ['Terreno e trasporto', 'Costipatore ranetta grande', 1, false, [['Benzina', LV], ['Pulito?', SN]], []],
+  ['Terreno e trasporto', 'Costipatore ranetta piccola', 1, false, [['Benzina', LV], ['Pulito?', SN]], []],
+  ['Terreno e trasporto', 'Motocarriola Cormidi C6.60', 1, true, [['Si avvia?', SN], ['Pulita?', SN]], [], [['Tagliando', 'ore']]],
+  ['Cantiere', 'Trabattello 8 m', 1, false, [], []],
+  ['Cantiere', 'Recinzione mobile', 50, false, [['Pannelli rientrati (n.)', NM], ['Piedini rientrati (n.)', NM]], []]
+];
+const CATEGORIE = ['Escavatori', 'Generatori', 'Calcestruzzo e malta', 'Taglio', 'Demolizione', 'Levigatura e pulizia', 'Terreno e trasporto', 'Cantiere'];
+const TIPI = {si_no: 'Sì / No', livello: 'Livello (pieno → vuoto)', numero: 'Numero', testo: 'Nota scritta'};
+
+// ---------------- Funzioni pure (provate prima della consegna) ----------------
+function slug(s){
+  return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'attrezzo';
+}
+function oggiISO(d){ d = d || new Date(); const z = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()); }
+// Stato di una scadenza: 'scaduta' | 'vicina' | 'ok' | 'da_impostare' | 'ore_ignote'
+// A data: vicina entro 30 giorni. A ore: vicina entro 20 ore dalle ore attuali conosciute.
+function statoScadenza(s, oreAttuali, oggi){
+  if(s.tipo === 'ore'){
+    if(typeof s.ore !== 'number' || !isFinite(s.ore)) return {stato: 'da_impostare', testo: 'da impostare'};
+    if(typeof oreAttuali !== 'number') return {stato: 'ore_ignote', testo: 'a ' + s.ore + ' h (ore attuali non note)'};
+    const diff = s.ore - oreAttuali;
+    if(diff < 0) return {stato: 'scaduta', testo: 'scaduta da ' + fmtN(-diff) + ' h'};
+    return {stato: diff <= 20 ? 'vicina' : 'ok', testo: 'tra ' + fmtN(diff) + ' h (a ' + fmtN(s.ore) + ' h)'};
+  }
+  if(!s.data || !/^\d{4}-\d{2}-\d{2}$/.test(s.data)) return {stato: 'da_impostare', testo: 'da impostare'};
+  const t0 = Date.UTC(+oggi.slice(0, 4), +oggi.slice(5, 7) - 1, +oggi.slice(8, 10));
+  const t1 = Date.UTC(+s.data.slice(0, 4), +s.data.slice(5, 7) - 1, +s.data.slice(8, 10));
+  const giorni = Math.round((t1 - t0) / 86400000);
+  if(giorni < 0) return {stato: 'scaduta', testo: 'scaduta il ' + fmtData(s.data)};
+  if(giorni === 0) return {stato: 'vicina', testo: 'scade oggi'};
+  return {stato: giorni <= 30 ? 'vicina' : 'ok', testo: (giorni <= 30 ? 'tra ' + giorni + (giorni === 1 ? ' giorno' : ' giorni') + ' · ' : '') + fmtData(s.data)};
+}
+function statoPeggiore(att, oggi){
+  const ord = {scaduta: 3, vicina: 2, da_impostare: 1, ore_ignote: 1, ok: 0};
+  let p = null;
+  (att.scadenze || []).forEach(s => {
+    const st = statoScadenza(s, att.oreAttuali, oggi).stato;
+    if(!p || ord[st] > ord[p]) p = st;
+  });
+  return p;
+}
+function fmtN(n){ return Number(n).toLocaleString('it-IT', {maximumFractionDigits: 1}); }
+function fmtData(iso){ if(!iso) return ''; const [y, m, d] = iso.slice(0, 10).split('-'); return d + '/' + m + '/' + y; }
+function normAttrezzo(id, d){
+  d = d || {};
+  return {
+    id,
+    nome: String(d.nome || '(senza nome)'),
+    categoria: String(d.categoria || 'Altro'),
+    quantita: Number.isFinite(d.quantita) && d.quantita > 0 ? d.quantita : 1,
+    contaore: d.contaore === true,
+    oreAttuali: typeof d.oreAttuali === 'number' ? d.oreAttuali : null,
+    oreAt: d.oreAt || null,
+    controlli: (Array.isArray(d.controlli) ? d.controlli : []).filter(c => c && c.testo).map(c => ({testo: String(c.testo), tipo: TIPI[c.tipo] ? c.tipo : SN})),
+    accessori: (Array.isArray(d.accessori) ? d.accessori : []).filter(Boolean).map(String),
+    scadenze: (Array.isArray(d.scadenze) ? d.scadenze : []).filter(s => s && s.testo).map(s => ({
+      testo: String(s.testo), tipo: s.tipo === 'ore' ? 'ore' : 'data',
+      data: s.tipo === 'ore' ? null : (s.data || null), ore: s.tipo === 'ore' && typeof s.ore === 'number' ? s.ore : null
+    })),
+    note: String(d.note || ''),
+    attivo: d.attivo !== false,
+    aggiornatoDa: d.aggiornatoDa || null,
+    aggiornatoAt: d.aggiornatoAt || null
+  };
+}
+function docDaImport(r){
+  return {
+    categoria: r[0], nome: r[1], quantita: r[2], contaore: r[3],
+    controlli: r[4].map(c => ({testo: c[0], tipo: c[1]})),
+    accessori: r[5].slice(),
+    scadenze: (r[6] || []).map(s => ({testo: s[0], tipo: s[1], data: null, ore: null})),
+    note: '', attivo: true, oreAttuali: null
+  };
+}
+window.__noleggiTest = {statoScadenza, statoPeggiore, slug, normAttrezzo, docDaImport, IMPORT};
+
+// ---------------- Stato ----------------
+let me = '';
+let isUfficio = false;
+let attrezzi = [];
+let openId = null;
+let editing = false;
+let draft = null;
+let manutCache = {};
+
+const $ = id => document.getElementById(id);
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c])); }
+function toast(msg, err){
+  const t = $('toast'); t.textContent = msg; t.classList.toggle('err', !!err); t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, err ? 6000 : 3000);
+}
+function nomeDaEmail(e){ const n = String(e || '').split('@')[0].split(/[._\-+0-9]/)[0]; return n ? n[0].toUpperCase() + n.slice(1).toLowerCase() : ''; }
+function erroreFirebase(e){
+  const c = e && (e.code || e.message) || '';
+  if(c.indexOf('permission') !== -1) return 'Firebase ha rifiutato: mancano le regole per i noleggi, oppure il tuo account non è "ufficio".';
+  return 'Non salvato: controlla la connessione e riprova.';
+}
+
+// ---------------- Accesso ----------------
+$('ver').textContent = VERSIONE;
+$('loginForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const email = $('loginEmail').value.trim().toLowerCase(), pw = $('loginPassword').value;
+  if(!email || !pw){ $('loginError').textContent = 'Scrivi email e password.'; $('loginError').hidden = false; return; }
+  $('loginBtn').disabled = true;
+  try{ await signInWithEmailAndPassword(fbAuth, email, pw); try{ localStorage.setItem('edilnord_last_email', email); }catch(e){} }
+  catch(e){ $('loginError').textContent = (e && e.code === 'auth/network-request-failed') ? 'Niente connessione.' : 'Email o password sbagliate.'; $('loginError').hidden = false; }
+  finally{ $('loginBtn').disabled = false; }
+});
+$('logoutBtn').addEventListener('click', () => signOut(fbAuth).then(() => location.reload()));
+
+let unsub = null;
+onAuthStateChanged(fbAuth, user => {
+  if(!user){
+    try{ const l = localStorage.getItem('edilnord_last_email'); if(l) $('loginEmail').value = l; }catch(e){}
+    $('loginOverlay').hidden = false;
+    return;
+  }
+  $('loginOverlay').hidden = true;
+  me = (user.email || '').toLowerCase();
+  isUfficio = UFFICIO.includes(me);
+  $('who').textContent = me + (isUfficio ? ' · ufficio' : '');
+  $('newBtn').hidden = !isUfficio;
+  if(!unsub) unsub = onSnapshot(collection(fbDb, 'attrezzi'), snap => {
+    $('rulesWarn').hidden = true;
+    attrezzi = snap.docs.map(d => normAttrezzo(d.id, d.data()));
+    render();
+  }, err => {
+    $('rulesWarn').textContent = (err && err.code === 'permission-denied')
+      ? '⚠️ Firebase non fa leggere gli attrezzi: vanno aggiunte le regole per i noleggi nella console di Firebase.'
+      : '⚠️ Non riesco a leggere gli attrezzi: controlla la connessione e ricarica.';
+    $('rulesWarn').hidden = false;
+    attrezzi = []; render();
+  });
+});
+
+// ---------------- Elenco ----------------
+$('search').addEventListener('input', () => renderList());
+$('showOff').addEventListener('change', () => renderList());
+$('newBtn').addEventListener('click', () => apriNuovo(null));
+
+function render(){ if(openId) renderDetail(); else renderList(); }
+function badgeScadenze(a, oggi){
+  const p = statoPeggiore(a, oggi);
+  if(p === 'scaduta') return '<span class="pill bad">Scadenza superata</span>';
+  if(p === 'vicina') return '<span class="pill warn">Scadenza vicina</span>';
+  if(p === 'da_impostare') return '<span class="pill todo">Scadenza da impostare</span>';
+  return '';
+}
+function renderList(){
+  $('listView').hidden = false; $('detailView').hidden = true;
+  const box = $('list');
+  if(!attrezzi.length){
+    box.innerHTML = '<div class="empty"><strong>Nessun attrezzo ancora.</strong>'
+      + (isUfficio
+        ? '<p>Carica in un colpo i 31 attrezzi decisi il 14 ottobre, con quantità, controlli e accessori. Poi li correggi uno per uno.</p><button class="btn primary" id="importBtn" type="button">Carica i 31 attrezzi</button>'
+        : '<p>Le schede le carica l\'ufficio.</p>')
+      + '</div>';
+    const ib = $('importBtn'); if(ib) ib.addEventListener('click', importa);
+    return;
+  }
+  const q = slug($('search').value).replace(/-/g, ' ').trim();
+  const off = $('showOff').checked;
+  const oggi = oggiISO();
+  const vis = attrezzi.filter(a => (off || a.attivo) && (!q || slug(a.nome + ' ' + a.categoria).replace(/-/g, ' ').includes(q)));
+  if(!vis.length){ box.innerHTML = '<div class="empty"><p>Nessun attrezzo trovato.</p></div>'; return; }
+  const cats = [...new Set(CATEGORIE.concat(vis.map(a => a.categoria)))].filter(c => vis.some(a => a.categoria === c));
+  box.innerHTML = cats.map(c => '<div class="cat-head">' + esc(c) + '</div><div class="cards">'
+    + vis.filter(a => a.categoria === c).sort((x, y) => x.nome.localeCompare(y.nome, 'it')).map(a =>
+      '<button class="card' + (a.attivo ? '' : ' off') + '" type="button" data-open="' + esc(a.id) + '">'
+      + '<span class="card-name">' + esc(a.nome) + '</span><span class="card-meta">'
+      + '<span class="pill qty">×' + a.quantita + '</span>'
+      + (a.contaore ? '<span class="pill ore">contaore' + (a.oreAttuali != null ? ' ' + fmtN(a.oreAttuali) + ' h' : '') + '</span>' : '')
+      + (a.controlli.length ? '<span class="pill">' + a.controlli.length + ' controlli</span>' : '<span class="pill todo">Controlli da scrivere</span>')
+      + badgeScadenze(a, oggi)
+      + (a.attivo ? '' : '<span class="pill">disattivato</span>')
+      + '</span></button>').join('') + '</div>').join('');
+  box.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click', () => { openId = b.dataset.open; editing = false; renderDetail(); window.scrollTo(0, 0); }));
+}
+
+async function importa(){
+  const b = $('importBtn'); if(b){ b.disabled = true; b.textContent = 'Carico...'; }
+  try{
+    const batch = writeBatch(fbDb);
+    const usati = new Set();
+    IMPORT.forEach(r => {
+      let id = slug(r[1]); while(usati.has(id)) id += '-2'; usati.add(id);
+      batch.set(doc(fbDb, 'attrezzi', id), Object.assign(docDaImport(r), {aggiornatoDa: me, aggiornatoAt: new Date().toISOString()}));
+    });
+    await batch.commit();
+    toast('Caricati ' + IMPORT.length + ' attrezzi ✓');
+  }catch(e){ toast(erroreFirebase(e), true); if(b){ b.disabled = false; b.textContent = 'Carica i 31 attrezzi'; } }
+}
+
+// ---------------- Scheda ----------------
+function current(){ return attrezzi.find(a => a.id === openId) || null; }
+function apriNuovo(base){
+  openId = '__nuovo__';
+  editing = true;
+  draft = base ? JSON.parse(JSON.stringify(Object.assign({}, base, {id: null, nome: base.nome + ' (copia)', oreAttuali: null, oreAt: null, scadenze: base.scadenze.map(s => Object.assign({}, s, {data: null, ore: null}))})))
+               : {id: null, nome: '', categoria: CATEGORIE[0], quantita: 1, contaore: false, controlli: [], accessori: [], scadenze: [], note: '', attivo: true, oreAttuali: null};
+  renderDetail();
+  window.scrollTo(0, 0);
+}
+function renderDetail(){
+  $('listView').hidden = true; $('detailView').hidden = false;
+  const v = $('detailView');
+  const a = openId === '__nuovo__' ? null : current();
+  if(openId !== '__nuovo__' && !a){ openId = null; renderList(); return; }
+  if(editing){ renderEdit(v, a); return; }
+  const oggi = oggiISO();
+  v.innerHTML = '<button class="btn ghost back" id="backBtn" type="button">← Tutti gli attrezzi</button>'
+    + '<div class="sheet">'
+    + '<div><div class="cat-head" style="margin:0 0 4px">' + esc(a.categoria) + '</div><h1>' + esc(a.nome) + '</h1>'
+    + '<div class="card-meta" style="margin-top:8px"><span class="pill qty">×' + a.quantita + '</span>'
+    + (a.contaore ? '<span class="pill ore">contaore · ' + (a.oreAttuali != null ? fmtN(a.oreAttuali) + ' h al ' + fmtData(a.oreAt) : 'ore attuali non note') + '</span>' : '')
+    + (a.attivo ? '' : '<span class="pill">disattivato</span>') + '</div>'
+    + (a.note ? '<p style="margin:10px 0 0">' + esc(a.note) + '</p>' : '') + '</div>'
+
+    + '<div class="sec"><h2>Controlli in uscita e al rientro</h2>'
+    + (a.controlli.length ? '<ul class="list">' + a.controlli.map(c => '<li><span>' + esc(c.testo) + '</span><span class="kind">' + TIPI[c.tipo] + '</span></li>').join('') + '</ul>'
+      : '<p class="muted" style="margin:0">Nessun controllo scritto.' + (isUfficio ? ' Tocca «Modifica» per aggiungerli.' : '') + '</p>') + '</div>'
+
+    + '<div class="sec"><h2>Accessori che escono con l\'attrezzo</h2>'
+    + (a.accessori.length ? '<ul class="list">' + a.accessori.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '<p class="muted" style="margin:0">Nessuno.</p>') + '</div>'
+
+    + '<div class="sec"><h2>Scadenze</h2>'
+    + (a.scadenze.length ? '<ul class="list">' + a.scadenze.map(s => {
+        const st = statoScadenza(s, a.oreAttuali, oggi);
+        const cls = st.stato === 'scaduta' ? 'bad' : st.stato === 'vicina' ? 'warn' : (st.stato === 'ok' ? '' : 'todo');
+        return '<li><span>' + esc(s.testo) + '</span><span class="pill ' + cls + '" style="margin-left:auto">' + esc(st.testo) + '</span></li>';
+      }).join('') + '</ul>' : '<p class="muted" style="margin:0">Nessuna scadenza.</p>') + '</div>'
+
+    + '<div class="sec"><h2>Manutenzioni</h2><div id="manutBox"><p class="muted" style="margin:0">Carico...</p></div></div>'
+
+    + (isUfficio ? '<div class="actions"><button class="btn dark" id="editBtn" type="button">Modifica</button>'
+      + '<button class="btn ghost" id="copyBtn" type="button">Copia scheda per un attrezzo nuovo</button>'
+      + '<button class="btn danger" id="offBtn" type="button">' + (a.attivo ? 'Disattiva' : 'Riattiva') + '</button></div>' : '')
+    + (a.aggiornatoAt ? '<p class="muted" style="margin:0;font-size:13px">Ultima modifica: ' + esc(nomeDaEmail(a.aggiornatoDa)) + ' · ' + fmtData(a.aggiornatoAt) + '</p>' : '')
+    + '</div>';
+
+  $('backBtn').addEventListener('click', () => { openId = null; renderList(); });
+  if(isUfficio){
+    $('editBtn').addEventListener('click', () => { editing = true; draft = JSON.parse(JSON.stringify(a)); renderDetail(); });
+    $('copyBtn').addEventListener('click', () => apriNuovo(a));
+    const ob = $('offBtn');
+    ob.addEventListener('click', async () => {
+      if(a.attivo && ob.dataset.armed !== '1'){ ob.dataset.armed = '1'; ob.textContent = 'Tocca ancora: non sarà più noleggiabile'; ob.classList.add('confirm'); return; }
+      try{ await updateDoc(doc(fbDb, 'attrezzi', a.id), {attivo: !a.attivo, aggiornatoDa: me, aggiornatoAt: new Date().toISOString()}); toast(a.attivo ? 'Disattivato' : 'Riattivato'); }
+      catch(e){ toast(erroreFirebase(e), true); }
+    });
+  }
+  caricaManutenzioni(a);
+}
+
+// ---------------- Modifica ----------------
+function renderEdit(v, a){
+  const d = draft;
+  v.innerHTML = '<button class="btn ghost back" id="cancelTop" type="button">← Annulla</button>'
+    + '<div class="sheet form">'
+    + '<h1>' + (a ? 'Modifica scheda' : 'Nuovo attrezzo') + '</h1>'
+    + '<div class="row"><div class="field"><label for="fNome">Nome</label><input class="inp" id="fNome" value="' + esc(d.nome) + '" maxlength="80"></div>'
+    + '<div class="field"><label for="fCat">Categoria</label><input class="inp" id="fCat" list="catList" value="' + esc(d.categoria) + '" maxlength="40"><datalist id="catList">' + CATEGORIE.map(c => '<option value="' + esc(c) + '">').join('') + '</datalist></div>'
+    + '<div class="field"><label for="fQty">Quanti</label><input class="inp" id="fQty" type="number" inputmode="numeric" min="1" step="1" value="' + d.quantita + '"></div></div>'
+    + '<label class="chk" style="color:var(--text);font-size:15px"><input type="checkbox" id="fOre"' + (d.contaore ? ' checked' : '') + '> Ha il contaore (ore obbligatorie nei tagliandi)</label>'
+
+    + '<div class="field"><span class="lbl">Controlli in uscita e al rientro</span><div id="ctrlRows" style="display:grid;gap:6px"></div>'
+    + '<button class="add-line" id="addCtrl" type="button">+ Aggiungi controllo</button></div>'
+
+    + '<div class="field"><span class="lbl">Accessori che escono con l\'attrezzo</span><div id="accRows" style="display:grid;gap:6px"></div>'
+    + '<button class="add-line" id="addAcc" type="button">+ Aggiungi accessorio</button></div>'
+
+    + '<div class="field"><span class="lbl">Scadenze</span><div id="scadRows" style="display:grid;gap:6px"></div>'
+    + '<button class="add-line" id="addScad" type="button">+ Aggiungi scadenza</button></div>'
+
+    + '<div class="field"><label for="fNote">Note</label><textarea class="inp" id="fNote" rows="2" maxlength="500">' + esc(d.note) + '</textarea></div>'
+    + '<div class="actions"><button class="btn primary" id="saveBtn" type="button">Salva</button><button class="btn ghost" id="cancelBtn" type="button">Annulla</button></div>'
+    + '</div>';
+
+  const leggiBase = () => {
+    d.nome = $('fNome').value; d.categoria = $('fCat').value; d.note = $('fNote').value;
+    d.quantita = parseInt($('fQty').value, 10); d.contaore = $('fOre').checked;
+  };
+  const drawCtrl = () => {
+    $('ctrlRows').innerHTML = d.controlli.map((c, i) =>
+      '<div class="edit-row"><input class="inp" data-c="' + i + '" value="' + esc(c.testo) + '" placeholder="Es. Carburante" maxlength="80" aria-label="Controllo ' + (i + 1) + '">'
+      + '<select class="inp" data-ct="' + i + '" aria-label="Tipo di risposta">' + Object.keys(TIPI).map(k => '<option value="' + k + '"' + (k === c.tipo ? ' selected' : '') + '>' + TIPI[k] + '</option>').join('') + '</select>'
+      + '<button class="sq" type="button" data-up="' + i + '" aria-label="Sposta su">↑</button><button class="sq" type="button" data-dn="' + i + '" aria-label="Sposta giù">↓</button>'
+      + '<button class="sq rm" type="button" data-cx="' + i + '" aria-label="Togli">✕</button></div>').join('') || '<p class="muted" style="margin:0">Nessun controllo.</p>';
+    $('ctrlRows').querySelectorAll('[data-c]').forEach(el => el.addEventListener('input', () => d.controlli[+el.dataset.c].testo = el.value));
+    $('ctrlRows').querySelectorAll('[data-ct]').forEach(el => el.addEventListener('change', () => d.controlli[+el.dataset.ct].tipo = el.value));
+    $('ctrlRows').querySelectorAll('[data-cx]').forEach(el => el.addEventListener('click', () => { d.controlli.splice(+el.dataset.cx, 1); drawCtrl(); }));
+    const swap = (i, j) => { if(j < 0 || j >= d.controlli.length) return; [d.controlli[i], d.controlli[j]] = [d.controlli[j], d.controlli[i]]; drawCtrl(); };
+    $('ctrlRows').querySelectorAll('[data-up]').forEach(el => el.addEventListener('click', () => swap(+el.dataset.up, +el.dataset.up - 1)));
+    $('ctrlRows').querySelectorAll('[data-dn]').forEach(el => el.addEventListener('click', () => swap(+el.dataset.dn, +el.dataset.dn + 1)));
+  };
+  const drawAcc = () => {
+    $('accRows').innerHTML = d.accessori.map((x, i) =>
+      '<div class="edit-row two"><input class="inp" data-a="' + i + '" value="' + esc(x) + '" placeholder="Es. Rampe" maxlength="80" aria-label="Accessorio ' + (i + 1) + '">'
+      + '<button class="sq rm" type="button" data-ax="' + i + '" aria-label="Togli">✕</button></div>').join('') || '<p class="muted" style="margin:0">Nessun accessorio.</p>';
+    $('accRows').querySelectorAll('[data-a]').forEach(el => el.addEventListener('input', () => d.accessori[+el.dataset.a] = el.value));
+    $('accRows').querySelectorAll('[data-ax]').forEach(el => el.addEventListener('click', () => { d.accessori.splice(+el.dataset.ax, 1); drawAcc(); }));
+  };
+  const drawScad = () => {
+    $('scadRows').innerHTML = d.scadenze.map((s, i) =>
+      '<div class="edit-row scad"><input class="inp" data-s="' + i + '" value="' + esc(s.testo) + '" placeholder="Es. Tagliando" maxlength="80" aria-label="Scadenza ' + (i + 1) + '">'
+      + '<select class="inp" data-st="' + i + '" aria-label="Tipo di scadenza"><option value="data"' + (s.tipo === 'data' ? ' selected' : '') + '>A data</option><option value="ore"' + (s.tipo === 'ore' ? ' selected' : '') + '>A ore</option></select>'
+      + (s.tipo === 'ore'
+        ? '<input class="inp" data-sv="' + i + '" type="number" inputmode="decimal" min="0" step="any" placeholder="a quante ore" value="' + (s.ore == null ? '' : s.ore) + '" aria-label="Ore">'
+        : '<input class="inp" data-sv="' + i + '" type="date" value="' + esc(s.data || '') + '" aria-label="Data">')
+      + '<button class="sq rm" type="button" data-sx="' + i + '" aria-label="Togli">✕</button></div>').join('') || '<p class="muted" style="margin:0">Nessuna scadenza.</p>';
+    $('scadRows').querySelectorAll('[data-s]').forEach(el => el.addEventListener('input', () => d.scadenze[+el.dataset.s].testo = el.value));
+    $('scadRows').querySelectorAll('[data-st]').forEach(el => el.addEventListener('change', () => { const s = d.scadenze[+el.dataset.st]; s.tipo = el.value; s.data = null; s.ore = null; drawScad(); }));
+    $('scadRows').querySelectorAll('[data-sv]').forEach(el => el.addEventListener('input', () => {
+      const s = d.scadenze[+el.dataset.sv];
+      if(s.tipo === 'ore'){ const n = parseFloat(String(el.value).replace(',', '.')); s.ore = isFinite(n) ? n : null; } else s.data = el.value || null;
+    }));
+    $('scadRows').querySelectorAll('[data-sx]').forEach(el => el.addEventListener('click', () => { d.scadenze.splice(+el.dataset.sx, 1); drawScad(); }));
+  };
+  drawCtrl(); drawAcc(); drawScad();
+  $('addCtrl').addEventListener('click', () => { d.controlli.push({testo: '', tipo: SN}); drawCtrl(); const els = $('ctrlRows').querySelectorAll('[data-c]'); els[els.length - 1].focus(); });
+  $('addAcc').addEventListener('click', () => { d.accessori.push(''); drawAcc(); const els = $('accRows').querySelectorAll('[data-a]'); els[els.length - 1].focus(); });
+  $('addScad').addEventListener('click', () => { d.scadenze.push({testo: '', tipo: 'data', data: null, ore: null}); drawScad(); const els = $('scadRows').querySelectorAll('[data-s]'); els[els.length - 1].focus(); });
+
+  const annulla = () => { editing = false; draft = null; if(openId === '__nuovo__') openId = null; render(); };
+  $('cancelTop').addEventListener('click', annulla);
+  $('cancelBtn').addEventListener('click', annulla);
+  $('saveBtn').addEventListener('click', async () => {
+    leggiBase();
+    const nome = d.nome.trim();
+    if(!nome){ toast('Scrivi il nome dell\'attrezzo.', true); $('fNome').focus(); return; }
+    if(!Number.isInteger(d.quantita) || d.quantita < 1){ toast('La quantità deve essere un numero intero da 1 in su.', true); $('fQty').focus(); return; }
+    const pulito = {
+      nome, categoria: d.categoria.trim() || 'Altro', quantita: d.quantita, contaore: d.contaore,
+      controlli: d.controlli.map(c => ({testo: c.testo.trim(), tipo: c.tipo})).filter(c => c.testo),
+      accessori: d.accessori.map(x => x.trim()).filter(Boolean),
+      scadenze: d.scadenze.map(s => ({testo: s.testo.trim(), tipo: s.tipo, data: s.tipo === 'data' ? (s.data || null) : null, ore: s.tipo === 'ore' ? s.ore : null})).filter(s => s.testo),
+      note: d.note.trim(), attivo: d.attivo !== false,
+      oreAttuali: d.oreAttuali == null ? null : d.oreAttuali,
+      aggiornatoDa: me, aggiornatoAt: new Date().toISOString()
+    };
+    const b = $('saveBtn'); b.disabled = true; b.textContent = 'Salvo...';
+    try{
+      let id = a ? a.id : slug(nome);
+      if(!a){ while(attrezzi.some(x => x.id === id)) id += '-' + Math.random().toString(36).slice(2, 5); }
+      await setDoc(doc(fbDb, 'attrezzi', id), pulito, {merge: true});
+      editing = false; draft = null; openId = id;
+      toast('Salvato ✓');
+      render();
+    }catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = 'Salva'; }
+  });
+}
+
+// ---------------- Manutenzioni ----------------
+async function caricaManutenzioni(a, forza){
+  const box = $('manutBox'); if(!box) return;
+  let lista = manutCache[a.id];
+  if(!lista || forza){
+    try{
+      const snap = await getDocs(query(collection(fbDb, 'attrezzi', a.id, 'manutenzioni'), orderBy('data', 'desc')));
+      lista = snap.docs.map(x => x.data());
+      manutCache[a.id] = lista;
+    }catch(e){ box.innerHTML = '<p class="muted" style="margin:0">' + esc(erroreFirebase(e)) + '</p>'; return; }
+  }
+  if(openId !== a.id || editing || !$('manutBox')) return;
+  $('manutBox').innerHTML = '<div class="manut">'
+    + (lista.length ? lista.map(m => '<div class="manut-item"><div class="manut-top"><span>' + fmtData(m.data) + '</span>'
+        + (m.ore != null ? '<span>' + fmtN(m.ore) + ' h</span>' : '') + '<span>' + esc(m.chi || '') + '</span></div>'
+        + '<div class="manut-what">' + esc(m.cosa) + '</div>' + (m.note ? '<div class="muted">' + esc(m.note) + '</div>' : '') + '</div>').join('')
+      : '<p class="muted" style="margin:0">Nessuna manutenzione registrata.</p>')
+    + (isUfficio ? '<button class="add-line" id="addManut" type="button">+ Registra una manutenzione</button><div id="manutForm"></div>' : '')
+    + '</div>';
+  if(isUfficio) $('addManut').addEventListener('click', () => formManutenzione(a));
+}
+function formManutenzione(a){
+  $('addManut').hidden = true;
+  const scad = a.scadenze;
+  $('manutForm').innerHTML = '<div class="box">'
+    + '<div class="row"><div class="field"><label for="mCosa">Cosa è stato fatto</label><input class="inp" id="mCosa" placeholder="Es. Tagliando, cambio olio e filtri" maxlength="120"></div>'
+    + '<div class="field"><label for="mData">Data</label><input class="inp" id="mData" type="date" value="' + oggiISO() + '"></div>'
+    + '<div class="field"><label for="mOre">Ore' + (a.contaore ? ' *' : '') + '</label><input class="inp" id="mOre" type="number" inputmode="decimal" min="0" step="any"' + (a.contaore ? '' : ' disabled placeholder="—"') + '></div></div>'
+    + '<div class="row"><div class="field"><label for="mChi">Chi l\'ha fatta</label><input class="inp" id="mChi" value="' + esc(nomeDaEmail(me)) + '" maxlength="60" placeholder="Es. officina Rossi"></div>'
+    + '<div class="field" style="grid-column:span 2"><label for="mNote">Note</label><input class="inp" id="mNote" maxlength="300"></div></div>'
+    + (scad.length ? '<div class="field"><label for="mScad">Rinnova una scadenza (facoltativo)</label><div class="edit-row two" style="grid-template-columns:1fr 170px">'
+      + '<select class="inp" id="mScad"><option value="">— nessuna —</option>' + scad.map((s, i) => '<option value="' + i + '">' + esc(s.testo) + ' (' + (s.tipo === 'ore' ? 'a ore' : 'a data') + ')</option>').join('') + '</select>'
+      + '<input class="inp" id="mScadVal" disabled placeholder="nuova scadenza"></div></div>' : '')
+    + '<div class="actions"><button class="btn primary" id="mSave" type="button">Salva manutenzione</button><button class="btn ghost" id="mCancel" type="button">Annulla</button></div>'
+    + '</div>';
+  $('mCosa').focus();
+  const sel = $('mScad');
+  if(sel) sel.addEventListener('change', () => {
+    const v = $('mScadVal');
+    if(sel.value === ''){ v.disabled = true; v.value = ''; v.type = 'text'; return; }
+    const s = scad[+sel.value];
+    v.disabled = false; v.value = '';
+    v.type = s.tipo === 'ore' ? 'number' : 'date';
+    v.placeholder = s.tipo === 'ore' ? 'prossimo a ore' : '';
+  });
+  $('mCancel').addEventListener('click', () => caricaManutenzioni(a));
+  $('mSave').addEventListener('click', async () => {
+    const cosa = $('mCosa').value.trim(), data = $('mData').value;
+    const oreRaw = $('mOre').value.trim(), ore = oreRaw === '' ? null : parseFloat(oreRaw.replace(',', '.'));
+    if(!cosa){ toast('Scrivi cosa è stato fatto.', true); $('mCosa').focus(); return; }
+    if(!data){ toast('Manca la data.', true); return; }
+    if(a.contaore && (ore == null || !isFinite(ore))){ toast('Questo attrezzo ha il contaore: scrivi le ore.', true); $('mOre').focus(); return; }
+    let nuovaScad = null;
+    if(sel && sel.value !== ''){
+      const s = scad[+sel.value], val = $('mScadVal').value.trim();
+      if(!val){ toast('Scrivi la nuova scadenza, oppure scegli «nessuna».', true); $('mScadVal').focus(); return; }
+      nuovaScad = {i: +sel.value, val: s.tipo === 'ore' ? parseFloat(val.replace(',', '.')) : val};
+      if(s.tipo === 'ore' && !isFinite(nuovaScad.val)){ toast('Le ore della scadenza devono essere un numero.', true); return; }
+    }
+    const b = $('mSave'); b.disabled = true; b.textContent = 'Salvo...';
+    try{
+      await addDoc(collection(fbDb, 'attrezzi', a.id, 'manutenzioni'), {
+        data, cosa, ore: (ore != null && isFinite(ore)) ? ore : null, chi: $('mChi').value.trim(), note: $('mNote').value.trim(),
+        registrataDa: me, registrataAt: new Date().toISOString()
+      });
+      const patch = {aggiornatoDa: me, aggiornatoAt: new Date().toISOString()};
+      if(ore != null && isFinite(ore) && (a.oreAttuali == null || ore >= a.oreAttuali)){ patch.oreAttuali = ore; patch.oreAt = data; }
+      if(nuovaScad){
+        patch.scadenze = a.scadenze.map((s, i) => i !== nuovaScad.i ? s
+          : Object.assign({}, s, s.tipo === 'ore' ? {ore: nuovaScad.val, data: null} : {data: nuovaScad.val, ore: null}));
+      }
+      await updateDoc(doc(fbDb, 'attrezzi', a.id), patch);
+      toast('Manutenzione registrata ✓');
+      caricaManutenzioni(a, true);
+    }catch(e){ toast(erroreFirebase(e), true); b.disabled = false; b.textContent = 'Salva manutenzione'; }
+  });
+}
+</script>
+</body>
+</html>
