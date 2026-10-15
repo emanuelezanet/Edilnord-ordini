@@ -938,6 +938,37 @@
     .ci-controls .reso-btn,.ci-controls .remove-btn{order:2;margin-top:8px;}
   }
 
+  /* ---------- v21: scheda "Da ordinare" (lista delle cose che mancano) ---------- */
+  .ord-form{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:grid;gap:10px;margin-bottom:16px;}
+  .ord-lbl{font-size:13px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;}
+  .ord-row{display:grid;grid-template-columns:1fr 2fr;gap:10px;}
+  .ord-sugg{display:flex;flex-wrap:wrap;gap:6px;}
+  .ord-sugg:empty{display:none;}
+  .ord-sugg button{background:#fff;border:1px solid var(--border);border-radius:16px;padding:7px 12px;font-size:13px;color:var(--text);text-align:left;}
+  .ord-form .submit-btn{margin-top:4px;}
+  .ord-form .submit-btn.confirm{background:var(--stamp);color:#fff;}
+  .ord-list{display:flex;flex-direction:column;gap:10px;margin-bottom:8px;}
+  .ord-card{background:var(--card);border:1px solid var(--border);border-left:6px solid var(--accent);border-radius:8px;padding:12px 14px;}
+  .ord-card.fatto{border-left-color:var(--success);background:#F2F0EA;}
+  .ord-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
+  .ord-testo{font-size:17px;font-weight:700;word-break:break-word;}
+  .ord-qty{font-family:var(--font-mono);font-size:14px;font-weight:600;white-space:nowrap;}
+  .ord-nota{font-size:14.5px;font-style:italic;margin-top:6px;word-break:break-word;}
+  .ord-meta{font-size:13px;color:var(--muted);margin-top:6px;}
+  .ord-meta.ok{color:var(--success);}
+  .ord-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .ord-actions .prep-btn{min-height:46px;font-size:15px;}
+  .ord-vuoto{color:var(--muted);font-size:14.5px;padding:8px 2px 14px;}
+  @media (max-width:700px), (pointer:coarse){
+    .ord-row{grid-template-columns:1fr;}
+    .ord-sugg button{font-size:15px;padding:10px 14px;}
+  }
+  /* 5 schede: sul telefono in verticale un po' più strette */
+  @media(max-width:560px){
+    .tabs .tab{font-size:12.5px;padding:11px 2px;min-height:48px;}
+    .tabs .tab .badge{font-size:11px;padding:1px 5px;min-width:16px;}
+  }
+
   /* ---------- v19: privato/impresa + numero colli ---------- */
   .opt{font-weight:400;color:var(--muted);font-size:0.85em;margin-left:4px;}
   .ctype-row{display:flex;gap:8px;margin-top:8px;border-radius:9px;}
@@ -973,6 +1004,7 @@
     <button class="tab active" data-tab="nuovo"><span class="long">Nuovo Buono di Carico</span><span class="short">Nuovo</span></button>
     <button class="tab" data-tab="ordini"><span class="long">Buoni di Carico</span><span class="short">Buoni</span> <span class="badge zero" id="pendingBadge">0</span></button>
     <button class="tab" data-tab="prep"><span class="long">Da preparare</span><span class="short">Da prep.</span> <span class="badge zero" id="prepBadge">0</span></button>
+    <button class="tab" data-tab="ordinare"><span class="long">Da ordinare</span><span class="short">Ordinare</span></button>
     <button class="tab" data-href="noleggi.html">Noleggi <span class="badge zero" id="nolBadge">0</span></button>
   </nav>
 </header>
@@ -1115,6 +1147,26 @@
     </div>
     <div id="prepDetailView" class="hidden-view" style="display:none;"></div>
   </section>
+
+  <section id="tab-ordinare" class="tab-panel">
+    <div class="prep-warning hidden" id="ordWarning" role="alert"></div>
+    <div class="ord-form">
+      <div>
+        <label class="ord-lbl" for="ordTesto">Cosa manca</label>
+        <input class="field-input" id="ordTesto" placeholder="Es. cemento" autocomplete="off" maxlength="120" enterkeyhint="next">
+      </div>
+      <div class="ord-sugg" id="ordSugg"></div>
+      <div class="ord-row">
+        <div><label class="ord-lbl" for="ordQty">Quantità</label><input class="field-input" id="ordQty" placeholder="Es. 2 bancali" maxlength="40" autocomplete="off"></div>
+        <div><label class="ord-lbl" for="ordNota">Nota</label><input class="field-input" id="ordNota" placeholder="Es. quello grigio, fornitore…" maxlength="200" autocomplete="off" enterkeyhint="done"></div>
+      </div>
+      <button class="submit-btn" id="ordAdd">+ Aggiungi alla lista</button>
+    </div>
+    <div class="qa-heading">Da ordinare <span id="ordCnt"></span></div>
+    <div class="ord-list" id="ordLista"></div>
+    <div class="qa-heading">Ordinati negli ultimi 7 giorni</div>
+    <div class="ord-list" id="ordFatti"></div>
+  </section>
 </main>
 <div class="prep-toast hidden" id="prepToast" role="status"></div>
 <div class="undo-bar hidden" id="undoBar" role="status"><span id="undoText"></span><button id="undoBtn">Annulla</button></div>
@@ -1131,7 +1183,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  onSnapshot, collection, getDocs, serverTimestamp, runTransaction, query, where
+  onSnapshot, collection, getDocs, serverTimestamp, runTransaction, query, where, increment
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1303,13 +1355,40 @@ async function updateOrderStatus(id, status, extra){
     return false;
   }
 }
-// v18: "Elimina" non cancella più il buono da Firebase: lo segna come
-// eliminato (chi e quando) e lo nasconde dall'app. Così lo script delle
-// statistiche sul PC dell'ufficio fa in tempo a scaricarlo nello storico;
-// la cancellazione vera la fa il server SRV-PREV dopo 7 giorni.
+// v21: "Elimina" SPOSTA il buono nella raccolta "orders_eliminati" (con chi e
+// quando l'ha eliminato) e lo toglie da "orders". Così l'app, che a ogni
+// apertura scarica tutta "orders", non si porta dietro i buoni eliminati.
+// Le statistiche sul PC di casa leggono tutte e due le raccolte; la
+// cancellazione vera la fa il server SRV-PREV dopo 15 giorni.
+// Per non cambiare i "Più richiesti", nello stesso momento il documento
+// contatori/top_eliminati somma le righe del buono eliminato.
+function contatoreDoc(){ return doc(fbDb, 'contatori', 'top_eliminati'); }
+// Stessa regola di computeTopOrdered: righe non scritte a mano e non di reso.
+function contaPerTop(items){
+  const c = {};
+  (Array.isArray(items) ? items : []).forEach(it => {
+    if(!it || it.manual || it.reso) return;
+    const d = typeof it.desc === 'string' ? it.desc : '';
+    if(!d || /^__.*__$/.test(d)) return;
+    c[d] = (c[d] || 0) + 1;
+  });
+  return c;
+}
 async function deleteOrder(id, extra){
   try{
-    await withTimeout(updateDoc(doc(ordersCol(), id), extra));
+    await withTimeout(runTransaction(fbDb, async (tx)=>{
+      const ref = doc(ordersCol(), id);
+      const snap = await tx.get(ref);
+      if(!snap.exists()) return; // già spostato da un altro dispositivo
+      const data = snap.data();
+      const conta = contaPerTop(data.items);
+      tx.set(doc(fbDb, 'orders_eliminati', id), Object.assign({}, data, extra));
+      tx.delete(ref);
+      const inc = {};
+      Object.keys(conta).forEach(k => { inc[k] = increment(conta[k]); });
+      // con set+merge i nomi dei prodotti restano tali e quali, anche con i punti
+      if(Object.keys(inc).length) tx.set(contatoreDoc(), {c: inc}, {merge: true});
+    }), 10000);
     return true;
   }catch(e){
     return false;
@@ -1365,7 +1444,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = '20.1';
+const APP_VERSION = '21';
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -1547,6 +1626,7 @@ let FAVORITES = [];
 let operatorName = '';
 let NICKNAMES = {}; // idx(string) -> soprannome, condiviso tra tutti i colleghi
 let NICK_NORM = {}; // idx(string) -> soprannome normalizzato (per la ricerca)
+let TOP_ELIMINATI = {}; // v21: descrizione -> righe nei buoni eliminati (contatori/top_eliminati)
 
 // ---------------- Utils ----------------
 function fmtEUR(n){
@@ -1583,6 +1663,9 @@ document.querySelectorAll('.tab').forEach(btn=>{
     }
     if(activeTab === 'prep'){
       renderPrep();
+    }
+    if(activeTab === 'ordinare'){
+      renderOrdinare();
     }
   });
 });
@@ -1814,6 +1897,13 @@ function computeTopOrdered(limit){
       if(idx === undefined) continue;
       counts.set(idx, (counts.get(idx)||0) + 1);
     }
+  }
+  // v21: righe dei buoni eliminati (spostati in "orders_eliminati")
+  for(const desc in TOP_ELIMINATI){
+    const idx = PRODUCTS_BY_DESC.get(desc);
+    const n = TOP_ELIMINATI[desc];
+    if(idx === undefined || typeof n !== 'number' || n <= 0) continue;
+    counts.set(idx, (counts.get(idx)||0) + n);
   }
   return [...counts.entries()].sort((a,b)=> b[1]-a[1]).slice(0, limit).map(e=>e[0]);
 }
@@ -3257,6 +3347,164 @@ function subscribeCommissioni(onChange, onError){
   );
 }
 
+// ---------------- Da ordinare (v21) ----------------
+// Lista comune delle cose che mancano in magazzino. Chiunque aggiunge una
+// riga; chi fa gli ordini la spunta come "Ordinato". Ogni passaggio registra
+// chi l'ha fatto e quando. Le righe ordinate (o tolte) restano visibili 7
+// giorni, poi le cancella il server SRV-PREV con la pulizia delle 06:00.
+// Raccolta "da_ordinare", un documento per riga:
+//   testo, qty (testo libero), nota, stato: da_ordinare | ordinato | tolto,
+//   creatoDa/creatoDaUid/creatoAt, ordinatoDa/ordinatoDaUid/ordinatoAt,
+//   toltoDa/toltoDaUid/toltoAt, aggiornatoAt
+const ORD_GIORNI_VISIBILI = 7;
+function daOrdinareCol(){ return collection(fbDb, 'da_ordinare'); }
+let ordinareCache = [];
+let ordinareErr = '';
+function normOrdinare(id, d){
+  d = d || {};
+  return {
+    id,
+    testo: txt(d.testo).trim() || '(senza nome)',
+    qty: txt(d.qty).trim(),
+    nota: txt(d.nota).trim(),
+    stato: ['da_ordinare', 'ordinato', 'tolto'].includes(d.stato) ? d.stato : 'da_ordinare',
+    creatoDa: txt(d.creatoDa), creatoAt: toIso(d.creatoAt),
+    ordinatoDa: txt(d.ordinatoDa), ordinatoAt: toIso(d.ordinatoAt)
+  };
+}
+function subscribeOrdinare(){
+  onSnapshot(daOrdinareCol(), (snap)=>{
+    ordinareErr = '';
+    ordinareCache = snap.docs.map(x => normOrdinare(x.id, x.data()));
+    renderOrdinare();
+  }, (err)=>{
+    ordinareErr = (err && err.code) || 'errore';
+    renderOrdinare();
+  });
+}
+function ordServeNome(){
+  if(operatorName) return false;
+  openOperatorEdit();
+  window.scrollTo({top:0, behavior:'smooth'});
+  setTimeout(()=> operatorInput.focus(), 300);
+  showPrepToast('Scrivi il tuo nome qui in alto: viene segnato su ogni riga.', true);
+  return true;
+}
+function ordErrore(e){
+  showPrepToast(e && e.code === 'permission-denied'
+    ? 'Firebase ha rifiutato: manca la regola per «Da ordinare» nella console di Firebase.'
+    : 'Non salvato: controlla la connessione e riprova.');
+}
+function ordCardHtml(o){
+  const aperto = o.stato === 'da_ordinare';
+  const id = escAttr(o.id);
+  return '<div class="ord-card' + (aperto ? '' : ' fatto') + '">'
+    + '<div class="ord-top"><span class="ord-testo">' + escapeHtml(o.testo) + '</span>'
+    + (o.qty ? '<span class="ord-qty">' + escapeHtml(o.qty) + '</span>' : '') + '</div>'
+    + (o.nota ? '<div class="ord-nota">📝 ' + escapeHtml(o.nota) + '</div>' : '')
+    + '<div class="ord-meta">Scritto da ' + escapeHtml(o.creatoDa || '?') + (o.creatoAt ? ' · ' + formatOrderTime(o.creatoAt) : '') + '</div>'
+    + (aperto ? '' : '<div class="ord-meta ok">✓ Ordinato da <b>' + escapeHtml(o.ordinatoDa || '?') + '</b>' + (o.ordinatoAt ? ' · ' + formatOrderTime(o.ordinatoAt) : '') + '</div>')
+    + '<div class="ord-actions">' + (aperto
+      ? '<button class="prep-btn done" data-ord-ok="' + id + '">✓ Ordinato</button>'
+        + '<button class="prep-btn danger" data-ord-togli="' + id + '">Togli</button>'
+      : '<button class="prep-btn ghost" data-ord-annulla="' + id + '">Non è ancora ordinato</button>')
+    + '</div></div>';
+}
+function renderOrdinare(){
+  const w = document.getElementById('ordWarning');
+  if(ordinareErr){
+    w.textContent = ordinareErr === 'permission-denied'
+      ? '⚠️ La lista «Da ordinare» non è ancora attiva: in Firebase va aggiunta la regola per «da_ordinare».'
+      : '⚠️ Non riesco a leggere la lista: controlla la connessione e ricarica la pagina.';
+    w.classList.remove('hidden');
+  } else w.classList.add('hidden');
+  if(activeTab !== 'ordinare') return;
+  const t = (iso)=> (iso ? Date.parse(iso) || 0 : 0);
+  const limite = Date.now() - ORD_GIORNI_VISIBILI * 86400000;
+  const aperti = ordinareCache.filter(o => o.stato === 'da_ordinare').sort((a, b)=> t(a.creatoAt) - t(b.creatoAt));
+  const fatti = ordinareCache.filter(o => o.stato === 'ordinato' && t(o.ordinatoAt) >= limite).sort((a, b)=> t(b.ordinatoAt) - t(a.ordinatoAt));
+  document.getElementById('ordCnt').textContent = aperti.length ? '(' + aperti.length + ')' : '';
+  const L = document.getElementById('ordLista'), F = document.getElementById('ordFatti');
+  L.innerHTML = aperti.length ? aperti.map(ordCardHtml).join('') : '<div class="ord-vuoto">Non manca niente 👍</div>';
+  F.innerHTML = fatti.length ? fatti.map(ordCardHtml).join('') : '<div class="ord-vuoto">Nessuna riga ordinata negli ultimi 7 giorni.</div>';
+  const box = document.getElementById('tab-ordinare');
+  box.querySelectorAll('[data-ord-ok]').forEach(b => b.addEventListener('click', ()=>{
+    if(ordServeNome()) return;
+    b.disabled = true;
+    ordAggiorna(b.dataset.ordOk, {stato: 'ordinato', ordinatoDa: operatorName, ordinatoDaUid: viewerId || null, ordinatoAt: new Date().toISOString()}, 'Segnato come ordinato ✓');
+  }));
+  box.querySelectorAll('[data-ord-togli]').forEach(b => armaConferma(b, 'Tocca ancora: togli dalla lista', ()=>{
+    if(ordServeNome()) return;
+    b.disabled = true;
+    ordAggiorna(b.dataset.ordTogli, {stato: 'tolto', toltoDa: operatorName, toltoDaUid: viewerId || null, toltoAt: new Date().toISOString()}, 'Tolto dalla lista');
+  }));
+  box.querySelectorAll('[data-ord-annulla]').forEach(b => b.addEventListener('click', ()=>{
+    b.disabled = true;
+    ordAggiorna(b.dataset.ordAnnulla, {stato: 'da_ordinare', ordinatoDa: null, ordinatoDaUid: null, ordinatoAt: null}, 'Rimesso tra le cose da ordinare');
+  }));
+}
+async function ordAggiorna(id, patch, msgOk){
+  try{
+    await withTimeout(updateDoc(doc(daOrdinareCol(), id), Object.assign({}, patch, {aggiornatoAt: new Date().toISOString()})));
+    if(msgOk) showQuickFeedback(msgOk);
+  }catch(e){ ordErrore(e); renderOrdinare(); }
+}
+const ordTesto = document.getElementById('ordTesto');
+const ordQty = document.getElementById('ordQty');
+const ordNota = document.getElementById('ordNota');
+const ordAddBtn = document.getElementById('ordAdd');
+let ordArmed = '';
+function ordResetBtn(){ ordArmed = ''; ordAddBtn.classList.remove('confirm'); ordAddBtn.textContent = '+ Aggiungi alla lista'; }
+// Suggerimenti dal catalogo (si può anche scrivere qualsiasi cosa)
+function ordSuggerisci(){
+  const box = document.getElementById('ordSugg');
+  const q = normalize(ordTesto.value.trim());
+  if(q.length < 2){ box.innerHTML = ''; return; }
+  const words = q.split(/\s+/).filter(Boolean);
+  const out = [];
+  for(let i = 0; i < PRODUCTS.length && out.length < 6; i++){
+    const nd = PRODUCTS[i][3] + ' ' + (NICK_NORM[String(i)] || '');
+    if(words.every(w => nd.indexOf(w) !== -1) && normalize(PRODUCTS[i][0]) !== q) out.push(PRODUCTS[i][0]);
+  }
+  box.innerHTML = out.map(d => '<button type="button" data-ord-sugg="' + escAttr(d) + '">' + escapeHtml(d) + '</button>').join('');
+  box.querySelectorAll('[data-ord-sugg]').forEach(b => b.addEventListener('click', ()=>{
+    ordTesto.value = b.dataset.ordSugg;
+    box.innerHTML = '';
+    ordResetBtn();
+    ordQty.focus();
+  }));
+}
+ordTesto.addEventListener('input', ()=>{ ordResetBtn(); ordSuggerisci(); });
+ordTesto.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('ordSugg').innerHTML = ''; ordQty.focus(); } });
+ordQty.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); ordNota.focus(); } });
+ordNota.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); ordAddBtn.click(); } });
+ordAddBtn.addEventListener('click', async ()=>{
+  const testo = ordTesto.value.trim();
+  if(!testo){ ordTesto.focus(); showPrepToast('Scrivi cosa manca.', true); return; }
+  if(ordServeNome()) return;
+  // c'è già nella lista? si avvisa, e con un secondo tocco si aggiunge lo stesso
+  const doppio = ordinareCache.find(o => o.stato === 'da_ordinare' && normalize(o.testo) === normalize(testo));
+  if(doppio && ordArmed !== normalize(testo)){
+    ordArmed = normalize(testo);
+    ordAddBtn.classList.add('confirm');
+    ordAddBtn.textContent = 'C\'è già nella lista (scritto da ' + (doppio.creatoDa || '?') + '): tocca ancora per aggiungerlo lo stesso';
+    return;
+  }
+  ordAddBtn.disabled = true;
+  const now = new Date().toISOString();
+  try{
+    await withTimeout(setDoc(doc(daOrdinareCol()), {
+      testo, qty: ordQty.value.trim(), nota: ordNota.value.trim(), stato: 'da_ordinare',
+      creatoDa: operatorName, creatoDaUid: viewerId || null, creatoAt: now, aggiornatoAt: now
+    }));
+    ordTesto.value = ''; ordQty.value = ''; ordNota.value = '';
+    document.getElementById('ordSugg').innerHTML = '';
+    showQuickFeedback('Aggiunto alla lista ✓');
+  }catch(e){ ordErrore(e); }
+  ordAddBtn.disabled = false;
+  ordResetBtn();
+});
+
 // ---------------- Init & realtime sync ----------------
 (async function init(){
   await initCapabilities();
@@ -3330,10 +3578,20 @@ function subscribeCommissioni(onChange, onError){
   // v20: arrivando dai Noleggi (index.html#ordini / #prep / #nuovo) si apre la scheda giusta
   const vaiHash = ()=>{
     const h = (location.hash || '').slice(1);
-    if(['nuovo', 'ordini', 'prep'].includes(h)){ vaiAScheda(h); try{ history.replaceState(null, '', location.pathname); }catch(e){} }
+    if(['nuovo', 'ordini', 'prep', 'ordinare'].includes(h)){ vaiAScheda(h); try{ history.replaceState(null, '', location.pathname); }catch(e){} }
   };
   vaiHash();
   window.addEventListener('hashchange', vaiHash);
+
+  // v21: righe dei buoni eliminati, per i "Più richiesti"
+  onSnapshot(contatoreDoc(), (snap)=>{
+    const c = snap.exists() ? snap.data().c : null;
+    TOP_ELIMINATI = (c && typeof c === 'object') ? c : {};
+    renderQuickAccess();
+  }, ()=>{});
+
+  // v21: lista "Da ordinare"
+  subscribeOrdinare();
 
   subscribeFavorites((favs2)=>{
     FAVORITES = favs2;

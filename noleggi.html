@@ -46,6 +46,7 @@
     .tabs{width:100%;}
     .tab{flex:1;font-size:12px;padding:9px 4px;}
     .tab .long{display:none;} .tab .short{display:inline;}
+    .tab{font-size:12.5px;padding:11px 2px;min-height:48px;}
   }
   .badge{background:var(--stamp);color:#fff;font-family:var(--font-mono);font-size:11px;font-weight:600;padding:1px 6px;border-radius:10px;min-width:16px;text-align:center;}
   .tab.active .badge{background:rgba(0,0,0,0.25);color:#fff;}
@@ -237,6 +238,7 @@
     <a class="tab" href="index.html#nuovo" data-ext><span class="long">Nuovo Buono di Carico</span><span class="short">Nuovo</span></a>
     <a class="tab" href="index.html#ordini" data-ext><span class="long">Buoni di Carico</span><span class="short">Buoni</span> <span class="badge zero" id="pendingBadge">0</span></a>
     <a class="tab" href="index.html#prep" data-ext><span class="long">Da preparare</span><span class="short">Da prep.</span> <span class="badge zero" id="prepBadge">0</span></a>
+    <a class="tab" href="index.html#ordinare" data-ext><span class="long">Da ordinare</span><span class="short">Ordinare</span></a>
     <span class="tab active" aria-current="page">Noleggi <span class="badge zero" id="nolBadge">0</span></span>
   </nav>
 </header>
@@ -296,7 +298,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'v20';
+const VERSIONE = 'v21';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'carlo@edil-nord.com'];   // gestiscono tutto (attrezzi, manutenzioni, forzare)
@@ -1851,7 +1853,11 @@ async function eliminaProva(n){
     const foto = await getDocs(query(collection(fbDb, 'foto_noleggi'), where('nolId', '==', n.id)));
     await Promise.all(foto.docs.map(d => deleteDoc(d.ref)));
     const ids = [idBuono(n.numero, 'uscita')].concat(n.rientri.map((r, i) => r.buono || idBuono(n.numero, 'rientro', i + 1)));
+    // v21: un buono eliminato dall'app sta in "orders_eliminati": si toglie da tutte e due.
+    // (Le righe dei buoni noleggio sono tutte "scritte a mano": non contano nei "Più richiesti",
+    // quindi il contatore dei buoni eliminati non cambia.)
     await Promise.all(ids.map(id => deleteDoc(doc(fbDb, 'orders', id)).catch(() => {})));
+    await Promise.all(ids.map(id => deleteDoc(doc(fbDb, 'orders_eliminati', id)).catch(() => {})));
     if(n.tipoCliente === 'privato') await deleteDoc(doc(fbDb, 'clienti_noleggio', n.id)).catch(() => {});
     await deleteDoc(doc(fbDb, 'noleggi', n.id));
     delete fotoCache[n.id];
