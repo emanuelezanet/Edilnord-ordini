@@ -942,9 +942,11 @@
   .ord-form{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:grid;gap:10px;margin-bottom:16px;}
   .ord-lbl{font-size:13px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;}
   .ord-row{display:grid;grid-template-columns:1fr 2fr;gap:10px;}
-  .ord-sugg{display:flex;flex-wrap:wrap;gap:6px;}
+  .ord-sugg{display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;}
   .ord-sugg:empty{display:none;}
-  .ord-sugg button{background:#fff;border:1px solid var(--border);border-radius:16px;padding:7px 12px;font-size:13px;color:var(--text);text-align:left;}
+  .ord-sugg .result-row{cursor:pointer;}
+  .ord-sugg .ord-pick{font-size:13px;font-weight:700;color:var(--accent-dark);white-space:nowrap;padding:0 4px;}
+  .ord-sugg-info{font-size:12.5px;color:var(--muted);padding:0 2px;}
   .ord-form .submit-btn{margin-top:4px;}
   .ord-form .submit-btn.confirm{background:var(--stamp);color:#fff;}
   .ord-list{display:flex;flex-direction:column;gap:10px;margin-bottom:8px;}
@@ -961,7 +963,6 @@
   .ord-vuoto{color:var(--muted);font-size:14.5px;padding:8px 2px 14px;}
   @media (max-width:700px), (pointer:coarse){
     .ord-row{grid-template-columns:1fr;}
-    .ord-sugg button{font-size:15px;padding:10px 14px;}
   }
   /* 5 schede: sul telefono in verticale un po' più strette */
   @media(max-width:560px){
@@ -1444,7 +1445,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = '21';
+const APP_VERSION = '21.1';
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -1924,15 +1925,9 @@ function renderQuickAccess(){
   wireProductRows(quickAccessEl);
 }
 
-function renderResults(query){
-  const q = normalize(query.trim());
-  if(!q){
-    resultsList.innerHTML = '';
-    searchHint.textContent = 'Digita per cercare tra i ' + PRODUCTS.length.toLocaleString('it-IT') + ' prodotti a catalogo.';
-    renderQuickAccess();
-    return;
-  }
-  quickAccessEl.innerHTML = '';
+// Ricerca nel catalogo (usata dal Nuovo buono e, dalla v21, da "Da ordinare").
+// q = testo già normalizzato. Restituisce gli indici dei prodotti, i più pertinenti prima.
+function cercaProdotti(q){
   const words = q.split(/\s+/).filter(Boolean);
   // Pertinenza: prima i prodotti dove la parola cercata è una parola intera
   // ("tubo 40" → "TUBO D 40" prima di "TUBO D 140"), poi quelli dove una
@@ -1966,6 +1961,18 @@ function renderResults(query){
     score.set(i, s);
   }
   matches.sort((a, b)=> (score.get(b) - score.get(a)) || (PRODUCTS[a][0].length - PRODUCTS[b][0].length) || (a - b));
+  return matches;
+}
+function renderResults(query){
+  const q = normalize(query.trim());
+  if(!q){
+    resultsList.innerHTML = '';
+    searchHint.textContent = 'Digita per cercare tra i ' + PRODUCTS.length.toLocaleString('it-IT') + ' prodotti a catalogo.';
+    renderQuickAccess();
+    return;
+  }
+  quickAccessEl.innerHTML = '';
+  const matches = cercaProdotti(q);
   if(matches.length === 0){
     resultsList.innerHTML = '<div class="no-results">Nessun prodotto trovato.'
       + '<button class="manual-add-btn no-results-add" id="noResultsAdd">+ Aggiungi «' + escapeHtml(query.trim()) + '» come voce manuale</button></div>';
@@ -3455,24 +3462,40 @@ const ordNota = document.getElementById('ordNota');
 const ordAddBtn = document.getElementById('ordAdd');
 let ordArmed = '';
 function ordResetBtn(){ ordArmed = ''; ordAddBtn.classList.remove('confirm'); ordAddBtn.textContent = '+ Aggiungi alla lista'; }
-// Suggerimenti dal catalogo (si può anche scrivere qualsiasi cosa)
+// Suggerimenti dal catalogo, con la stessa ricerca del Nuovo buono: stesso ordine,
+// soprannome sotto il nome, preferiti in cima. Si può anche scrivere qualsiasi cosa.
+const ORD_MAX_SUGG = 8;
 function ordSuggerisci(){
   const box = document.getElementById('ordSugg');
-  const q = normalize(ordTesto.value.trim());
+  const raw = ordTesto.value.trim();
+  const q = normalize(raw);
   if(q.length < 2){ box.innerHTML = ''; return; }
-  const words = q.split(/\s+/).filter(Boolean);
-  const out = [];
-  for(let i = 0; i < PRODUCTS.length && out.length < 6; i++){
-    const nd = PRODUCTS[i][3] + ' ' + (NICK_NORM[String(i)] || '');
-    if(words.every(w => nd.indexOf(w) !== -1) && normalize(PRODUCTS[i][0]) !== q) out.push(PRODUCTS[i][0]);
-  }
-  box.innerHTML = out.map(d => '<button type="button" data-ord-sugg="' + escAttr(d) + '">' + escapeHtml(d) + '</button>').join('');
-  box.querySelectorAll('[data-ord-sugg]').forEach(b => b.addEventListener('click', ()=>{
-    ordTesto.value = b.dataset.ordSugg;
-    box.innerHTML = '';
-    ordResetBtn();
-    ordQty.focus();
-  }));
+  const matches = cercaProdotti(q).filter(i => normalize(PRODUCTS[i][0]) !== q);
+  if(!matches.length){ box.innerHTML = ''; return; }
+  const favSet = new Set(FAVORITES);
+  const ordinati = matches.filter(i => favSet.has(i)).concat(matches.filter(i => !favSet.has(i)));
+  const shown = ordinati.slice(0, ORD_MAX_SUGG);
+  box.innerHTML = '<div class="ord-sugg-info">Dal catalogo — tocca per sceglierlo, oppure lascia scritto «' + escapeHtml(raw) + '»'
+    + (matches.length > ORD_MAX_SUGG ? ' · primi ' + ORD_MAX_SUGG + ' di ' + matches.length : '') + '</div>'
+    + shown.map(idx => {
+      const p = PRODUCTS[idx];
+      const um = p[1] ? p[1].toUpperCase() : '-';
+      const nick = NICKNAMES[String(idx)] || '';
+      return '<div class="result-row" data-ord-sugg="' + idx + '" role="button" tabindex="0">'
+        + '<div class="result-info"><div class="result-desc">' + (favSet.has(idx) ? '⭐ ' : '') + escapeHtml(p[0]) + '</div>'
+        + '<div class="result-meta">' + um + (nick ? ' &middot; <span class="nick-tag">✏️ ' + escapeHtml(nick) + '</span>' : '') + '</div></div>'
+        + '<span class="ord-pick">Scegli</span></div>';
+    }).join('');
+  box.querySelectorAll('[data-ord-sugg]').forEach(r => {
+    const scegli = ()=>{
+      ordTesto.value = PRODUCTS[Number(r.dataset.ordSugg)][0];
+      box.innerHTML = '';
+      ordResetBtn();
+      ordQty.focus();
+    };
+    r.addEventListener('click', scegli);
+    r.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); scegli(); } });
+  });
 }
 ordTesto.addEventListener('input', ()=>{ ordResetBtn(); ordSuggerisci(); });
 ordTesto.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('ordSugg').innerHTML = ''; ordQty.focus(); } });
