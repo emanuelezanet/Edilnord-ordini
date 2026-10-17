@@ -958,6 +958,11 @@
   .ord-nota{font-size:14.5px;font-style:italic;margin-top:6px;word-break:break-word;}
   .ord-meta{font-size:13px;color:var(--muted);margin-top:6px;}
   .ord-meta.ok{color:var(--success);}
+  /* v21.2: stato ben visibile + pulsante che sembra un'azione, non uno stato */
+  .ord-stato{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:999px;margin-top:8px;}
+  .ord-stato.attesa{background:#FBE7C6;color:#8A5300;border:1px solid #E9B864;}
+  .ord-stato.ok{background:var(--ok-bg);color:var(--success);border:1px solid #B9CFB9;}
+  .ord-actions .prep-btn.ord-segna{background:transparent;color:var(--success);border:2px solid var(--success);}
   .ord-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
   .ord-actions .prep-btn{min-height:46px;font-size:15px;}
   .ord-vuoto{color:var(--muted);font-size:14.5px;padding:8px 2px 14px;}
@@ -1445,7 +1450,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = '21.1';
+const APP_VERSION = '21.2';
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -3410,9 +3415,10 @@ function ordCardHtml(o){
     + (o.qty ? '<span class="ord-qty">' + escapeHtml(o.qty) + '</span>' : '') + '</div>'
     + (o.nota ? '<div class="ord-nota">📝 ' + escapeHtml(o.nota) + '</div>' : '')
     + '<div class="ord-meta">Scritto da ' + escapeHtml(o.creatoDa || '?') + (o.creatoAt ? ' · ' + formatOrderTime(o.creatoAt) : '') + '</div>'
+    + (aperto ? '<span class="ord-stato attesa">⏳ NON ANCORA ORDINATO</span>' : '<span class="ord-stato ok">✓ ORDINATO</span>')
     + (aperto ? '' : '<div class="ord-meta ok">✓ Ordinato da <b>' + escapeHtml(o.ordinatoDa || '?') + '</b>' + (o.ordinatoAt ? ' · ' + formatOrderTime(o.ordinatoAt) : '') + '</div>')
     + '<div class="ord-actions">' + (aperto
-      ? '<button class="prep-btn done" data-ord-ok="' + id + '">✓ Ordinato</button>'
+      ? '<button class="prep-btn ord-segna" data-ord-ok="' + id + '">Segna come ordinato</button>'
         + '<button class="prep-btn danger" data-ord-togli="' + id + '">Togli</button>'
       : '<button class="prep-btn ghost" data-ord-annulla="' + id + '">Non è ancora ordinato</button>')
     + '</div></div>';
