@@ -677,7 +677,8 @@
     .order-total{font-size:16px;}
     .order-operator{font-size:14px;}
     .order-actions{margin-top:16px;gap:10px;}
-    .evaso-btn,.delete-btn{font-size:16px;padding:14px 20px;min-height:50px;border-radius:10px;}
+    .evaso-btn,.delete-btn,.edit-btn{font-size:16px;padding:14px 20px;min-height:50px;border-radius:10px;}
+    .order-mod{font-size:15px;}
     .evaso-btn{flex:1;}
     .stamp{font-size:20px;top:40px;right:14px;}
     .empty-state{font-size:17px;}
@@ -991,6 +992,21 @@
     padding:2px 7px;border-radius:4px;margin:4px 6px 0 0;background:rgba(62,106,138,0.13);color:#3E6A8A;
   }
   .order-tag.colli{background:rgba(232,163,61,0.18);color:var(--accent-dark);}
+  /* v21.3: buono modificato dopo l'invio */
+  .order-tag.mod{background:#FBE7C6;color:#8A5300;}
+  .order-mod{margin:8px 0;padding:8px 10px;border-radius:6px;background:#FFF4E0;border:1px solid #E9B864;font-size:13.5px;}
+  .order-mod b{font-weight:700;}
+  .order-mod ul{margin:4px 0 0 18px;padding:0;}
+  .order-mod li{margin:1px 0;}
+  .order-mod .piu{color:var(--success);font-weight:600;}
+  .order-mod .meno{color:var(--stamp);font-weight:600;}
+  .edit-btn{background:transparent;border:1.5px solid var(--bg-shell);color:var(--text);padding:9px 16px;border-radius:6px;font-size:12.5px;font-weight:700;}
+  .edit-btn:disabled{opacity:.5;}
+  .edit-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF4E0;border:2px solid #E9B864;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:15px;}
+  .edit-banner .eb-txt{flex:1;min-width:200px;}
+  .edit-banner .eb-warn{color:var(--stamp);font-weight:700;display:block;margin-top:4px;}
+  .edit-banner button{background:transparent;border:1.5px solid var(--stamp);color:var(--stamp);border-radius:8px;padding:9px 14px;font-weight:700;font-size:14px;min-height:44px;}
+  .order-card.in-modifica{outline:2px dashed #E9B864;outline-offset:2px;}
   @media (max-width:700px), (pointer:coarse){
     .ctype-btn{font-size:17px;min-height:52px;border-radius:10px;}
     .colli-row{gap:8px;}
@@ -1045,6 +1061,7 @@
 
 <main>
   <section id="tab-nuovo" class="tab-panel active">
+    <div class="edit-banner hidden" id="editBanner"></div>
     <div class="order-layout">
       <div class="catalog-col">
         <div class="search-box">
@@ -1450,7 +1467,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = '21.2';
+const APP_VERSION = '21.3';
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -1621,6 +1638,7 @@ function subscribeNicknames(onChange){
 
 // ---------------- State ----------------
 let cart = [];
+let editing = null; // v21.3: {id, base} quando si sta modificando un buono già inviato
 let cartIdCounter = 1;
 let activeTab = 'nuovo';
 let ordersCache = [];
@@ -2108,8 +2126,8 @@ function saveDraft(){
   const customerType = getCustomerType();
   const colli = document.getElementById('colliInput').value;
   try{
-    if(!cart.length && !customer.trim() && !note.trim() && !customerType && !colli) localStorage.removeItem(k);
-    else localStorage.setItem(k, JSON.stringify({cart, customer, note, customerType, colli, at: Date.now()}));
+    if(!editing && !cart.length && !customer.trim() && !note.trim() && !customerType && !colli) localStorage.removeItem(k);
+    else localStorage.setItem(k, JSON.stringify({cart, customer, note, customerType, colli, edit: editing, at: Date.now()}));
   }catch(e){}
 }
 function restoreDraft(){
@@ -2120,7 +2138,10 @@ function restoreDraft(){
   if(!d || !Array.isArray(d.cart) || (Date.now() - (d.at || 0)) > DRAFT_MAX_AGE_MS){ saveDraft(); return; }
   if(cart.length) return; // c'è già qualcosa nel carrello: non si mescola
   cart = d.cart.filter(c => c && typeof c.desc === 'string' && typeof c.qty === 'number')
-    .map((c, n) => ({id: n + 1, desc: c.desc, um: c.um || '', price: 0, qty: c.qty, manual: !!c.manual, note: c.note || '', reso: !!c.reso}));
+    .map((c, n) => ({id: n + 1, desc: c.desc, um: c.um || '', price: c.price || 0, qty: c.qty, manual: !!c.manual, note: c.note || '', reso: !!c.reso}));
+  // v21.3: se si stava modificando un buono già inviato, si torna in modifica
+  // (altrimenti al nuovo invio diventerebbe un secondo buono doppione)
+  editing = (d.edit && d.edit.id && d.edit.base) ? d.edit : null;
   cartIdCounter = cart.length + 1;
   document.getElementById('customerInput').value = d.customer || '';
   document.getElementById('noteInput').value = d.note || '';
@@ -2128,7 +2149,9 @@ function restoreDraft(){
   document.getElementById('colliInput').value = d.colli || '';
   syncGenHint();
   renderCart();
-  if(cart.length) showQuickFeedback('Ripreso il buono che stavi scrivendo (' + cart.length + (cart.length === 1 ? ' articolo' : ' articoli') + ')');
+  renderEditBanner();
+  if(editing) showQuickFeedback('Ripresa la modifica del buono ' + editing.id);
+  else if(cart.length) showQuickFeedback('Ripreso il buono che stavi scrivendo (' + cart.length + (cart.length === 1 ? ' articolo' : ' articoli') + ')');
 }
 ['customerInput', 'noteInput'].forEach(id => document.getElementById(id).addEventListener('input', saveDraft));
 
@@ -2302,6 +2325,196 @@ colliInput.addEventListener('input', saveDraft);
 colliInput.addEventListener('change', ()=>{ const v = readColli(); colliInput.value = v ? v : ''; saveDraft(); });
 function colliTxt(n){ return n + (n === 1 ? ' collo' : ' colli'); }
 
+// ---------------- v21.3: modifica di un buono già inviato ----------------
+// Si può modificare un buono finché è "In attesa" (dopo l'evasione è già nel
+// gestionale). Lo può modificare chiunque; resta scritto chi e quando, con le
+// differenze, e l'ufficio riceve di nuovo suono e notifica.
+// Il buono si riapre nel carrello del Nuovo buono; "Salva modifiche" lo
+// riscrive con una transazione che ricontrolla che sia ancora In attesa e che
+// nessun collega l'abbia modificato nel frattempo.
+const myEdits = new Set();     // id|modificatoAt salvati da questo dispositivo: niente notifica a se stessi
+const MOD_MAX = 20;            // modifiche tenute nello storico del buono
+
+function chiaveRiga(it){ return (it.reso ? 'R|' : 'C|') + String(it.desc || '') + '|' + String(it.um || ''); }
+function raggruppaRighe(items){
+  const m = new Map();
+  (Array.isArray(items) ? items : []).forEach(it => {
+    if(!it) return;
+    const k = chiaveRiga(it);
+    const r = m.get(k) || {desc: String(it.desc || ''), um: String(it.um || ''), reso: !!it.reso, qty: 0, note: []};
+    r.qty = Math.round((r.qty + (Number(it.qty) || 0)) * 1000) / 1000;
+    if(it.note) r.note.push(String(it.note));
+    m.set(k, r);
+  });
+  return m;
+}
+// Differenze tra il buono di prima e quello nuovo, in forma da salvare nel buono.
+function calcolaModifica(prima, dopo){
+  const a = raggruppaRighe(prima.items), b = raggruppaRighe(dopo.items);
+  const m = {aggiunte: [], tolte: [], quantita: []};
+  b.forEach((r, k) => {
+    const x = a.get(k);
+    if(!x) m.aggiunte.push({desc: r.desc, um: r.um, qty: r.qty, reso: r.reso});
+    else if(x.qty !== r.qty) m.quantita.push({desc: r.desc, um: r.um, prima: x.qty, dopo: r.qty, reso: r.reso});
+  });
+  a.forEach((r, k) => { if(!b.has(k)) m.tolte.push({desc: r.desc, um: r.um, qty: r.qty, reso: r.reso}); });
+  let noteRighe = 0;
+  b.forEach((r, k) => { const x = a.get(k); if(x && x.note.join('\n') !== r.note.join('\n')) noteRighe++; });
+  if(noteRighe) m.noteRighe = noteRighe;
+  const t = v => (v == null ? '' : String(v).trim());
+  if(t(prima.customer) !== t(dopo.customer)) m.cliente = {prima: t(prima.customer), dopo: t(dopo.customer)};
+  if(t(prima.customerType) !== t(dopo.customerType)) m.tipo = {prima: t(prima.customerType), dopo: t(dopo.customerType)};
+  if((prima.colli || null) !== (dopo.colli || null)) m.colli = {prima: prima.colli || null, dopo: dopo.colli || null};
+  if(t(prima.note) !== t(dopo.note)) m.note = true;
+  ['aggiunte', 'tolte', 'quantita'].forEach(k => { if(!m[k].length) delete m[k]; });
+  return Object.keys(m).length ? m : null;
+}
+function fmtQ(q, um){ return String(q).replace('.', ',') + (um ? ' ' + um : ''); }
+// Righe leggibili di una modifica: {t: testo, c: 'piu'|'meno'|''}
+function modificaRighe(m){
+  const r = [], rs = x => x.reso ? ' (reso)' : '';
+  (m.aggiunte || []).forEach(x => r.push({t: '+ ' + fmtQ(x.qty, x.um) + ' ' + x.desc + rs(x), c: 'piu'}));
+  (m.quantita || []).forEach(x => r.push({t: x.desc + rs(x) + ': ' + fmtQ(x.prima, '') + ' → ' + fmtQ(x.dopo, x.um), c: x.dopo > x.prima ? 'piu' : 'meno'}));
+  (m.tolte || []).forEach(x => r.push({t: '− tolto ' + x.desc + rs(x) + ' (era ' + fmtQ(x.qty, x.um) + ')', c: 'meno'}));
+  if(m.cliente) r.push({t: 'Cliente: ' + (m.cliente.prima || '—') + ' → ' + (m.cliente.dopo || '—'), c: ''});
+  if(m.tipo) r.push({t: 'Tipo cliente: ' + (CTYPE_LABEL[m.tipo.prima] || 'non indicato') + ' → ' + (CTYPE_LABEL[m.tipo.dopo] || 'non indicato'), c: ''});
+  if(m.colli) r.push({t: 'Colli: ' + (m.colli.prima || '—') + ' → ' + (m.colli.dopo || '—'), c: ''});
+  if(m.note) r.push({t: 'Note del buono cambiate', c: ''});
+  if(m.noteRighe) r.push({t: m.noteRighe === 1 ? 'Cambiata la nota di una riga' : 'Cambiate le note di ' + m.noteRighe + ' righe', c: ''});
+  return r;
+}
+function modificaHtml(o){
+  if(!o.modificatoAt) return '';
+  const mods = (Array.isArray(o.modifiche) ? o.modifiche : []).slice().reverse(); // la più recente in cima
+  if(!mods.length) return '<div class="order-mod">✏️ <b>Modificato da ' + escapeHtml(o.modificatoDa || '?') + '</b> · ' + formatOrderTime(o.modificatoAt) + '</div>';
+  return mods.map(m => {
+    const righe = modificaRighe(m);
+    return '<div class="order-mod">✏️ <b>Modificato da ' + escapeHtml(m.da || '?') + '</b> · ' + formatOrderTime(m.at)
+      + (righe.length ? '<ul>' + righe.map(x => '<li' + (x.c ? ' class="' + x.c + '"' : '') + '>' + escapeHtml(x.t) + '</li>').join('') + '</ul>' : '')
+      + '</div>';
+  }).join('');
+}
+function avvisoNuovo(msg, warn, ms){
+  const toast = document.getElementById('orderToast');
+  toast.classList.remove('hidden');
+  toast.classList.toggle('warn', !!warn);
+  toast.textContent = msg;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>{ toast.classList.add('hidden'); toast.classList.remove('warn'); }, ms || 4500);
+}
+function renderEditBanner(){
+  const el = document.getElementById('editBanner');
+  if(!el) return;
+  submitOrderBtn.textContent = editing ? 'Salva modifiche' : 'Invia';
+  if(!editing){ el.classList.add('hidden'); el.innerHTML = ''; return; }
+  const ora = ordersCache.find(o => o.id === editing.id);
+  let warn = '';
+  if(ordersCache.length && !ora) warn = 'Questo buono non c\'è più tra quelli in attesa (forse eliminato).';
+  else if(ora && ora.status === 'evaso') warn = 'Nel frattempo l\'ufficio l\'ha segnato EVASO: non si può più modificare.';
+  else if(ora && (ora.modificatoAt || null) !== (editing.base.modificatoAt || null)) warn = 'Nel frattempo un collega l\'ha modificato: annulla e riapri la modifica.';
+  el.innerHTML = '<span class="eb-txt">✏️ Stai modificando il buono <b>' + escapeHtml(editing.id) + '</b> di <b>'
+    + escapeHtml(editing.base.customer || 'cliente non specificato') + '</b>. Cambia le righe e tocca «Salva modifiche».'
+    + (warn ? '<span class="eb-warn">⚠️ ' + escapeHtml(warn) + '</span>' : '') + '</span>'
+    + '<button type="button" id="editCancel">Annulla modifica</button>';
+  el.classList.remove('hidden');
+  document.getElementById('editCancel').addEventListener('click', ()=> chiudiModifica(true));
+}
+function pulisciNuovoBuono(){
+  cart = [];
+  document.getElementById('customerInput').value = '';
+  document.getElementById('noteInput').value = '';
+  setCustomerType('');
+  colliInput.value = '';
+}
+function chiudiModifica(tornaAiBuoni){
+  editing = null;
+  pulisciNuovoBuono();
+  renderCart();
+  syncGenHint();
+  renderEditBanner();
+  saveDraft();
+  if(activeTab === 'ordini') renderOrders();
+  if(tornaAiBuoni) vaiAScheda('ordini');
+}
+function iniziaModifica(id){
+  const o = ordersCache.find(x => x.id === id);
+  if(!o) return;
+  if(o.status !== 'in_attesa' || o.eliminatoAt){ showPrepToast('Questo buono è già evaso: non si può più modificare.'); return; }
+  if(o.noleggio){ showPrepToast('I buoni dei noleggi si correggono dalla scheda Noleggi.'); return; }
+  if(editing && editing.id !== id){ showPrepToast('Stai già modificando il buono ' + editing.id + ': salvalo o annulla la modifica prima.', false, 6000); vaiAScheda('nuovo'); return; }
+  if(!editing && (cart.length || customerInput.value.trim())){
+    showPrepToast('Nel Nuovo buono c\'è un buono non ancora inviato: invialo o svuotalo prima di modificarne un altro.', false, 6500);
+    return;
+  }
+  if(!operatorName){ showPrepToast('Inserisci prima il tuo nome (in alto, «Cambia»).'); return; }
+  editing = {id: o.id, base: JSON.parse(JSON.stringify(o))};
+  cart = (o.items || []).map((it, n) => ({id: n + 1, desc: String(it.desc || ''), um: it.um || '', price: it.price || 0,
+    qty: Number(it.qty) || 0, manual: !!it.manual, note: it.note || '', reso: !!it.reso}));
+  cartIdCounter = cart.length + 1;
+  document.getElementById('customerInput').value = o.customer || '';
+  document.getElementById('noteInput').value = o.note || '';
+  setCustomerType(o.customerType || '');
+  colliInput.value = o.colli || '';
+  syncGenHint();
+  renderCart();
+  renderEditBanner();
+  vaiAScheda('nuovo');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+async function salvaModifica(){
+  const id = editing.id, base = editing.base;
+  const dopo = {
+    customer: document.getElementById('customerInput').value.trim(),
+    customerType: getCustomerType(),
+    colli: readColli(),
+    note: document.getElementById('noteInput').value.trim(),
+    items: cart.map(c=>({desc:c.desc, um:c.um, qty:c.qty, price:c.price||0, manual:!!c.manual, note:c.note||'', reso:!!c.reso})),
+    total: cart.reduce((s,c)=> s + c.qty*(c.price||0), 0)
+  };
+  const m = calcolaModifica(base, dopo);
+  if(!m){ avvisoNuovo('Non hai cambiato niente: il buono resta com\'era.', false, 3500); chiudiModifica(true); return; }
+  const at = new Date().toISOString();
+  const voce = Object.assign({at, da: operatorName, daUid: viewerId || null}, m);
+  submitOrderBtn.disabled = true;
+  submitOrderBtn.textContent = 'Salvataggio...';
+  let esito = 'ok';
+  try{
+    await withTimeout(runTransaction(fbDb, async (tx)=>{
+      const ref = doc(ordersCol(), id);
+      const snap = await tx.get(ref);
+      if(!snap.exists()) throw {code: 'sparito'};
+      const d = snap.data();
+      if(d.eliminatoAt) throw {code: 'sparito'};
+      if(d.status !== 'in_attesa') throw {code: 'evaso'};
+      if((d.modificatoAt || null) !== (base.modificatoAt || null)) throw {code: 'collega', da: d.modificatoDa};
+      myEdits.add(id + '|' + at);
+      tx.update(ref, Object.assign({}, dopo, {
+        modificatoDa: operatorName, modificatoDaUid: viewerId || null, modificatoAt: at,
+        modifiche: (Array.isArray(d.modifiche) ? d.modifiche : []).concat([voce]).slice(-MOD_MAX)
+      }));
+    }), 10000);
+  }catch(e){
+    esito = (e && e.code) || 'rete';
+  }
+  submitOrderBtn.disabled = cart.length === 0;
+  submitOrderBtn.textContent = 'Salva modifiche';
+  if(esito === 'ok'){
+    ordersCache = ordersCache.map(o => o.id === id ? Object.assign({}, o, dopo, {modificatoDa: operatorName, modificatoAt: at,
+      modifiche: (o.modifiche || []).concat([voce]).slice(-MOD_MAX)}) : o);
+    chiudiModifica(true);
+    showPrepToast('Modifiche salvate ✓ L\'ufficio vede il buono segnato come MODIFICATO.', true, 4500);
+    return;
+  }
+  const msg = {
+    evaso: 'Non salvato: l\'ufficio l\'ha appena segnato EVASO. Le cose in più vanno in un buono nuovo (tocca «Annulla modifica» e rifallo).',
+    sparito: 'Non salvato: il buono non c\'è più (eliminato).',
+    collega: 'Non salvato: un collega l\'ha appena modificato. Tocca «Annulla modifica» e riapri il buono per vedere la versione aggiornata.',
+    'permission-denied': 'Firebase ha rifiutato la modifica: manca il permesso nelle regole.',
+  }[esito] || 'Non salvato: controlla la connessione e riprova.';
+  avvisoNuovo(msg, true, 9000);
+  renderEditBanner();
+}
+
 // ---------------- Submit order ----------------
 submitOrderBtn.addEventListener('click', async ()=>{
   if(cart.length === 0) return;
@@ -2326,6 +2539,7 @@ submitOrderBtn.addEventListener('click', async ()=>{
     toast._t = setTimeout(()=>{ toast.classList.add('hidden'); toast.classList.remove('warn'); }, 4000);
     return;
   }
+  if(editing){ salvaModifica(); return; }
   submitOrderBtn.disabled = true;
   submitOrderBtn.textContent = 'Invio in corso...';
   const order = {
@@ -2371,7 +2585,7 @@ submitOrderBtn.addEventListener('click', async ()=>{
     syncSearchClear();
     renderResults('');
   }
-  submitOrderBtn.textContent = 'Invia';
+  submitOrderBtn.textContent = editing ? 'Salva modifiche' : 'Invia';
   submitOrderBtn.disabled = cart.length === 0;
   clearTimeout(toast._t);
   toast._t = setTimeout(()=> toast.classList.add('hidden'), (ok && numInviato) ? 10000 : 3500); // il numero deve restare il tempo di dirlo al cliente
@@ -2421,11 +2635,13 @@ function renderOrders(){
     const itemsHtml = !resi.length ? caricati.map(itemRowHtml).join('')
       : (caricati.length ? '<div class="oi-section">CARICATO</div>' + caricati.map(itemRowHtml).join('') : '')
         + '<div class="oi-section reso">&#8617; RESO DAL CLIENTE</div>' + resi.map(itemRowHtml).join('');
-    return '<div class="order-card ' + (isEvaso ? 'evaso' : '') + '" data-id="' + o.id + '">'
+    const inModifica = editing && editing.id === o.id;
+    return '<div class="order-card ' + (isEvaso ? 'evaso' : '') + (inModifica ? ' in-modifica' : '') + '" data-id="' + o.id + '">'
       + (isEvaso ? '<div class="stamp">EVASO</div>' : '')
       + '<div class="order-head"><div><div class="order-code">' + o.id + '</div>'
       + '<div class="order-customer">' + (o.customer ? escapeHtml(o.customer) : 'Cliente non specificato') + '</div>'
-      + ((CTYPE_LABEL[o.customerType] || o.colli) ? '<div>'
+      + ((CTYPE_LABEL[o.customerType] || o.colli || o.modificatoAt) ? '<div>'
+          + (o.modificatoAt ? '<span class="order-tag mod">✏️ MODIFICATO</span>' : '')
           + (CTYPE_LABEL[o.customerType] ? '<span class="order-tag">' + CTYPE_LABEL[o.customerType] + '</span>' : '')
           + (o.colli ? '<span class="order-tag colli">📦 ' + colliTxt(o.colli) + '</span>' : '')
           + '</div>' : '')
@@ -2433,9 +2649,11 @@ function renderOrders(){
       + '<div class="order-time">' + formatOrderTime(o.createdAt) + '</div></div>'
       + '<div class="order-items">' + itemsHtml + '</div>'
       + (o.note ? '<div class="order-note"><b>Note:</b> ' + escapeHtml(o.note) + '</div>' : '')
+      + modificaHtml(o)
       + (isEvaso && o.evasoBy ? '<div class="order-operator">Evaso da <strong>' + escapeHtml(o.evasoBy) + '</strong>' + (o.evasoAt ? ' · ' + formatOrderTime(o.evasoAt) : '') + '</div>' : '')
       + '<div class="order-actions">'
       + (isEvaso ? '<button class="delete-btn" data-delete="' + o.id + '">Elimina</button>' : '')
+      + (!isEvaso && !o.noleggio ? '<button class="edit-btn" data-edit="' + o.id + '"' + (inModifica ? ' disabled>In modifica…' : '>✏️ Modifica') + '</button>' : '')
       + '<button class="evaso-btn ' + (isEvaso?'undo':'') + '" data-toggle="' + o.id + '">'
       + (isEvaso ? 'Segna come in attesa' : 'Segna come evaso') + '</button></div>'
       + '</div>';
@@ -2464,6 +2682,8 @@ function renderOrders(){
       updateOrderStatus(id, newStatus, extra);
     });
   });
+
+  list.querySelectorAll('[data-edit]').forEach(btn=> btn.addEventListener('click', ()=> iniziaModifica(btn.dataset.edit)));
 
   list.querySelectorAll('[data-delete]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -2640,6 +2860,16 @@ function notificaBuoniNuovi(nuovi){
   nuovi.filter(o => !myOrderIds.has(o.id)).forEach(o=>{
     showNotif('Nuovo buono di carico',
       (o.customer || 'Cliente non specificato') + (CTYPE_LABEL[o.customerType] ? ' (' + o.customerType + ')' : '') + ' · ' + righeTxt((o.items || []).length) + ((o.items||[]).some(it => it.reso) ? ' · con reso' : '') + (o.colli ? ' · ' + colliTxt(o.colli) : '') + (o.operator ? ' · da ' + o.operator : ''),
+      'buono-' + o.id, ()=> vaiAScheda('ordini'));
+  });
+}
+function notificaBuoniModificati(list){
+  list.forEach(o=>{
+    const m = (o.modifiche || [])[(o.modifiche || []).length - 1];
+    const righe = m ? modificaRighe(m) : [];
+    showNotif('Buono di carico MODIFICATO',
+      (o.customer || 'Cliente non specificato') + (o.modificatoDa ? ' · da ' + o.modificatoDa : '')
+        + (righe.length ? ' · ' + righe.slice(0, 3).map(r => r.t).join(' · ') + (righe.length > 3 ? ' …' : '') : ''),
       'buono-' + o.id, ()=> vaiAScheda('ordini'));
   });
 }
@@ -3551,7 +3781,13 @@ ordAddBtn.addEventListener('click', async ()=>{
   restoreDraft();
 
   let knownOrderIds = null;
+  let knownModAt = new Map(); // v21.3: id → modificatoAt, per accorgersi delle modifiche
   subscribeOrders((orders)=>{
+    const modificati = knownOrderIds === null ? [] : orders.filter(o => o.modificatoAt
+      && knownOrderIds.has(o.id) && knownModAt.get(o.id) !== o.modificatoAt
+      && !myEdits.has(o.id + '|' + o.modificatoAt));
+    knownModAt = new Map(orders.map(o => [o.id, o.modificatoAt || null]));
+    if(modificati.length) notificaBuoniModificati(modificati);
     // Un buono è "nuovo" se il suo codice non l'avevo mai visto: così l'avviso
     // suona anche se nello stesso istante ne viene eliminato un altro.
     const prevIds = knownOrderIds;
@@ -3562,7 +3798,8 @@ ordAddBtn.addEventListener('click', async ()=>{
     updateBadge(orders);
     if(activeTab === 'ordini') renderOrders();
     renderQuickAccess();
-    if(hasNew){
+    if(editing) renderEditBanner();
+    if(hasNew || modificati.length){
       document.getElementById('pendingBadge').classList.add('flash');
       setTimeout(()=> document.getElementById('pendingBadge').classList.remove('flash'), 1300);
       if(audioEnabled) playBeep();

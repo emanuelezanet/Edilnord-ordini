@@ -298,7 +298,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'v21';
+const VERSIONE = 'v21.3';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'carlo@edil-nord.com'];   // gestiscono tutto (attrezzi, manutenzioni, forzare)
@@ -579,8 +579,11 @@ let avvisiAvviati = false;
 function avviaAvvisiApp(){
   if(avvisiAvviati) return; avvisiAvviati = true;
   let noti = null;
+  let notiMod = new Map(); // v21.3: id → modificatoAt, per l'avviso "buono modificato"
   onSnapshot(collection(fbDb, 'orders'), snap => {
     const lista = snap.docs.map(d => d.data());
+    const modificati = noti ? lista.filter(o => o.modificatoAt && noti.has(o.id) && notiMod.get(o.id) !== o.modificatoAt && o.modificatoDaUid !== uid && !o.eliminatoAt) : [];
+    notiMod = new Map(lista.map(o => [o.id, o.modificatoAt || null]));
     pallino('pendingBadge', lista.filter(o => o.status === 'in_attesa' && !o.eliminatoAt).length, false);
     const nuovi = noti ? lista.filter(o => !noti.has(o.id) && !mieiBuoni.has(o.id) && !o.eliminatoAt) : [];
     noti = new Set(lista.map(o => o.id));
@@ -589,6 +592,10 @@ function avviaAvvisiApp(){
       const o = nuovi[nuovi.length - 1];
       avviso(nuovi.length > 1 ? nuovi.length + ' nuovi buoni di carico' : 'Nuovo buono di carico',
         (o.customer || 'Cliente non specificato') + ' · ' + (o.items || []).length + ((o.items || []).length === 1 ? ' riga' : ' righe') + (o.operator ? ' · da ' + o.operator : ''), 'index.html#ordini', 'buono-' + o.id);
+    } else if(modificati.length){
+      pallino('pendingBadge', lista.filter(o => o.status === 'in_attesa' && !o.eliminatoAt).length, true);
+      const o = modificati[modificati.length - 1];
+      avviso('Buono di carico MODIFICATO', (o.customer || 'Cliente non specificato') + (o.modificatoDa ? ' · da ' + o.modificatoDa : ''), 'index.html#ordini', 'buono-' + o.id);
     }
   }, () => {});
   let stati = null;
