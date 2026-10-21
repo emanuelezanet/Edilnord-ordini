@@ -865,7 +865,7 @@
   .gen-num-hint b{font-family:var(--font-mono);font-size:20px;letter-spacing:1px;}
   .gen-num-hint.hidden{display:none;}
   .toast.warn{background:var(--stamp);}
-  @media (max-width:420px){ .customer-row{flex-direction:column;} }
+  @media (max-width:420px){ .customer-row{flex-direction:column;} .customer-row .cli-sugg{order:1;} .customer-row .gen-num-btn{order:2;} }
 
   /* ---------- v15: barra "Annulla" dopo aver tolto una riga ---------- */
   .undo-bar{
@@ -1003,6 +1003,7 @@
   .edit-btn{background:transparent;border:1.5px solid var(--bg-shell);color:var(--text);padding:9px 16px;border-radius:6px;font-size:12.5px;font-weight:700;}
   .edit-btn:disabled{opacity:.5;}
   .edit-banner{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF4E0;border:2px solid #E9B864;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:15px;}
+  .edit-banner.hidden{display:none;} /* v21.4: senza questa restava una striscia gialla vuota */
   .edit-banner .eb-txt{flex:1;min-width:200px;}
   .edit-banner .eb-warn{color:var(--stamp);font-weight:700;display:block;margin-top:4px;}
   .edit-banner button{background:transparent;border:1.5px solid var(--stamp);color:var(--stamp);border-radius:8px;padding:9px 14px;font-weight:700;font-size:14px;min-height:44px;}
@@ -1012,6 +1013,96 @@
     .colli-row{gap:8px;}
     .colli-row .field-input{width:96px;font-size:19px;}
     .order-tag{font-size:13px;padding:3px 8px;}
+  }
+
+  /* ---------- v21.4: riepilogo della giornata (scheda Buoni) ---------- */
+  .riepilogo{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:14px;}
+  .riep-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .riep-title{font-weight:700;font-size:13.5px;}
+  .riep-title span{color:var(--muted);font-weight:600;}
+  .riep-toggle{background:none;border:none;color:var(--muted);font-size:12.5px;font-weight:600;padding:4px 2px;}
+  .riep-groups{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:8px;}
+  .riepilogo.chiuso .riep-groups{display:none;}
+  .riep-group{display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .riep-glabel{font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;}
+  .riep-tiles{display:flex;gap:6px;flex-wrap:wrap;}
+  .riep-tile{background:var(--bg-paper);border:1px solid var(--border);border-radius:9px;padding:6px 10px;text-align:left;color:var(--text);min-width:76px;}
+  .riep-tile b{display:block;font-family:var(--font-mono);font-size:20px;line-height:1.1;}
+  .riep-tile small{font-size:11.5px;color:var(--muted);font-weight:600;}
+  .riep-tile.zero b{color:var(--muted);opacity:.6;}
+  .riep-tile.warn{background:var(--warn-bg);border-color:#E8C77E;}
+  .riep-tile.bad{background:var(--bad-bg);border-color:var(--stamp);}
+  .riep-tile.bad b{color:var(--stamp);}
+  .riep-tile.ok b{color:var(--success);}
+  @media (max-width:700px), (pointer:coarse){
+    .riep-title{font-size:15px;}
+    .riep-toggle{font-size:14px;padding:8px 4px;}
+    .riep-groups{gap:10px;}
+    .riep-group{width:100%;}
+    .riep-tiles{display:grid;grid-template-columns:repeat(3,1fr);}
+    .riep-tile{min-width:0;padding:8px 10px;min-height:52px;}
+    .riep-tile b{font-size:22px;}
+    .riep-tile small{font-size:12.5px;}
+  }
+
+  /* ---------- v21.4: carico a bennate (voci in tonnellate) ---------- */
+  .benn-box{margin-top:6px;}
+  .benn-open-btn{background:#fff;border:1.5px solid var(--accent);color:var(--accent-dark);border-radius:6px;padding:5px 10px;font-size:12.5px;font-weight:700;}
+  .benn-summary{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+    background:rgba(232,163,61,0.10);border-radius:6px;padding:6px 8px;font-size:12.5px;}
+  .benn-summary b{font-family:var(--font-mono);}
+  .benn-panel{background:rgba(232,163,61,0.08);border:1.5px solid var(--accent);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;}
+  .benn-list{display:flex;flex-wrap:wrap;gap:5px;}
+  .benn-list:empty::before{content:"Nessuna bennata ancora: scrivi il peso della prima.";font-size:12px;color:var(--muted);}
+  .benn-chip{font-family:var(--font-mono);font-size:12px;background:#fff;border:1px solid var(--border);border-radius:5px;padding:3px 7px;}
+  .benn-chip i{font-style:normal;color:var(--muted);margin-right:4px;}
+  .benn-add{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .benn-kg{width:110px;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:15px;font-family:var(--font-mono);background:#fff;}
+  .benn-kg.err{border-color:var(--stamp);box-shadow:0 0 0 2px rgba(178,59,59,0.2);}
+  .benn-unit{font-size:12.5px;font-weight:700;color:var(--muted);}
+  .benn-btn{background:var(--bg-shell);color:#fff;border:none;border-radius:6px;padding:7px 11px;font-size:12.5px;font-weight:700;}
+  .benn-btn.ghost{background:#fff;color:var(--text);border:1px solid var(--border);}
+  .benn-btn.danger{background:#fff;color:var(--stamp);border:1px solid var(--stamp);}
+  .benn-err{font-size:12px;color:var(--stamp);font-weight:600;}
+  .benn-err:empty{display:none;}
+  .benn-tot{font-size:13.5px;}
+  .benn-tot b{font-family:var(--font-mono);font-size:15px;}
+  .benn-foot{display:flex;gap:6px;flex-wrap:wrap;justify-content:space-between;}
+  .qty-input[readonly]{background:rgba(232,163,61,0.12);color:var(--text);font-weight:700;width:64px;}
+  .benn-tot b,.benn-summary b{white-space:nowrap;}
+  .order-benn{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin:-2px 0 6px;line-height:1.45;}
+  @media (max-width:700px), (pointer:coarse){
+    .benn-open-btn{font-size:16px;padding:0 14px;min-height:48px;border-radius:8px;width:100%;}
+    .benn-summary{font-size:15px;padding:10px 12px;border-radius:8px;}
+    .benn-panel{padding:12px;gap:10px;}
+    .benn-chip{font-size:15px;padding:5px 9px;}
+    .benn-list:empty::before{font-size:15px;}
+    .benn-kg{flex:1;min-width:0;width:auto;height:52px;font-size:22px;border-radius:8px;}
+    .benn-unit{font-size:16px;}
+    .benn-btn{font-size:16px;padding:0 14px;min-height:52px;border-radius:8px;}
+    .benn-add .benn-btn.main{flex:1 1 100%;}
+    .benn-err{font-size:15px;}
+    .benn-tot{font-size:16px;}
+    .benn-tot b{font-size:20px;}
+    .benn-foot .benn-btn{flex:1;}
+    .order-benn{font-size:13.5px;}
+  }
+
+  /* ---------- v21.4: suggerimenti per il nome cliente (imprese) ---------- */
+  .customer-row{flex-wrap:wrap;}
+  .cli-sugg{display:flex;flex-direction:column;gap:4px;flex-basis:100%;order:3;}
+  .cli-sugg:empty{display:none;}
+  .cli-sugg-info{font-size:12px;color:var(--muted);padding:0 2px;}
+  .cli-row{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;
+    background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);width:100%;}
+  .cli-row:hover,.cli-row:focus{border-color:var(--accent);outline:none;}
+  .cli-name{font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .cli-name mark{background:#FBE3B8;color:inherit;border-radius:2px;padding:0 1px;}
+  .cli-meta{font-size:11.5px;color:var(--muted);white-space:nowrap;}
+  @media (max-width:700px), (pointer:coarse){
+    .cli-row{padding:12px;min-height:48px;}
+    .cli-name{font-size:16px;}
+    .cli-meta{font-size:12.5px;}
   }
 </style>
 </head>
@@ -1115,6 +1206,7 @@
               <div class="customer-row">
                 <input class="field-input" id="customerInput" placeholder="Nome cliente" autocomplete="off">
                 <button type="button" class="btn-secondary gen-num-btn" id="genNumBtn">&#128290; Genera numero</button>
+                <div class="cli-sugg" id="cliSugg" role="listbox" aria-label="Clienti già usati"></div>
               </div>
               <div class="ctype-row" id="ctypeRow" role="radiogroup" aria-label="Tipo di cliente">
                 <button type="button" class="ctype-btn" data-ctype="privato" role="radio" aria-checked="false">&#128100; Privato</button>
@@ -1135,6 +1227,7 @@
   </section>
 
   <section id="tab-ordini" class="tab-panel">
+    <div class="riepilogo" id="riepilogo"></div>
     <div class="ordini-toolbar">
       <div class="filter-chips">
         <button class="chip" data-filter="tutti">Tutti</button>
@@ -1467,7 +1560,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = '21.3';
+const APP_VERSION = '21.4';
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -2075,7 +2168,8 @@ document.getElementById('manualConfirm').addEventListener('click', ()=>{
 function addCatalogItemToCart(p){
   const desc = p[0], um = p[1] ? p[1].toUpperCase() : '', price = p[2];
   const existing = cart.find(c => !c.manual && !c.reso && c.desc === desc && c.um === um);
-  if(existing){ existing.qty += 1; lastAddedId = existing.id; }
+  if(existing && haBennate(existing)){ bennAperte.add(existing.id); bennFocus = existing.id; lastAddedId = existing.id; }
+  else if(existing){ existing.qty += 1; lastAddedId = existing.id; }
   else { lastAddedId = cartIdCounter; cart.push({id: cartIdCounter++, desc, um, price, qty:1, manual:false, note:''}); }
   renderCart();
 }
@@ -2138,7 +2232,11 @@ function restoreDraft(){
   if(!d || !Array.isArray(d.cart) || (Date.now() - (d.at || 0)) > DRAFT_MAX_AGE_MS){ saveDraft(); return; }
   if(cart.length) return; // c'è già qualcosa nel carrello: non si mescola
   cart = d.cart.filter(c => c && typeof c.desc === 'string' && typeof c.qty === 'number')
-    .map((c, n) => ({id: n + 1, desc: c.desc, um: c.um || '', price: c.price || 0, qty: c.qty, manual: !!c.manual, note: c.note || '', reso: !!c.reso}));
+    .map((c, n) => {
+      const r = {id: n + 1, desc: c.desc, um: c.um || '', price: c.price || 0, qty: c.qty, manual: !!c.manual, note: c.note || '', reso: !!c.reso};
+      if(Array.isArray(c.bennate) && c.bennate.length){ r.bennate = c.bennate.map(Number).filter(x => x > 0); r.qtyPrima = c.qtyPrima; aggiornaQtyBennate(r); }
+      return r;
+    });
   // v21.3: se si stava modificando un buono già inviato, si torna in modifica
   // (altrimenti al nuovo invio diventerebbe un secondo buono doppione)
   editing = (d.edit && d.edit.id && d.edit.base) ? d.edit : null;
@@ -2155,7 +2253,89 @@ function restoreDraft(){
 }
 ['customerInput', 'noteInput'].forEach(id => document.getElementById(id).addEventListener('input', saveDraft));
 
+// ---- v21.4: carico a bennate per le voci in tonnellate (sabbia, misto getto, puntina, roccetta…) ----
+// Il magazziniere scrive il peso di ogni bennata in kg; l'app le somma e mette
+// la quantità della riga in tonnellate con 2 decimali. Le bennate restano nel
+// buono (items[n].bennate = [kg, kg, …]) così l'ufficio vede il dettaglio.
+const BENN_MIN_KG = 50, BENN_MAX_KG = 9999;
+function isTon(item){ return String(item && item.um || '').trim().toUpperCase() === 'TON'; }
+function haBennate(item){ return isTon(item) && Array.isArray(item.bennate) && item.bennate.length > 0; }
+function sommaKg(b){ return (b || []).reduce((s, x) => s + (Number(x) || 0), 0); }
+function kgInTon(kg){ return Math.round(kg / 10) / 100; }
+function fmtKg(kg){ return Number(kg).toLocaleString('it-IT', {maximumFractionDigits: 0}); }
+function fmtTon(t){ return Number(t).toLocaleString('it-IT', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+function bennateTxt(b){
+  return b.length + (b.length === 1 ? ' bennata: ' : ' bennate: ') + b.map(fmtKg).join(' + ') + ' kg'
+    + (b.length > 1 ? ' = ' + fmtKg(sommaKg(b)) + ' kg' : '');
+}
+// solo le righe a tonnellate portano le bennate nel buono (mai "undefined": Firebase lo rifiuta)
+function rigaPerBuono(c){
+  const r = {desc:c.desc, um:c.um, qty:c.qty, price:c.price||0, manual:!!c.manual, note:c.note||'', reso:!!c.reso};
+  if(haBennate(c)) r.bennate = c.bennate.map(Number);
+  return r;
+}
+const bennAperte = new Set();   // righe del carrello col pannello bennate aperto
+let bennFocus = null;           // riga a cui ridare il cursore dopo il ridisegno
+const bennErr = new Map();      // id riga → messaggio di errore
+function aggiornaQtyBennate(item){
+  if(haBennate(item)) item.qty = kgInTon(sommaKg(item.bennate));
+}
+function bennBoxHtml(item){
+  if(!isTon(item)) return '';
+  const b = haBennate(item) ? item.bennate : [];
+  if(!bennAperte.has(item.id)){
+    if(!b.length) return '<div class="benn-box"><button type="button" class="benn-open-btn" data-benn="open">⚖️ Pesa a bennate</button></div>';
+    return '<div class="benn-box"><div class="benn-summary"><span>⚖️ ' + escapeHtml(bennateTxt(b)) + ' → <b>' + fmtTon(item.qty) + ' t</b></span>'
+      + '<button type="button" class="benn-btn ghost" data-benn="open">Aggiungi / correggi</button></div></div>';
+  }
+  const ultima = b.length ? b[b.length - 1] : null;
+  return '<div class="benn-box"><div class="benn-panel">'
+    + '<div class="benn-list">' + b.map((kg, n) => '<span class="benn-chip"><i>' + (n + 1) + 'ª</i>' + fmtKg(kg) + ' kg</span>').join('') + '</div>'
+    + '<div class="benn-add">'
+      + '<input class="benn-kg" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="7" placeholder="peso" aria-label="Peso della bennata in kg" data-benn-input="' + item.id + '">'
+      + '<span class="benn-unit">kg</span>'
+      + '<button type="button" class="benn-btn main" data-benn="add">+ Aggiungi bennata</button>'
+      + (ultima ? '<button type="button" class="benn-btn ghost" data-benn="same">↻ Uguale (' + fmtKg(ultima) + ')</button>' : '')
+    + '</div>'
+    + '<div class="benn-err">' + escapeHtml(bennErr.get(item.id) || '') + '</div>'
+    + '<div class="benn-tot">' + (b.length
+        ? 'Totale: ' + b.length + (b.length === 1 ? ' bennata' : ' bennate') + ' = ' + fmtKg(sommaKg(b)) + ' kg → <b>' + fmtTon(item.qty) + ' t</b>'
+        : 'La quantità si calcola da sola sommando le bennate.') + '</div>'
+    + '<div class="benn-foot">'
+      + (b.length ? '<button type="button" class="benn-btn danger" data-benn="undo">Togli l\'ultima</button>' : '')
+      + '<button type="button" class="benn-btn" data-benn="done">' + (b.length ? 'Fatto ✓' : 'Chiudi') + '</button>'
+    + '</div></div></div>';
+}
+// "1240" → 1240 · "1.240" o "1 240" → 1240 · "1,24" o "1.24" → 1,24 (troppo poco: era in tonnellate)
+function leggiKg(x){
+  const t = String(x == null ? '' : x).trim().replace(/\s+/g, '');
+  if(!t) return NaN;
+  if(/^\d{1,3}(\.\d{3})+$/.test(t)) return Number(t.replace(/\./g, ''));
+  if(!/^\d+([.,]\d+)?$/.test(t)) return NaN;
+  return Number(t.replace(',', '.'));
+}
+function bennAggiungi(item, kg){
+  const n = leggiKg(kg);
+  if(!isFinite(n)){ bennErr.set(item.id, String(kg).trim() ? 'Scrivi solo il numero dei kg (es. 1240).' : 'Scrivi il peso della bennata in kg.'); return false; }
+  const v = Math.round(n);
+  if(v < BENN_MIN_KG){ bennErr.set(item.id, 'Troppo poco: il peso va scritto in kg (es. 1240, non 1,24).'); return false; }
+  if(v > BENN_MAX_KG){ bennErr.set(item.id, 'Più di ' + fmtKg(BENN_MAX_KG) + ' kg in una bennata? Controlla il numero.'); return false; }
+  bennErr.delete(item.id);
+  if(!haBennate(item)){ item.qtyPrima = item.qty; item.bennate = []; }
+  item.bennate = item.bennate.concat([v]);
+  aggiornaQtyBennate(item);
+  return true;
+}
+function bennTogliUltima(item){
+  if(!haBennate(item)) return;
+  item.bennate = item.bennate.slice(0, -1);
+  bennErr.delete(item.id);
+  if(item.bennate.length) aggiornaQtyBennate(item);
+  else { item.qty = item.qtyPrima > 0 ? item.qtyPrima : 1; delete item.bennate; delete item.qtyPrima; }
+}
+
 function renderCart(){
+  bennAperte.forEach(id => { if(!cart.some(c => c.id === id)) bennAperte.delete(id); });
   saveDraft();
   markInCart();
   cartCount.textContent = '(' + cart.length + ')';
@@ -2177,12 +2357,13 @@ function renderCart(){
       + '<div><div class="ci-desc">' + escapeHtml(item.desc) + (item.manual ? '<span class="ci-tag">MANUALE</span>' : '') + '</div></div>'
       + '<div class="ci-controls">'
       + '<select class="um-input" aria-label="Unità di misura">' + umSelectOptionsHtml(item.um) + '</select>'
-      + '<button class="qty-btn" data-act="dec">-</button>'
-      + '<input class="qty-input" type="number" step="any" min="0" value="'+item.qty+'">'
-      + '<button class="qty-btn" data-act="inc">+</button>'
+      + '<button class="qty-btn" data-act="dec"' + (haBennate(item) ? ' disabled' : '') + '>-</button>'
+      + '<input class="qty-input" type="number" step="any" min="0" value="'+item.qty+'"' + (haBennate(item) ? ' readonly title="Calcolata dalle bennate"' : '') + '>'
+      + '<button class="qty-btn" data-act="inc"' + (haBennate(item) ? ' disabled' : '') + '>+</button>'
       + '<button class="reso-btn" data-act="reso" aria-pressed="' + (item.reso ? 'true' : 'false') + '" title="Segna come materiale reso dal cliente">&#8617; Reso</button>'
       + '<button class="remove-btn" data-act="rm">&#10005;</button>'
       + '</div></div>'
+      + bennBoxHtml(item)
       + '<div class="ci-note-row">'
       + (hasNote
           ? '<div class="ci-note-display">📝 <span>' + escapeHtml(item.note) + '</span><button class="ci-note-edit-link">Modifica</button></div>'
@@ -2197,8 +2378,27 @@ function renderCart(){
   cartList.querySelectorAll('.cart-item').forEach(row=>{
     const id = parseInt(row.dataset.id);
     const item = cart.find(c=>c.id === id);
-    row.querySelector('[data-act="inc"]').addEventListener('click', ()=>{ item.qty += 1; renderCart(); });
-    row.querySelector('[data-act="dec"]').addEventListener('click', ()=>{ item.qty = Math.max(0, item.qty - 1); if(item.qty === 0){ removeCartItem(id); return; } renderCart(); });
+    row.querySelector('[data-act="inc"]').addEventListener('click', ()=>{ if(haBennate(item)) return; item.qty += 1; renderCart(); });
+    row.querySelector('[data-act="dec"]').addEventListener('click', ()=>{ if(haBennate(item)) return; item.qty = Math.max(0, item.qty - 1); if(item.qty === 0){ removeCartItem(id); return; } renderCart(); });
+    // v21.4: bennate
+    row.querySelectorAll('[data-benn]').forEach(b => b.addEventListener('click', ()=>{
+      const a = b.dataset.benn;
+      const inp = row.querySelector('.benn-kg');
+      if(a === 'open'){ bennAperte.add(id); bennFocus = id; }
+      else if(a === 'done'){ bennAperte.delete(id); bennErr.delete(id); }
+      else if(a === 'add'){ bennAggiungi(item, inp ? inp.value : ''); bennFocus = id; }
+      else if(a === 'same'){ const b2 = item.bennate || []; if(b2.length) bennAggiungi(item, b2[b2.length - 1]); bennFocus = id; }
+      else if(a === 'undo'){ bennTogliUltima(item); bennFocus = id; }
+      renderCart();
+    }));
+    const bennInp = row.querySelector('.benn-kg');
+    if(bennInp) bennInp.addEventListener('keydown', (e)=>{
+      if(e.key !== 'Enter') return;
+      e.preventDefault();
+      bennAggiungi(item, bennInp.value);
+      bennFocus = id;
+      renderCart();
+    });
     row.querySelector('[data-act="rm"]').addEventListener('click', ()=> removeCartItem(id));
     row.querySelector('[data-act="reso"]').addEventListener('click', ()=>{
       item.reso = !item.reso;
@@ -2209,9 +2409,11 @@ function renderCart(){
       // The magazziniere can override the catalog's default unit of measure
       // for this specific load (e.g. count a product by PZ instead of MQ).
       item.um = e.target.value;
+      if(!isTon(item)){ bennAperte.delete(id); bennErr.delete(id); } // le bennate valgono solo in tonnellate
       renderCart();
     });
     row.querySelector('.qty-input').addEventListener('change', (e)=>{
+      if(haBennate(item)){ renderCart(); return; }
       const v = parseFloat(e.target.value);
       if(!isNaN(v) && v > 0){ item.qty = v; } else { removeCartItem(id); return; }
       renderCart();
@@ -2239,6 +2441,11 @@ function renderCart(){
     // Saving on blur means the magazziniere never has to remember to tap "Salva".
     noteInput.addEventListener('blur', saveNote);
   });
+  if(bennFocus != null){
+    const inp = cartList.querySelector('[data-benn-input="' + bennFocus + '"]');
+    bennFocus = null;
+    if(inp){ try{ inp.focus({preventScroll: true}); }catch(e){ inp.focus(); } }
+  }
 }
 renderCart();
 
@@ -2307,6 +2514,140 @@ document.querySelectorAll('.ctype-btn').forEach(b => b.addEventListener('click',
   saveDraft();
 }));
 const CTYPE_LABEL = {privato: 'PRIVATO', impresa: 'IMPRESA'};
+
+// ---- v21.4: suggerimenti per il nome cliente (solo imprese) ----
+// Lista comune a tutti i dispositivi, in Firebase: documento contatori/clienti,
+// campo c = mappa  chiave (nome semplificato) → {nome, n, at}.
+// Ci entrano solo i buoni segnati come IMPRESA (mai i privati, mai i numeri
+// per la cassa, mai i clienti "prova"). Si aggiorna a ogni buono inviato o
+// modificato; i nomi non usati da 90 giorni si tolgono da soli.
+// Se in Firebase manca la regola, i suggerimenti arrivano comunque dai buoni
+// Impresa ancora presenti nell'app (gli ultimi giorni).
+const CLI_GIORNI = 90, CLI_MAX_VOCI = 2000, CLI_MAX_SUGG = 6;
+function clientiDoc(){ return doc(fbDb, 'contatori', 'clienti'); }
+let CLIENTI = {};
+let clientiErr = '';
+// "Rossi S.r.l." e "ROSSI  srl" diventano la stessa chiave: "rossi srl"
+function chiaveCliente(s){
+  return normalize(String(s || '')).replace(/[.'’`]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+// stessa regola delle statistiche: "prova" come parola (anche "PROVA1"), non "Provasi"
+function clienteProva(s){ return /(^|[^a-z])prova\d*([^a-z]|$)/.test(normalize(String(s || ''))); }
+function clienteDaRicordare(nome, tipo){
+  const k = chiaveCliente(nome);
+  return tipo === 'impresa' && k.length >= 2 && !numeroCassa(nome) && !clienteProva(nome);
+}
+async function registraCliente(nome, tipo){
+  nome = String(nome || '').trim().replace(/\s+/g, ' ');
+  if(!clienteDaRicordare(nome, tipo)) return;
+  const k = chiaveCliente(nome);
+  const now = new Date().toISOString();
+  const limite = Date.now() - CLI_GIORNI * 86400000;
+  try{
+    await withTimeout(runTransaction(fbDb, async (tx)=>{
+      const snap = await tx.get(clientiDoc());
+      const d = snap.exists() ? snap.data() : null;
+      const vecchio = (d && d.c && typeof d.c === 'object') ? d.c : {};
+      const c = {};
+      Object.keys(vecchio).forEach(key=>{
+        const v = vecchio[key];
+        if(v && typeof v === 'object' && (Date.parse(v.at) || 0) >= limite)
+          c[key] = {nome: String(v.nome || key), n: Number(v.n) || 1, at: String(v.at)};
+      });
+      c[k] = {nome, n: (c[k] ? c[k].n : 0) + 1, at: now};
+      const chiavi = Object.keys(c);
+      if(chiavi.length > CLI_MAX_VOCI){
+        chiavi.sort((a,b)=> (Date.parse(c[a].at) || 0) - (Date.parse(c[b].at) || 0))
+          .slice(0, chiavi.length - CLI_MAX_VOCI).forEach(x => { delete c[x]; });
+      }
+      tx.set(clientiDoc(), {c});
+    }), 10000);
+    clientiErr = '';
+  }catch(e){
+    clientiErr = (e && e.code) || 'rete';
+  }
+}
+function subscribeClienti(){
+  onSnapshot(clientiDoc(), (snap)=>{
+    clientiErr = '';
+    const d = snap.exists() ? snap.data() : null;
+    CLIENTI = (d && d.c && typeof d.c === 'object') ? d.c : {};
+    if(document.activeElement === customerInput) suggerisciClienti();
+  }, (err)=>{
+    clientiErr = (err && err.code) || 'errore';
+  });
+}
+function candidatiClienti(){
+  const m = new Map();
+  const limite = Date.now() - CLI_GIORNI * 86400000;
+  Object.keys(CLIENTI).forEach(k=>{
+    const v = CLIENTI[k];
+    if(!v || typeof v !== 'object') return;
+    const at = Date.parse(v.at) || 0;
+    if(at >= limite) m.set(k, {nome: String(v.nome || k), n: Number(v.n) || 0, at});
+  });
+  // in più i buoni Impresa ancora nell'app (utili finché la lista comune è vuota)
+  ordersCache.forEach(o=>{
+    if(o.eliminatoAt || !clienteDaRicordare(o.customer, o.customerType)) return;
+    const k = chiaveCliente(o.customer);
+    const at = Date.parse(o.createdAt) || 0;
+    const x = m.get(k);
+    if(!x) m.set(k, {nome: String(o.customer).trim().replace(/\s+/g, ' '), n: 0, at});
+    else if(at > x.at) x.at = at;
+  });
+  return m;
+}
+function giornoCorto(ms){
+  const d = new Date(ms);
+  if(d.toDateString() === new Date().toDateString()) return 'oggi';
+  return d.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit'});
+}
+const cliSugg = document.getElementById('cliSugg');
+function chiudiSuggClienti(){ cliSugg.innerHTML = ''; }
+function suggerisciClienti(){
+  const raw = customerInput.value;
+  const q = chiaveCliente(raw);
+  if(document.activeElement !== customerInput || q.length < 2 || numeroCassa(raw) || getCustomerType() === 'privato'){
+    chiudiSuggClienti(); return;
+  }
+  const parole = q.split(' ');
+  const trovati = [];
+  candidatiClienti().forEach((v, k)=>{
+    if(k === q) return; // già scritto per intero
+    if(!parole.every(p => k.includes(p))) return;
+    const words = k.split(' ');
+    const score = k.startsWith(q) ? 0 : parole.every(p => words.some(w => w.startsWith(p))) ? 1 : 2;
+    trovati.push({k, v, score});
+  });
+  if(!trovati.length){ chiudiSuggClienti(); return; }
+  trovati.sort((a,b)=> (a.score - b.score) || (b.v.n - a.v.n) || (b.v.at - a.v.at));
+  const shown = trovati.slice(0, CLI_MAX_SUGG);
+  cliSugg.innerHTML = '<div class="cli-sugg-info">Imprese già usate — tocca per sceglierla'
+    + (trovati.length > CLI_MAX_SUGG ? ' · prime ' + CLI_MAX_SUGG + ' di ' + trovati.length : '')
+    + (clientiErr === 'permission-denied' ? ' · ⚠️ lista comune non attiva: manca la regola in Firebase' : '') + '</div>'
+    + shown.map(t => '<button type="button" class="cli-row" role="option" data-cli="' + escAttr(t.k) + '">'
+      + '<span class="cli-name">' + escapeHtml(t.v.nome) + '</span>'
+      + '<span class="cli-meta">' + (t.v.n ? t.v.n + (t.v.n === 1 ? ' buono' : ' buoni') + ' · ' : '') + 'ultimo ' + giornoCorto(t.v.at) + '</span>'
+      + '</button>').join('');
+  const mappa = new Map(shown.map(t => [t.k, t.v]));
+  cliSugg.querySelectorAll('[data-cli]').forEach(b => b.addEventListener('click', ()=>{
+    const v = mappa.get(b.dataset.cli);
+    if(!v) return;
+    customerInput.value = v.nome;
+    if(!getCustomerType()) setCustomerType('impresa');
+    chiudiSuggClienti();
+    syncGenHint();
+    saveDraft();
+    customerInput.blur();
+  }));
+}
+// toccando un suggerimento il campo non perde il fuoco prima del tocco
+cliSugg.addEventListener('pointerdown', (e)=>{ if(e.target.closest('.cli-row')) e.preventDefault(); });
+customerInput.addEventListener('input', suggerisciClienti);
+customerInput.addEventListener('focus', suggerisciClienti);
+customerInput.addEventListener('blur', ()=> setTimeout(()=>{ if(document.activeElement !== customerInput) chiudiSuggClienti(); }, 200));
+customerInput.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') chiudiSuggClienti(); });
+document.querySelectorAll('.ctype-btn').forEach(b => b.addEventListener('click', ()=>{ if(getCustomerType() === 'privato') chiudiSuggClienti(); }));
 
 // ---- v19: numero colli (facoltativo, numero intero) ----
 const colliInput = document.getElementById('colliInput');
@@ -2449,7 +2790,9 @@ function iniziaModifica(id){
   if(!operatorName){ showPrepToast('Inserisci prima il tuo nome (in alto, «Cambia»).'); return; }
   editing = {id: o.id, base: JSON.parse(JSON.stringify(o))};
   cart = (o.items || []).map((it, n) => ({id: n + 1, desc: String(it.desc || ''), um: it.um || '', price: it.price || 0,
-    qty: Number(it.qty) || 0, manual: !!it.manual, note: it.note || '', reso: !!it.reso}));
+    qty: Number(it.qty) || 0, manual: !!it.manual, note: it.note || '', reso: !!it.reso,
+    bennate: Array.isArray(it.bennate) && it.bennate.length ? it.bennate.map(Number) : undefined}));
+  cart.forEach(c => { if(!c.bennate) delete c.bennate; });
   cartIdCounter = cart.length + 1;
   document.getElementById('customerInput').value = o.customer || '';
   document.getElementById('noteInput').value = o.note || '';
@@ -2468,7 +2811,7 @@ async function salvaModifica(){
     customerType: getCustomerType(),
     colli: readColli(),
     note: document.getElementById('noteInput').value.trim(),
-    items: cart.map(c=>({desc:c.desc, um:c.um, qty:c.qty, price:c.price||0, manual:!!c.manual, note:c.note||'', reso:!!c.reso})),
+    items: cart.map(rigaPerBuono),
     total: cart.reduce((s,c)=> s + c.qty*(c.price||0), 0)
   };
   const m = calcolaModifica(base, dopo);
@@ -2499,6 +2842,8 @@ async function salvaModifica(){
   submitOrderBtn.disabled = cart.length === 0;
   submitOrderBtn.textContent = 'Salva modifiche';
   if(esito === 'ok'){
+    if(chiaveCliente(dopo.customer) !== chiaveCliente(base.customer) || (base.customerType !== 'impresa' && dopo.customerType === 'impresa'))
+      registraCliente(dopo.customer, dopo.customerType);
     ordersCache = ordersCache.map(o => o.id === id ? Object.assign({}, o, dopo, {modificatoDa: operatorName, modificatoAt: at,
       modifiche: (o.modifiche || []).concat([voce]).slice(-MOD_MAX)}) : o);
     chiudiModifica(true);
@@ -2549,7 +2894,7 @@ submitOrderBtn.addEventListener('click', async ()=>{
     customerType: getCustomerType(),
     colli: readColli(),
     note: document.getElementById('noteInput').value.trim(),
-    items: cart.map(c=>({desc:c.desc, um:c.um, qty:c.qty, price:c.price||0, manual:!!c.manual, note:c.note||'', reso:!!c.reso})),
+    items: cart.map(rigaPerBuono),
     total: cart.reduce((s,c)=> s + c.qty*(c.price||0), 0),
     createdAt: new Date().toISOString(),
     status: 'in_attesa'
@@ -2557,6 +2902,7 @@ submitOrderBtn.addEventListener('click', async ()=>{
   myOrderIds.add(order.id);
   const ok = await createOrder(order);
   if(ok){
+    registraCliente(order.customer, order.customerType); // v21.4: lista imprese per i suggerimenti
     ordersCache = [...ordersCache, order];
     lastKnownCount = ordersCache.length;
     updateBadge(ordersCache);
@@ -2607,6 +2953,7 @@ function updateBadge(orders){
   const badge = document.getElementById('pendingBadge');
   badge.textContent = pending;
   badge.classList.toggle('zero', pending === 0);
+  renderRiepilogo();
 }
 
 function renderOrders(){
@@ -2629,6 +2976,7 @@ function renderOrders(){
     const itemRowHtml = (it)=>
       '<div class="order-item-row' + (it.reso ? ' reso' : '') + '"><span class="oi-name">' + escapeHtml(it.desc) + (it.manual ? ' <span class="ci-tag">MANUALE</span>' : '') + '</span>'
       + '<span class="oi-qty">' + it.qty + ' ' + (it.um||'') + '</span></div>'
+      + (Array.isArray(it.bennate) && it.bennate.length ? '<div class="order-benn">⚖️ ' + escapeHtml(bennateTxt(it.bennate)) + '</div>' : '')
       + (it.note ? '<div class="ci-note-display" style="margin:-2px 0 5px;">📝 <span>' + escapeHtml(it.note) + '</span></div>' : '');
     const caricati = (o.items||[]).filter(it => !it.reso), resi = (o.items||[]).filter(it => it.reso);
     // senza resi il buono si vede come prima; con i resi, due blocchi separati
@@ -2727,6 +3075,84 @@ async function refreshOrders(silent){
   if(activeTab === 'ordini') renderOrders();
   renderQuickAccess();
   lastKnownCount = orders.length;
+}
+
+// ---------------- v21.4: riepilogo della giornata ----------------
+// In cima alla scheda Buoni: com'è messa la giornata, a colpo d'occhio.
+// Usa solo dati che l'app scarica già (buoni, commissioni, noleggi prenotati)
+// più i noleggi "fuori": nessuna statistica per persona.
+// Un tocco su un riquadro porta alla lista giusta.
+const NOL_RIEP = {prenotati: null, fuori: null}; // date "dal" / "al" (AAAA-MM-GG); null = non ancora letti
+let riepPrepOk = false;
+function oggiStr(){
+  const d = new Date(), z = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
+}
+function eOggi(iso){
+  if(!iso) return false;
+  const d = new Date(iso);
+  return !isNaN(d) && d.toDateString() === new Date().toDateString();
+}
+const RIEP_KEY = 'edilnord_riepilogo_chiuso';
+let riepChiuso = (()=>{ try{ return localStorage.getItem(RIEP_KEY) === '1'; }catch(e){ return false; } })();
+function riepTile(n, label, act, cls){
+  const v = n == null ? '—' : n;
+  return '<button type="button" class="riep-tile' + (n ? '' : ' zero') + (n && cls ? ' ' + cls : '') + '" data-riep="' + act + '">'
+    + '<b>' + v + '</b><small>' + label + '</small></button>';
+}
+function renderRiepilogo(){
+  const box = document.getElementById('riepilogo');
+  if(!box) return;
+  const buoni = ordersCache.filter(o => !o.eliminatoAt);
+  const fatti = buoni.filter(o => eOggi(o.createdAt)).length;
+  const evasi = buoni.filter(o => o.status === 'evaso' && eOggi(o.evasoAt)).length;
+  const attesa = buoni.filter(o => o.status === 'in_attesa').length;
+  const prepOk = riepPrepOk && !prepError;
+  const daFare = prepOk ? prepCache.filter(c => !isChiusa(c) && !isEliminata(c)).length : null;
+  const pronte = prepOk ? prepCache.filter(c => isChiusa(c) && eOggi(c.chiusaAt)).length : null;
+  const oggi = oggiStr();
+  const ritirare = NOL_RIEP.prenotati ? NOL_RIEP.prenotati.filter(d => d <= oggi).length : null;
+  const rientrano = NOL_RIEP.fuori ? NOL_RIEP.fuori.filter(d => d === oggi).length : null;
+  const ritardo = NOL_RIEP.fuori ? NOL_RIEP.fuori.filter(d => d < oggi).length : null;
+  const data = new Date().toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long'});
+  box.classList.toggle('chiuso', riepChiuso);
+  box.innerHTML = '<div class="riep-head"><div class="riep-title">📅 Oggi <span>· ' + escapeHtml(data) + '</span></div>'
+    + '<button type="button" class="riep-toggle" id="riepToggle">' + (riepChiuso ? 'Mostra ▾' : 'Nascondi ▴') + '</button></div>'
+    + '<div class="riep-groups">'
+    + '<div class="riep-group"><div class="riep-glabel">Buoni</div><div class="riep-tiles">'
+      + riepTile(fatti, 'fatti oggi', 'fatti')
+      + riepTile(evasi, 'evasi oggi', 'evasi', 'ok')
+      + riepTile(attesa, 'in attesa', 'attesa', 'warn')
+    + '</div></div>'
+    + '<div class="riep-group"><div class="riep-glabel">Commissioni</div><div class="riep-tiles">'
+      + riepTile(daFare, 'da preparare', 'prep-aperte', 'warn')
+      + riepTile(pronte, 'pronte oggi', 'prep-pronte', 'ok')
+    + '</div></div>'
+    + '<div class="riep-group"><div class="riep-glabel">Noleggi</div><div class="riep-tiles">'
+      + riepTile(ritirare, 'da ritirare', 'nol')
+      + riepTile(rientrano, 'rientrano oggi', 'nol')
+      + (ritardo ? riepTile(ritardo, 'in ritardo', 'nol', 'bad') : '')
+    + '</div></div>'
+    + '</div>';
+  document.getElementById('riepToggle').addEventListener('click', ()=>{
+    riepChiuso = !riepChiuso;
+    try{ localStorage.setItem(RIEP_KEY, riepChiuso ? '1' : '0'); }catch(e){}
+    renderRiepilogo();
+  });
+  box.querySelectorAll('[data-riep]').forEach(b => b.addEventListener('click', ()=>{
+    const a = b.dataset.riep;
+    if(a === 'nol'){ location.href = 'noleggi.html'; return; }
+    if(a.startsWith('prep-')){
+      vaiAScheda('prep');
+      const chip = document.querySelector('.prep-chip[data-prep-filter="' + (a === 'prep-pronte' ? 'pronte' : 'aperte') + '"]');
+      if(chip) chip.click();
+      return;
+    }
+    const f = {fatti: 'tutti', evasi: 'evaso', attesa: 'attesa'}[a];
+    const chip = document.querySelector('#tab-ordini .chip[data-filter="' + f + '"]');
+    if(chip) chip.click();
+    document.getElementById('ordersList').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }));
 }
 
 // ---------------- Sound ----------------
@@ -3819,7 +4245,9 @@ ordAddBtn.addEventListener('click', async ()=>{
     knownPrepIds = new Set(list.map(c => c.id));
     prepServer = list;
     prepCache = applyPending(list);
+    riepPrepOk = true;
     renderPrep();
+    renderRiepilogo();
     if(hasNew){
       const b = document.getElementById('prepBadge');
       b.classList.add('flash');
@@ -3829,6 +4257,7 @@ ordAddBtn.addEventListener('click', async ()=>{
   }, (err)=>{
     prepError = (err && err.code) || 'errore';
     renderPrep(true);
+    renderRiepilogo();
   });
 
   // v20: pallino della scheda Noleggi = prenotati da ritirare (data di ritiro oggi o passata)
@@ -3839,8 +4268,20 @@ ordAddBtn.addEventListener('click', async ()=>{
       const n = snap.docs.filter(x => String(x.data().dal || '') <= oggi).length;
       const b = document.getElementById('nolBadge');
       b.textContent = n; b.classList.toggle('zero', n === 0);
+      NOL_RIEP.prenotati = snap.docs.map(x => String(x.data().dal || ''));
+      renderRiepilogo();
     }, ()=>{});
   }catch(e){}
+  // v21.4: noleggi fuori, per "rientrano oggi" e "in ritardo" nel riepilogo
+  try{
+    onSnapshot(query(collection(fbDb, 'noleggi'), where('stato', '==', 'fuori')), (snap)=>{
+      NOL_RIEP.fuori = snap.docs.map(x => { const d = x.data(); return String(d.al || d.dal || ''); });
+      renderRiepilogo();
+    }, ()=>{});
+  }catch(e){}
+  // a mezzanotte "oggi" cambia: il riepilogo si ridisegna da solo ogni minuto
+  setInterval(renderRiepilogo, 60000);
+  renderRiepilogo();
   // v20: arrivando dai Noleggi (index.html#ordini / #prep / #nuovo) si apre la scheda giusta
   const vaiHash = ()=>{
     const h = (location.hash || '').slice(1);
@@ -3858,6 +4299,9 @@ ordAddBtn.addEventListener('click', async ()=>{
 
   // v21: lista "Da ordinare"
   subscribeOrdinare();
+
+  // v21.4: imprese già usate, per i suggerimenti nel campo Cliente
+  subscribeClienti();
 
   subscribeFavorites((favs2)=>{
     FAVORITES = favs2;
