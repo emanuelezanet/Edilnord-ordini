@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Edil Nord Magazzino">
@@ -25,7 +25,7 @@
     --stamp:#B23B3B;
     --success:#4C7A52;
     --text:#26292B;
-    --muted:#767A7C;
+    --muted:#5E6266;
     --border:#DBD5C8;
     --font-display:'Archivo Black', sans-serif;
     --font-body:'Inter', system-ui, sans-serif;
@@ -665,9 +665,9 @@
     .filter-chips{width:100%;gap:8px;}
     .chip{flex:1;font-size:16px;padding:13px 8px;min-height:48px;border-radius:24px;text-align:center;}
     .toolbar-right{width:100%;gap:8px;}
-    .sound-btn,.refresh-btn,.notif-btn{font-size:15px;padding:13px 12px;min-height:48px;border-radius:10px;}
-    .refresh-btn{flex:none;}
-    .sound-btn,.notif-btn{flex:1;}
+    .sound-btn,.refresh-btn,.notif-btn{font-size:14px;padding:8px 10px;min-height:44px;border-radius:10px;white-space:nowrap;}
+    .refresh-btn{flex:none;min-width:48px;font-size:20px;line-height:1;}
+    .sound-btn,.notif-btn{flex:1;min-width:0;}
     .order-card{padding:22px 16px 18px;}
     .order-code{font-size:13.5px;}
     .order-customer{font-size:19px;}
@@ -1235,8 +1235,8 @@
         <button class="chip" data-filter="evaso">Evasi</button>
       </div>
       <div class="toolbar-right">
-        <button class="refresh-btn" id="refreshBtn">&#8635; Aggiorna</button>
-        <button class="sound-btn" id="soundBtn">&#128276; Attiva avviso sonoro</button>
+        <button class="refresh-btn" id="refreshBtn" title="Aggiorna" aria-label="Aggiorna">&#8635;</button>
+        <button class="sound-btn" id="soundBtn">&#128276; Attiva suono</button>
         <button class="notif-btn hidden">&#128421; Attiva notifiche</button>
       </div>
     </div>
@@ -1254,7 +1254,7 @@
           <button class="chip prep-chip" data-prep-filter="eliminate">Eliminate<span class="chip-count" id="cntEliminate">0</span></button>
         </div>
         <div class="toolbar-right">
-          <button class="sound-btn" id="prepSoundBtn">&#128276; Attiva avviso sonoro</button>
+          <button class="sound-btn" id="prepSoundBtn">&#128276; Attiva suono</button>
           <button class="notif-btn hidden">&#128421; Attiva notifiche</button>
         </div>
       </div>
@@ -1560,7 +1560,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = '21.4';
+const APP_VERSION = '21.5';
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -2975,7 +2975,7 @@ function renderOrders(){
     const isEvaso = o.status === 'evaso';
     const itemRowHtml = (it)=>
       '<div class="order-item-row' + (it.reso ? ' reso' : '') + '"><span class="oi-name">' + escapeHtml(it.desc) + (it.manual ? ' <span class="ci-tag">MANUALE</span>' : '') + '</span>'
-      + '<span class="oi-qty">' + it.qty + ' ' + (it.um||'') + '</span></div>'
+      + '<span class="oi-qty">' + (isTon(it) ? fmtTon(it.qty) + ' t' : it.qty + ' ' + (it.um||'')) + '</span></div>'
       + (Array.isArray(it.bennate) && it.bennate.length ? '<div class="order-benn">⚖️ ' + escapeHtml(bennateTxt(it.bennate)) + '</div>' : '')
       + (it.note ? '<div class="ci-note-display" style="margin:-2px 0 5px;">📝 <span>' + escapeHtml(it.note) + '</span></div>' : '');
     const caricati = (o.items||[]).filter(it => !it.reso), resi = (o.items||[]).filter(it => it.reso);
@@ -3028,6 +3028,24 @@ function renderOrders(){
       updateBadge(ordersCache);
       renderOrders();
       updateOrderStatus(id, newStatus, extra);
+      // Un tocco sbagliato su "Segna come evaso" fa sparire il buono da "In attesa":
+      // per qualche secondo in basso c'è "Annulla", come quando si toglie una riga.
+      if(newStatus === 'evaso'){
+        const bar = document.getElementById('undoBar');
+        document.getElementById('undoText').textContent = 'Evaso: buono ' + id;
+        bar.classList.remove('hidden');
+        clearTimeout(undoTimer);
+        undoTimer = setTimeout(()=> bar.classList.add('hidden'), 6000);
+        document.getElementById('undoBtn').onclick = ()=>{
+          clearTimeout(undoTimer);
+          bar.classList.add('hidden');
+          const back = { evasoBy: null, evasoAt: null };
+          ordersCache = ordersCache.map(o => o.id === id ? Object.assign({}, o, {status: 'in_attesa'}, back) : o);
+          updateBadge(ordersCache);
+          renderOrders();
+          updateOrderStatus(id, 'in_attesa', back);
+        };
+      }
     });
   });
 
@@ -3165,7 +3183,7 @@ function writeSoundPref(on){ try{ localStorage.setItem(SOUND_PREF_KEY, on ? '1' 
 function setSoundUi(){
   document.querySelectorAll('.sound-btn').forEach(b=>{
     b.classList.toggle('on', audioEnabled);
-    b.innerHTML = audioEnabled ? '&#128276; Avvisi attivi' : '&#128276; Attiva avviso sonoro';
+    b.innerHTML = audioEnabled ? '&#128276; Suono attivo' : '&#128276; Attiva suono';
   });
 }
 // I browser (iPhone in particolare) tengono l'audio "addormentato" finché
@@ -3246,7 +3264,7 @@ function setNotifUi(){
     const blocked = Notification.permission === 'denied';
     b.classList.toggle('on', notifOn());
     b.classList.toggle('blocked', blocked);
-    b.innerHTML = blocked ? '&#128421; Notifiche bloccate' : notifOn() ? '&#128421; Notifiche attive' : '&#128421; Attiva notifiche';
+    b.innerHTML = blocked ? '&#128421; Bloccate' : notifOn() ? '&#128421; Notifiche attive' : '&#128421; Attiva notifiche';
   });
 }
 document.querySelectorAll('.notif-btn').forEach(b=> b.addEventListener('click', async ()=>{
@@ -3355,6 +3373,24 @@ let prepServer = [];          // ultima copia arrivata da Firebase
 let prepCache = [];           // quello che si vede (= server + modifiche appena fatte)
 let prepFilter = 'aperte';
 let prepOpenId = null;        // commissione aperta nel dettaglio (null = elenco)
+// ---- Gesto/tasto Indietro di Android dentro il dettaglio ----
+// Aprendo una commissione si aggiunge una voce alla cronologia: Indietro
+// torna all'elenco invece di uscire dalla pagina. Si controlla dopo ogni
+// tocco, così vale per tutti i modi di aprire o chiudere il dettaglio.
+let backIgnora = false;
+function syncBackPrep(){
+  const aperto = !!prepOpenId && activeTab === 'prep';
+  const segnato = !!(history.state && history.state.prepDettaglio);
+  try{
+    if(aperto && !segnato) history.pushState({prepDettaglio: true}, '');
+    else if(!aperto && segnato){ backIgnora = true; history.back(); }
+  }catch(e){}
+}
+document.addEventListener('click', ()=> setTimeout(syncBackPrep, 0), true);
+window.addEventListener('popstate', ()=>{
+  if(backIgnora){ backIgnora = false; return; }
+  if(prepOpenId && activeTab === 'prep'){ prepOpenId = null; renderPrep(true); window.scrollTo(0, 0); }
+});
 let prepError = '';
 let prepRenderPending = false;
 const prepPendingRows = new Map(); // riga modificata qui ma non ancora confermata da Firebase
@@ -4076,7 +4112,7 @@ function ordCardHtml(o){
     + '<div class="ord-actions">' + (aperto
       ? '<button class="prep-btn ord-segna" data-ord-ok="' + id + '">Segna come ordinato</button>'
         + '<button class="prep-btn danger" data-ord-togli="' + id + '">Togli</button>'
-      : '<button class="prep-btn ghost" data-ord-annulla="' + id + '">Non è ancora ordinato</button>')
+      : '<button class="prep-btn ghost" data-ord-annulla="' + id + '">Rimetti tra le cose da ordinare</button>')
     + '</div></div>';
 }
 function renderOrdinare(){

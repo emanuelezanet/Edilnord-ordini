@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Edil Nord Magazzino">
@@ -20,7 +20,7 @@
     --bg-shell:#1C1F22; --bg-paper:#EDEAE2; --card:#FBF9F5;
     --accent:#E8A33D; --accent-dark:#C6822A; --stamp:#B23B3B; --success:#4C7A52; --info:#3E6A8A;
     --warn-bg:#FFF1D6; --bad-bg:#F8E4E1; --ok-bg:#E6EFE6;
-    --text:#26292B; --muted:#767A7C; --border:#DBD5C8;
+    --text:#26292B; --muted:#5E6266; --border:#DBD5C8;
     --font-display:'Archivo Black', sans-serif;
     --font-body:'Inter', system-ui, sans-serif;
     --font-mono:'IBM Plex Mono', monospace;
@@ -47,6 +47,18 @@
     .tab{flex:1;font-size:12px;padding:9px 4px;}
     .tab .long{display:none;} .tab .short{display:inline;}
     .tab{font-size:12.5px;padding:11px 2px;min-height:48px;}
+  }
+  /* Tablet e telefono: barra identica a index.html (non resta fissa, schede grandi) */
+  @media (max-width:700px), (pointer:coarse){
+    .topbar{position:static;}
+    .brand-logo{height:30px;}
+    .brand-sub{font-size:12px;letter-spacing:1px;}
+    .tab{font-size:15px;padding:13px 8px;min-height:50px;line-height:1.2;}
+    .badge{font-size:14px;padding:2px 8px;min-width:22px;}
+  }
+  @media(max-width:560px){
+    .tabs .tab{font-size:12.5px;padding:11px 2px;min-height:48px;}
+    .tabs .tab .badge{font-size:11px;padding:1px 5px;min-width:16px;}
   }
   .badge{background:var(--stamp);color:#fff;font-family:var(--font-mono);font-size:11px;font-weight:600;padding:1px 6px;border-radius:10px;min-width:16px;text-align:center;}
   .tab.active .badge{background:rgba(0,0,0,0.25);color:#fff;}
@@ -117,6 +129,7 @@
   .field label,.lbl{font-size:13px;font-weight:600;color:var(--muted);}
   .inp{width:100%;border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:#fff;color:var(--text);}
   .inp:focus{outline:none;border-color:var(--accent-dark);}
+  .inp.invalid,.inp.invalid:focus{border-color:var(--stamp);box-shadow:0 0 0 2px var(--stamp);}
   .edit-row{display:grid;grid-template-columns:1fr 150px auto auto auto;gap:6px;align-items:center;}
   .edit-row.two{grid-template-columns:1fr auto;}
   .edit-row.scad{grid-template-columns:1fr 120px 150px auto;}
@@ -177,10 +190,22 @@
   .cal .cal-name{text-align:left;font-weight:600;padding:6px 8px;position:sticky;left:0;background:var(--card);min-width:170px;max-width:220px;}
   .cal-cat th{text-align:left;font-family:var(--font-mono);font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);background:var(--bg-paper);padding:6px 8px;}
   .cal-cell{width:100%;min-width:56px;height:34px;border:1px solid transparent;border-radius:6px;background:transparent;font-family:var(--font-mono);font-weight:700;font-size:12.5px;color:var(--text);}
-  .c-part{background:rgba(232,163,61,.35) !important;} .c-full{background:var(--info) !important;color:#fff !important;}
+  .c-part{background:rgba(232,163,61,.6) !important;} .c-full{background:var(--info) !important;color:#fff !important;}
   .c-late{background:var(--stamp) !important;color:#fff !important;}
   .c-today{border-color:var(--accent) !important;} .c-today-h{color:var(--accent-dark) !important;}
   .c-sel{outline:3px solid var(--bg-shell);}
+  .cal-wd,.cal-dm{display:inline;}
+  /* Sul tablet le celle sono alte abbastanza per il dito */
+  @media (pointer:coarse){ .cal-cell{height:46px;} }
+  /* Telefono: tutta la settimana senza scorrere di lato */
+  @media (max-width:620px){
+    .cal{min-width:0;table-layout:fixed;font-size:12px;}
+    .cal .cal-name{min-width:0;width:28%;max-width:none;padding:6px 4px 6px 8px;font-size:12.5px;overflow-wrap:anywhere;}
+    .cal thead th{padding:6px 0;font-size:11px;white-space:normal;line-height:1.25;}
+    .cal-wd,.cal-dm{display:block;}
+    .cal th,.cal td{padding:2px 1px;}
+    .cal-cell{min-width:0;height:44px;font-size:11px;padding:0;}
+  }
   .nriga{display:grid;gap:4px;}
   .disp{font-size:14px;font-weight:600;min-height:18px;}
   .disp .ok{color:var(--success);} .disp .ko{color:var(--stamp);}
@@ -298,7 +323,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'v21.4';
+const VERSIONE = 'v21.5';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'carlo@edil-nord.com'];   // gestiscono tutto (attrezzi, manutenzioni, forzare)
@@ -640,6 +665,32 @@ document.querySelectorAll('[data-ext]').forEach(a => a.addEventListener('click',
   ev.preventDefault(); vaiA(a.getAttribute('href'));
 }));
 window.addEventListener('beforeunload', ev => { if(!uscitaConfermata && lavoroAperto()){ ev.preventDefault(); ev.returnValue = ''; } });
+
+// ---- Gesto/tasto Indietro di Android ----
+// Con un noleggio, un modulo o una scheda attrezzo aperti c'è una voce in più
+// nella cronologia: Indietro torna indietro di un passo invece di uscire
+// dalla pagina (con la solita domanda se c'è qualcosa di non salvato).
+let backIgnora = false;
+function sottoAperto(){ return !!(nolMode || openId); }
+function syncBack(){
+  const segnato = !!(history.state && history.state.sotto);
+  try{
+    if(sottoAperto() && !segnato) history.pushState({sotto: true}, '');
+    else if(!sottoAperto() && segnato){ backIgnora = true; history.back(); }
+  }catch(e){}
+}
+document.addEventListener('click', () => setTimeout(syncBack, 0), true);
+window.addEventListener('popstate', () => {
+  if(backIgnora){ backIgnora = false; return; }
+  if(!sottoAperto()) return;
+  if(!puoiUscire()){ try{ history.pushState({sotto: true}, ''); }catch(e){} return; }
+  if(nolMode && nolMode !== 'dettaglio' && nolMode !== 'nuovo' && nolId && !pendingEsce && findNol(nolId)) apriNol(nolId);
+  else if(nolMode) chiudiNol();
+  else if(editing && openId !== '__nuovo__'){ editing = false; draft = null; renderDetail(); }
+  else { editing = false; draft = null; openId = null; renderList(); }
+  window.scrollTo(0, 0);
+  syncBack();
+});
 
 // ---------------- Elenco ----------------
 $('search').addEventListener('input', () => renderList());
@@ -1281,6 +1332,11 @@ function lunedi(iso){
   const dow = (d.getUTCDay() + 6) % 7;
   return addGiorni(iso, -dow);
 }
+// Intestazione del giorno: "lun 03/11" (sul telefono su due righe); oggi c'è scritto OGGI
+function calTesta(g, oggi){
+  const t = giornoTxt(g).split(' ');
+  return '<span class="cal-wd">' + (g === oggi ? 'OGGI' : esc(t[0])) + '</span> <span class="cal-dm">' + esc(t.slice(1).join(' ')) + '</span>';
+}
 function renderCal(){
   const oggi = oggiISO();
   if(!calInizio) calInizio = lunedi(oggi);
@@ -1315,7 +1371,7 @@ function renderCal(){
     + '<button class="btn ghost" id="calNext" type="button">Settimana dopo ›</button></div>'
     + '<div class="cal-legend"><span><i class="c-part"></i> in parte occupato</span><span><i class="c-full"></i> tutto occupato</span><span><i class="c-late"></i> in ritardo</span></div>'
     + (att.length ? '<div class="cal-wrap"><table class="cal"><thead><tr><th></th>'
-      + giorni.map(g => '<th class="' + (g === oggi ? 'c-today-h' : '') + '">' + giornoTxt(g) + '</th>').join('') + '</tr></thead><tbody>' + righe + '</tbody></table></div>'
+      + giorni.map(g => '<th class="' + (g === oggi ? 'c-today-h' : '') + '">' + calTesta(g, oggi) + '</th>').join('') + '</tr></thead><tbody>' + righe + '</tbody></table></div>'
       : '<p class="muted">Nessun attrezzo attivo.</p>')
     + '<div id="calDett">' + dett + '</div>';
   $('calPrev').addEventListener('click', () => { calInizio = addGiorni(calInizio, -7); calSel = null; renderCal(); });
@@ -1379,7 +1435,7 @@ function disegnaNuovo(){
     + '</div>';
   disegnaRigheNuovo();
   $('nBack').addEventListener('click', chiudiNol);
-  $('nCli').addEventListener('input', e => F.cliente = e.target.value);
+  $('nCli').addEventListener('input', e => { F.cliente = e.target.value; segnaCampo('nCli', false); });
   $('nNote').addEventListener('input', e => F.note = e.target.value);
   const disegnaPriv = () => {
     const box = $('nPriv');
@@ -1397,7 +1453,7 @@ function disegnaNuovo(){
     disegnaPriv();
   }));
   $('nDal').addEventListener('change', e => { F.dal = e.target.value; if(F.al < F.dal){ F.al = F.dal; $('nAl').value = F.al; } F.forza = false; aggiornaDisp(); });
-  $('nAl').addEventListener('change', e => { F.al = e.target.value; F.forza = false; aggiornaDisp(); });
+  $('nAl').addEventListener('change', e => { F.al = e.target.value; F.forza = false; segnaCampo('nAl', false); aggiornaDisp(); });
   v.querySelectorAll('[data-pg]').forEach(b => b.addEventListener('click', () => { F.al = addGiorni(F.dal, +b.dataset.pg); $('nAl').value = F.al; F.forza = false; aggiornaDisp(); }));
   $('nAdd').addEventListener('click', () => { F.righe.push({attrezzoId: '', qty: 1}); disegnaRigheNuovo(); });
   $('nSave').addEventListener('click', salvaNuovo);
@@ -1431,12 +1487,19 @@ function aggiornaDisp(){
   });
   const b = $('nSave'); if(b && !F.forza){ b.textContent = F.esce ? 'Avanti: controlli di uscita' : 'Salva prenotazione'; b.classList.remove('force'); }
 }
+// Il campo da sistemare diventa rosso (il messaggio in basso poi sparisce, il bordo no)
+function segnaCampo(id, sbagliato){
+  const el = $(id); if(!el) return;
+  el.classList.toggle('invalid', sbagliato);
+  if(sbagliato) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid');
+}
 async function salvaNuovo(){
   if(serveNome()) return;
   const b = $('nSave');
   const cliente = F.cliente.trim();
-  if(!cliente){ toast('Scrivi il nome del cliente.', true); $('nCli').focus(); return; }
-  if(!F.dal || !F.al || F.al < F.dal){ toast('Controlla le date: il rientro non può essere prima del ritiro.', true); return; }
+  segnaCampo('nCli', false); segnaCampo('nAl', false);
+  if(!cliente){ segnaCampo('nCli', true); toast('Scrivi il nome del cliente.', true); $('nCli').focus(); return; }
+  if(!F.dal || !F.al || F.al < F.dal){ segnaCampo('nAl', true); toast('Controlla le date: il rientro non può essere prima del ritiro.', true); $('nAl').focus(); return; }
   const righe = F.righe.filter(r => r.attrezzoId);
   if(!righe.length){ toast('Scegli almeno un attrezzo.', true); return; }
   if(righe.some(r => !Number.isInteger(r.qty) || r.qty < 1)){ toast('Le quantità devono essere numeri interi da 1 in su.', true); return; }
