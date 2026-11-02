@@ -180,31 +180,34 @@
   .spill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px;white-space:nowrap;color:#fff;background:var(--muted);}
   .s-in_ritardo{background:var(--stamp);} .s-da_consegnare{background:var(--accent);color:#20221f;}
   .s-fuori{background:var(--info);} .s-prenotato{background:var(--bg-shell);} .s-chiuso{background:var(--success);}
-  .cal-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
-  .cal-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px;}
-  .cal-legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px;}
-  .cal-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--border);border-radius:10px;}
-  .cal{border-collapse:collapse;width:100%;min-width:640px;font-size:13px;}
-  .cal th,.cal td{border-bottom:1px solid var(--border);padding:3px;text-align:center;}
-  .cal thead th{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);padding:8px 3px;white-space:nowrap;}
-  .cal .cal-name{text-align:left;font-weight:600;padding:6px 8px;position:sticky;left:0;background:var(--card);min-width:170px;max-width:220px;}
-  .cal-cat th{text-align:left;font-family:var(--font-mono);font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);background:var(--bg-paper);padding:6px 8px;}
-  .cal-cell{width:100%;min-width:56px;height:34px;border:1px solid transparent;border-radius:6px;background:transparent;font-family:var(--font-mono);font-weight:700;font-size:12.5px;color:var(--text);}
-  .c-part{background:rgba(232,163,61,.6) !important;} .c-full{background:var(--info) !important;color:#fff !important;}
-  .c-late{background:var(--stamp) !important;color:#fff !important;}
-  .c-today{border-color:var(--accent) !important;} .c-today-h{color:var(--accent-dark) !important;}
-  .c-sel{outline:3px solid var(--bg-shell);}
-  .cal-wd,.cal-dm{display:inline;}
-  /* Sul tablet le celle sono alte abbastanza per il dito */
-  @media (pointer:coarse){ .cal-cell{height:46px;} }
-  /* Telefono: tutta la settimana senza scorrere di lato */
+  /* Calendario del mese: chi ritira, chi rientra, chi è fuori, chi è in ritardo */
+  .cm-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+  .cm-mese{font-family:var(--font-display);font-size:18px;min-width:180px;text-align:center;}
+  .cm-head .inp{width:auto;max-width:100%;margin-left:auto;}
+  .cm-legend{display:flex;gap:8px 14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px;align-items:center;}
+  .cm-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
+  .cm-wd{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);text-align:center;padding:4px 0;}
+  .cm-d{min-width:0;min-height:100px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px;display:flex;flex-direction:column;gap:3px;align-items:stretch;justify-content:flex-start;text-align:left;color:var(--text);}
+  .cm-d.altro{background:transparent;color:var(--muted);}
+  .cm-d.oggi{box-shadow:inset 0 0 0 2px var(--accent);}
+  .cm-d.sel{outline:3px solid var(--bg-shell);outline-offset:-1px;}
+  .cm-n{font-size:13px;font-weight:700;}
+  .cm-d.oggi .cm-n{color:var(--accent-dark);}
+  .cm-ch{font-size:12px;font-weight:600;border-radius:4px;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .e-ritira{background:var(--accent);color:#20221f;} .e-rientra{background:var(--success);color:#fff;}
+  .e-fuori{background:#DCE6EE;color:#23435a;} .e-ritardo{background:var(--stamp);color:#fff;}
+  .cm-piu{font-size:12px;font-weight:600;color:var(--muted);padding-left:3px;}
+  .cm-dots{display:none;gap:3px;flex-wrap:wrap;justify-content:center;}
+  .cm-dots i{display:block;width:9px;height:9px;border-radius:50%;}
+  .cm-dots i.e-fuori{background:var(--info);}
+  /* Telefono: nei giorni solo i puntini colorati, i nomi sono nell'elenco sotto */
   @media (max-width:620px){
-    .cal{min-width:0;table-layout:fixed;font-size:12px;}
-    .cal .cal-name{min-width:0;width:28%;max-width:none;padding:6px 4px 6px 8px;font-size:12.5px;overflow-wrap:anywhere;}
-    .cal thead th{padding:6px 0;font-size:11px;white-space:normal;line-height:1.25;}
-    .cal-wd,.cal-dm{display:block;}
-    .cal th,.cal td{padding:2px 1px;}
-    .cal-cell{min-width:0;height:44px;font-size:11px;padding:0;}
+    .cm-mese{min-width:0;flex:1;font-size:16px;}
+    .cm-head .inp{width:100%;margin-left:0;}
+    .cm-grid{gap:3px;}
+    .cm-d{min-height:52px;padding:4px 2px;align-items:center;}
+    .cm-d .cm-ch,.cm-piu{display:none;}
+    .cm-dots{display:flex;}
   }
   .nriga{display:grid;gap:4px;}
   .disp{font-size:14px;font-weight:600;min-height:18px;}
@@ -323,7 +326,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'v21.5';
+const VERSIONE = 'v21.6';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'carlo@edil-nord.com'];   // gestiscono tutto (attrezzi, manutenzioni, forzare)
@@ -1201,8 +1204,9 @@ let noleggi = [];
 let nolMode = null;      // null | 'dettaglio' | 'nuovo' | 'uscita' | 'rientro' | 'date'
 let nolId = null;
 let F = null;            // dati del modulo aperto
-let calInizio = null;    // lunedì della settimana mostrata
-let calSel = null;       // {attrezzoId, giorno}
+let calMese = null;      // primo giorno del mese mostrato (aaaa-mm-01)
+let calGiorno = null;    // giorno toccato: sotto c'è il suo elenco
+let calAtt = '';         // filtro: un attrezzo solo ('' = tutti)
 
 const STATI_TXT = {in_ritardo: 'In ritardo', da_consegnare: 'Da ritirare', fuori: 'Fuori', prenotato: 'Prenotato', chiuso: 'Rientrato', annullato: 'Annullato'};
 function pillStato(n){ const s = statoVisibile(n, oggiISO()); return '<span class="spill s-' + s + '">' + STATI_TXT[s] + '</span>'; }
@@ -1327,58 +1331,76 @@ let nolWarnTxt = '';
 function mostraNolWarn(){ const w = $('nolWarn'); if(!w) return; w.textContent = nolWarnTxt; w.hidden = !nolWarnTxt; }
 
 // ---------------- Calendario ----------------
+// Un calendario del mese: in ogni giorno chi ritira, chi rientra, chi è fuori
+// e chi è in ritardo. Toccando un giorno, sotto compare l'elenco dei noleggi.
 function lunedi(iso){
   const d = new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)));
   const dow = (d.getUTCDay() + 6) % 7;
   return addGiorni(iso, -dow);
 }
-// Intestazione del giorno: "lun 03/11" (sul telefono su due righe); oggi c'è scritto OGGI
-function calTesta(g, oggi){
-  const t = giornoTxt(g).split(' ');
-  return '<span class="cal-wd">' + (g === oggi ? 'OGGI' : esc(t[0])) + '</span> <span class="cal-dm">' + esc(t.slice(1).join(' ')) + '</span>';
+function primoDelMese(iso){ return iso.slice(0, 8) + '01'; }
+function meseDopo(iso, n){ return new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1 + n, 1)).toISOString().slice(0, 10); }
+function maiuscola(t){ return t.charAt(0).toUpperCase() + t.slice(1); }
+function meseTxt(iso){ return maiuscola(new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, 1)).toLocaleDateString('it-IT', {month: 'long', year: 'numeric', timeZone: 'UTC'})); }
+function giornoLungo(iso){ return maiuscola(new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10))).toLocaleDateString('it-IT', {weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC'})); }
+// Cosa fa un noleggio in un giorno: 'ritira' | 'rientra' | 'fuori' | 'ritardo' | null.
+// Ritiro e rientro sono quelli veri quando ci sono, altrimenti quelli previsti.
+function eventoGiorno(n, g, oggi){
+  if(n.stato === 'annullato' || !n.dal || !n.al) return null;
+  const ritiro = n.uscita && n.uscita.at ? giornoDi(n.uscita.at) : n.dal;
+  const rientro = n.stato === 'chiuso' && n.chiusoAt ? giornoDi(n.chiusoAt) : n.al;
+  if(g === ritiro) return 'ritira';
+  if(n.stato === 'fuori' && n.al < oggi && g >= n.al && g <= oggi) return 'ritardo';
+  if(g === rientro) return 'rientra';
+  if(g > ritiro && g < rientro) return 'fuori';
+  return null;
 }
+const CAL_ORDINE = ['ritardo', 'ritira', 'rientra', 'fuori'];
+const CAL_GRUPPO = {ritardo: 'In ritardo', ritira: 'Ritirano', rientra: 'Rientrano', fuori: 'Fuori'};
+const CAL_LEGENDA = [['ritira', 'Ritira'], ['rientra', 'Rientra'], ['fuori', 'Fuori'], ['ritardo', 'In ritardo']];
 function renderCal(){
   const oggi = oggiISO();
-  if(!calInizio) calInizio = lunedi(oggi);
-  const giorni = Array.from({length: 7}, (_, i) => addGiorni(calInizio, i));
-  const att = attrezzi.filter(a => a.attivo);
-  const cats = [...new Set(CATEGORIE.concat(att.map(a => a.categoria)))].filter(c => att.some(a => a.categoria === c));
-  let righe = '';
-  cats.forEach(c => {
-    righe += '<tr class="cal-cat"><th colspan="8">' + esc(c) + '</th></tr>';
-    att.filter(a => a.categoria === c).sort((x, y) => x.nome.localeCompare(y.nome, 'it')).forEach(a => {
-      righe += '<tr><th class="cal-name">' + esc(a.nome) + (a.quantita > 1 ? ' <span class="muted">×' + a.quantita + '</span>' : '') + '</th>';
-      giorni.forEach(g => {
-        const occ = occupatiGiorno(a.id, g, noleggi, oggi);
-        const ritardo = occ && noleggi.some(n => statoVisibile(n, oggi) === 'in_ritardo' && pezziInUso(n, a.id) && g >= n.al && g <= oggi);
-        const cls = !occ ? '' : ritardo ? 'c-late' : occ >= a.quantita ? 'c-full' : 'c-part';
-        const sel = calSel && calSel.attrezzoId === a.id && calSel.giorno === g ? ' c-sel' : '';
-        righe += '<td><button type="button" class="cal-cell ' + cls + sel + (g === oggi ? ' c-today' : '') + '" data-ca="' + esc(a.id) + '" data-cg="' + g + '" aria-label="' + esc(a.nome) + ' ' + giornoTxt(g) + '">'
-          + (occ ? (a.quantita > 1 ? occ + '/' + a.quantita : (ritardo ? '!' : '●')) : '') + '</button></td>';
-      });
-      righe += '</tr>';
-    });
-  });
-  let dett = '';
-  if(calSel){
-    const a = attrezzoById(calSel.attrezzoId);
-    const lista = noleggi.filter(n => { const p = periodoNoleggio(n, oggi); return p && calSel.giorno >= p[0] && calSel.giorno <= p[1] && pezziInUso(n, calSel.attrezzoId); });
-    dett = '<div class="cat-head">' + esc(a ? a.nome : '') + ' · ' + giornoTxt(calSel.giorno) + '</div>'
-      + (lista.length ? '<div class="nlist">' + lista.map(cardNol).join('') + '</div>' : '<p class="muted small">Libero in questo giorno.</p>');
+  if(!calMese) calMese = primoDelMese(oggi);
+  if(!calGiorno) calGiorno = oggi;
+  const lista = noleggi.filter(n => !calAtt || (n.righe || []).some(r => r.attrezzoId === calAtt));
+  const eventi = g => lista.map(n => ({n, e: eventoGiorno(n, g, oggi)})).filter(x => x.e)
+    .sort((x, y) => CAL_ORDINE.indexOf(x.e) - CAL_ORDINE.indexOf(y.e));
+  const fine = addGiorni(meseDopo(calMese, 1), -1);
+  let celle = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'].map(d => '<div class="cm-wd">' + d + '</div>').join('');
+  for(let g = lunedi(calMese), k = 0; g <= fine || k % 7; g = addGiorni(g, 1), k++){
+    const ev = eventi(g);
+    const cls = (g.slice(0, 7) !== calMese.slice(0, 7) ? ' altro' : '') + (g === oggi ? ' oggi' : '') + (g === calGiorno ? ' sel' : '');
+    celle += '<button type="button" class="cm-d' + cls + '" data-cg="' + g + '" aria-label="' + esc(giornoLungo(g)) + (ev.length ? ', ' + ev.length + (ev.length === 1 ? ' noleggio' : ' noleggi') : '') + '">'
+      + '<span class="cm-n">' + (+g.slice(8)) + '</span>'
+      + ev.slice(0, 3).map(x => '<span class="cm-ch e-' + x.e + '">' + esc(x.n.cliente || 'Cliente non indicato') + '</span>').join('')
+      + (ev.length > 3 ? '<span class="cm-piu">+' + (ev.length - 3) + ' altri</span>' : '')
+      + '<span class="cm-dots">' + CAL_ORDINE.filter(t => ev.some(x => x.e === t)).map(t => '<i class="e-' + t + '"></i>').join('') + '</span>'
+      + '</button>';
   }
-  $('tabCal').innerHTML = '<div class="cal-nav"><button class="btn ghost" id="calPrev" type="button">‹ Settimana prima</button>'
-    + '<button class="btn ghost" id="calOggi" type="button">Questa settimana</button>'
-    + '<button class="btn ghost" id="calNext" type="button">Settimana dopo ›</button></div>'
-    + '<div class="cal-legend"><span><i class="c-part"></i> in parte occupato</span><span><i class="c-full"></i> tutto occupato</span><span><i class="c-late"></i> in ritardo</span></div>'
-    + (att.length ? '<div class="cal-wrap"><table class="cal"><thead><tr><th></th>'
-      + giorni.map(g => '<th class="' + (g === oggi ? 'c-today-h' : '') + '">' + calTesta(g, oggi) + '</th>').join('') + '</tr></thead><tbody>' + righe + '</tbody></table></div>'
-      : '<p class="muted">Nessun attrezzo attivo.</p>')
+  const evSel = eventi(calGiorno);
+  const dett = '<div class="cat-head">' + esc(giornoLungo(calGiorno)) + (calGiorno === oggi ? ' · oggi' : '') + '</div>'
+    + (evSel.length ? CAL_ORDINE.filter(t => evSel.some(x => x.e === t)).map(t => {
+        const nn = evSel.filter(x => x.e === t).map(x => x.n);
+        return '<div class="cat-head">' + CAL_GRUPPO[t] + ' <span class="cnt">' + nn.length + '</span></div><div class="nlist">' + nn.map(cardNol).join('') + '</div>';
+      }).join('') : '<p class="muted small">Nessun ritiro, rientro o noleggio fuori in questo giorno.</p>');
+  const att = attrezzi.filter(a => a.attivo || a.id === calAtt).sort((x, y) => x.nome.localeCompare(y.nome, 'it'));
+  $('tabCal').innerHTML = '<div class="cm-head">'
+    + '<button class="btn ghost" id="calPrev" type="button" aria-label="Mese prima">‹</button>'
+    + '<span class="cm-mese">' + esc(meseTxt(calMese)) + '</span>'
+    + '<button class="btn ghost" id="calNext" type="button" aria-label="Mese dopo">›</button>'
+    + '<button class="btn ghost" id="calOggi" type="button">Oggi</button>'
+    + '<select class="inp" id="calAtt" aria-label="Attrezzo"><option value="">Tutti gli attrezzi</option>'
+    + att.map(a => '<option value="' + esc(a.id) + '"' + (a.id === calAtt ? ' selected' : '') + '>' + esc(a.nome) + '</option>').join('') + '</select></div>'
+    + '<div class="cm-legend">' + CAL_LEGENDA.map(l => '<span class="cm-ch e-' + l[0] + '">' + l[1] + '</span>').join('') + '</div>'
+    + '<div class="cm-grid">' + celle + '</div>'
     + '<div id="calDett">' + dett + '</div>';
-  $('calPrev').addEventListener('click', () => { calInizio = addGiorni(calInizio, -7); calSel = null; renderCal(); });
-  $('calNext').addEventListener('click', () => { calInizio = addGiorni(calInizio, 7); calSel = null; renderCal(); });
-  $('calOggi').addEventListener('click', () => { calInizio = lunedi(oggiISO()); calSel = null; renderCal(); });
-  $('tabCal').querySelectorAll('[data-ca]').forEach(b => b.addEventListener('click', () => {
-    calSel = {attrezzoId: b.dataset.ca, giorno: b.dataset.cg}; renderCal();
+  const vaiMese = m => { calMese = m; calGiorno = m === primoDelMese(oggi) ? oggi : m; renderCal(); };
+  $('calPrev').addEventListener('click', () => vaiMese(meseDopo(calMese, -1)));
+  $('calNext').addEventListener('click', () => vaiMese(meseDopo(calMese, 1)));
+  $('calOggi').addEventListener('click', () => vaiMese(primoDelMese(oggi)));
+  $('calAtt').addEventListener('change', e => { calAtt = e.target.value; renderCal(); });
+  $('tabCal').querySelectorAll('[data-cg]').forEach(b => b.addEventListener('click', () => {
+    calGiorno = b.dataset.cg; calMese = primoDelMese(calGiorno); renderCal();
     $('calDett').scrollIntoView({behavior: 'smooth', block: 'nearest'});
   }));
   wireCards($('calDett'));
