@@ -259,6 +259,15 @@
     margin:2px 2px 6px;
   }
   .qa-heading:not(:first-child){margin-top:14px;}
+  /* v21.7: due pulsanti, uno solo alla volta mostra la sua lista */
+  .qa-switch{display:flex;gap:8px;margin:2px 0 10px;}
+  .qa-tab{
+    flex:1;background:#fff;border:1.5px solid var(--border);color:var(--text);
+    border-radius:8px;padding:10px 8px;font-size:14px;font-weight:700;min-height:44px;cursor:pointer;
+  }
+  .qa-tab.active{background:var(--bg-shell);color:#fff;border-color:var(--bg-shell);}
+  .qa-empty{color:var(--muted);font-size:14px;padding:10px 4px;}
+  @media (max-width:700px), (pointer:coarse){ .qa-tab{font-size:16px;min-height:52px;border-radius:10px;} }
   .empty-hint,.no-results{
     color:var(--muted);
     font-size:13.5px;
@@ -1560,7 +1569,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = '21.6';
+const APP_VERSION = '21.7';
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -2024,20 +2033,34 @@ function computeTopOrdered(limit){
   }
   return [...counts.entries()].sort((a,b)=> b[1]-a[1]).slice(0, limit).map(e=>e[0]);
 }
+// v21.7: due pulsanti "Preferiti" e "Più richiesti"; si vede solo la lista del
+// pulsante premuto. La scelta è ricordata su ogni dispositivo (all'inizio: Più richiesti).
+const QA_KEY = 'edilnord_qa_lista';
+let qaLista = (()=>{ try{ return localStorage.getItem(QA_KEY) === 'preferiti' ? 'preferiti' : 'richiesti'; }catch(e){ return 'richiesti'; } })();
 function renderQuickAccess(){
   if(searchInput.value.trim()) return;
-  // lista comune: in ordine alfabetico, così è facile da scorrere
-  const favIdxs = FAVORITES.filter(idx => PRODUCTS[idx])
-    .sort((a, b) => PRODUCTS[a][0].localeCompare(PRODUCTS[b][0], 'it'));
-  const topIdxs = computeTopOrdered(10).filter(idx => !favIdxs.includes(idx));
-  let html = '';
-  if(favIdxs.length){
-    html += '<div class="qa-heading">\u2b50 Preferiti</div>' + favIdxs.map(productRowHtml).join('');
-  }
-  if(topIdxs.length){
-    html += '<div class="qa-heading">\ud83d\udd25 Pi\u00f9 richiesti</div>' + topIdxs.map(productRowHtml).join('');
+  let html = '<div class="qa-switch" role="tablist">'
+    + '<button type="button" class="qa-tab' + (qaLista === 'preferiti' ? ' active' : '') + '" data-qa="preferiti" role="tab" aria-selected="' + (qaLista === 'preferiti') + '">\u2b50 Preferiti</button>'
+    + '<button type="button" class="qa-tab' + (qaLista === 'richiesti' ? ' active' : '') + '" data-qa="richiesti" role="tab" aria-selected="' + (qaLista === 'richiesti') + '">\ud83d\udd25 Pi\u00f9 richiesti</button>'
+    + '</div>';
+  if(qaLista === 'preferiti'){
+    // lista comune: in ordine alfabetico, così è facile da scorrere
+    const favIdxs = FAVORITES.filter(idx => PRODUCTS[idx])
+      .sort((a, b) => PRODUCTS[a][0].localeCompare(PRODUCTS[b][0], 'it'));
+    html += favIdxs.length ? favIdxs.map(productRowHtml).join('')
+      : '<div class="qa-empty">Nessun preferito. Cerca un prodotto e tocca \u2606 per aggiungerlo.</div>';
+  } else {
+    // i 10 più richiesti, anche se sono già tra i preferiti (liste separate)
+    const topIdxs = computeTopOrdered(10);
+    html += topIdxs.length ? topIdxs.map(productRowHtml).join('')
+      : '<div class="qa-empty">Ancora nessun prodotto: la lista si riempie con i buoni inviati.</div>';
   }
   quickAccessEl.innerHTML = html;
+  quickAccessEl.querySelectorAll('[data-qa]').forEach(b => b.addEventListener('click', ()=>{
+    qaLista = b.dataset.qa;
+    try{ localStorage.setItem(QA_KEY, qaLista); }catch(e){}
+    renderQuickAccess();
+  }));
   wireProductRows(quickAccessEl);
 }
 
@@ -2468,31 +2491,74 @@ scrollToCartBtn.addEventListener('click', ()=>{
 
 // ---- Cliente obbligatorio / numero per la cassa ----
 // Se il magazziniere non sa il nome, genera un numero: lo dice al cliente,
-// che lo ripete in cassa. In ufficio il buono compare come "Cliente n. 4827".
-const NUM_RE = /^Cliente n\. (\d{4})$/;
+// che lo ripete in cassa. In ufficio il buono compare come "Cliente n. 12".
+// v21.7: numeri da 1 a 99, in fila dal mattino (1, 2, 3…), uguali per tutti i
+// dispositivi grazie al contatore comune contatori/numeri_cassa
+// (c = {giorno: 'AAAA-MM-GG', ultimo: N}). Ogni giorno riparte da 1; si saltano
+// i numeri dei buoni ancora In attesa (anche di ieri); dopo 99 riparte da 1.
+// Le vecchie "Cliente n. 4827" (4 cifre) restano riconosciute.
+const NUM_RE = /^Cliente n\. (\d{1,4})$/;
 function numeroCassa(text){ const m = NUM_RE.exec((text || '').trim()); return m ? m[1] : ''; }
-function generaNumero(){
-  const usati = new Set(ordersCache.filter(o => o.status === 'in_attesa').map(o => numeroCassa(o.customer)).filter(Boolean));
-  let n = '';
-  for(let k = 0; k < 50; k++){
-    n = String(1000 + Math.floor(Math.random() * 9000));
-    if(!usati.has(n)) break;
+function giornoDi(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function numeriDoc(){ return doc(fbDb, 'contatori', 'numeri_cassa'); }
+let NUMERI_COMUNI = true; // false = contatore comune non raggiungibile (regola mancante o niente rete)
+function numeriInAttesa(){
+  return new Set(ordersCache.filter(o => o.status === 'in_attesa').map(o => parseInt(numeroCassa(o.customer), 10)).filter(n => n >= 1 && n <= 99));
+}
+function prossimoNumero(ultimo, occupati){
+  for(let k = 1; k <= 99; k++){
+    const n = ((ultimo + k - 1) % 99) + 1;
+    if(!occupati.has(n)) return n;
   }
-  return n;
+  return 0; // tutti e 99 in attesa
+}
+async function generaNumero(){
+  const occupati = numeriInAttesa();
+  const oggi = giornoDi(new Date());
+  try{
+    let n = 0;
+    await withTimeout(runTransaction(fbDb, async (tx)=>{
+      const snap = await tx.get(numeriDoc());
+      const c = (snap.exists() && snap.data().c) || {};
+      const ultimo = (c.giorno === oggi && Number.isInteger(c.ultimo) && c.ultimo >= 0 && c.ultimo <= 99) ? c.ultimo : 0;
+      n = prossimoNumero(ultimo, occupati);
+      if(!n) throw new Error('pieno');
+      tx.set(numeriDoc(), {c: {giorno: oggi, ultimo: n}});
+    }), 8000);
+    NUMERI_COMUNI = true;
+    return String(n);
+  }catch(e){
+    if(e && e.message === 'pieno') NUMERI_COMUNI = true;
+    else NUMERI_COMUNI = false;
+    // Senza contatore comune: si continua dopo i numeri già visti oggi su questo dispositivo.
+    const oggiUsati = ordersCache.filter(o => o.createdAt && giornoDi(new Date(o.createdAt)) === oggi)
+      .map(o => parseInt(numeroCassa(o.customer), 10)).filter(n => n >= 1 && n <= 99);
+    oggiUsati.forEach(n => occupati.add(n));
+    const n = prossimoNumero(oggiUsati.length ? Math.max(...oggiUsati) : 0, occupati);
+    return String(n || (100 + Math.floor(Math.random() * 900)));
+  }
 }
 const customerInput = document.getElementById('customerInput');
 const genNumHint = document.getElementById('genNumHint');
 function syncGenHint(){
   const n = numeroCassa(customerInput.value);
   genNumHint.classList.toggle('hidden', !n);
-  if(n) genNumHint.innerHTML = 'Di\' al cliente il numero <b>' + n + '</b>: lo ripete in cassa.';
+  if(n) genNumHint.innerHTML = 'Di\' al cliente il numero <b>' + n + '</b>: lo ripete in cassa.'
+    + (NUMERI_COMUNI ? '' : '<br><small>Contatore comune non attivo (manca la regola in Firebase o la rete): numero scelto da questo dispositivo.</small>');
   customerInput.classList.remove('missing');
 }
 customerInput.addEventListener('input', syncGenHint);
-document.getElementById('genNumBtn').addEventListener('click', ()=>{
-  customerInput.value = 'Cliente n. ' + generaNumero();
-  syncGenHint();
-  saveDraft();
+const genNumBtn = document.getElementById('genNumBtn');
+genNumBtn.addEventListener('click', async ()=>{
+  if(genNumBtn.disabled) return;
+  genNumBtn.disabled = true;
+  try{
+    customerInput.value = 'Cliente n. ' + await generaNumero();
+    syncGenHint();
+    saveDraft();
+  } finally {
+    genNumBtn.disabled = false;
+  }
 });
 
 // ---- v19: privato / impresa (facoltativo) ----
