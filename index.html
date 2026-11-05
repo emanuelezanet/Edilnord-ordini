@@ -1569,7 +1569,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = '21.7';
+const APP_VERSION = '21.8.1';
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -1988,6 +1988,8 @@ function toggleFavorite(idx){
 function rebuildNickNorm(){
   NICK_NORM = {};
   for(const k in NICKNAMES){ NICK_NORM[k] = normalize(NICKNAMES[k]); }
+  CERCA_NICK = {};
+  for(const k in NICKNAMES){ CERCA_NICK[k] = cercaParole(NICKNAMES[k]).filter(w => !CERCA_VUOTE[w]); }
 }
 function setNickname(idx, text){
   // Same reasoning as toggleFavorite: never mutate NICKNAMES in place, since
@@ -2065,41 +2067,137 @@ function renderQuickAccess(){
 }
 
 // Ricerca nel catalogo (usata dal Nuovo buono e, dalla v21, da "Da ordinare").
-// q = testo già normalizzato. Restituisce gli indici dei prodotti, i più pertinenti prima.
+// v21.8: ricerca "tollerante". I nomi del catalogo sono scritti in tanti modi
+// (D 100 / D.100 / D100, CORR / CORRU. / CORRUG, 3 ML / ML 3 / 3MT, plurali...):
+// nome e testo cercato vengono spezzati nelle stesse parole, poi si accettano
+// abbreviazioni, plurali e alcuni sinonimi. Ordine: prima i più pertinenti,
+// a parità quelli caricati più spesso; in fondo i 110 quando si cerca 100 (e viceversa).
+const CERCA_UNITA = {ml:'m', mt:'m', mtl:'m', mtr:'m', m:'m', metri:'m', metro:'m'};
+const CERCA_VUOTE = {d:1, diam:1, dia:1, o:1, x:1, a:1, da:1, per:1, in:1, c:1, con:1, di:1};
+// parola come è scritta nel catalogo -> parole che si dicono in magazzino
+const CERCA_SINONIMI = {
+  corr:'corrugato', corru:'corrugato', corrug:'corrugato',
+  eletr:'elettrico', elett:'elettrico', elettr:'elettrico',
+  cem:'cemento', innoc:'innocenti', innocente:'innocenti', refratt:'refrattario',
+  riduz:'riduzione aumento', riduzione:'aumento', aum:'aumento riduzione', aumento:'riduzione',
+  deriv:'derivazione braga', raccord:'raccordo', fless:'flessibile', drenaggio:'drenante',
+  fox:'arancio', pluviale:'discesa grondaia', gomito:'curva', manicotto:'giunto',
+  strati:'doppia parete', strat:'doppia parete', grig:'grigio', isp:'ispezione',
+};
+// sinonimi che valgono solo per una famiglia di prodotti (sul nome intero)
+const CERCA_FAMIGLIE = [
+  [/^inox /, 'canna fumaria'],
+  [/^landini /, 'canna fumaria'],
+  [/^tubi' /, 'stufa'],
+  [/raccordo a [tv]\b|deriv|"[tv]"|\bbraga\b/, 'braga derivazione raccordo'],
+];
+// diametri che si confondono: compaiono, ma in fondo alla lista
+const CERCA_SIMILI = {'100':'110', '110':'100'};
+function cercaParole(s){
+  const t = normalize(String(s || ''))
+    .replace(/(\d),(\d)/g, '$1.$2')                                  // 0,25 -> 0.25
+    .replace(/[ø°'’`"]/g, ' ')
+    .replace(/(\d)\.(?!\d)/g, '$1 ').replace(/(^|[^\d])\./g, '$1 ')  // il punto resta solo nei decimali
+    .replace(/([a-z])(\d)/g, '$1 $2').replace(/(\d)([a-z])/g, '$1 $2'); // d100 -> d 100, 3m -> 3 m
+  const out = [];
+  for(let w of t.split(/[^a-z0-9.]+/)){
+    if(!w) continue;
+    out.push(CERCA_UNITA[w] || w);
+  }
+  return out;
+}
+function cercaPrepara(nome){
+  const tutte = cercaParole(nome);
+  const base = tutte.filter(w => !CERCA_VUOTE[w]);
+  const extra = [], n = normalize(String(nome || ''));
+  for(const [re, ws] of CERCA_FAMIGLIE){ if(re.test(n)) extra.push(...ws.split(' ')); }
+  for(const w of base){ if(CERCA_SINONIMI[w]) extra.push(...CERCA_SINONIMI[w].split(' ')); }
+  const diam = new Set(); // il numero subito dopo "D", "D.", "DIAM." è un diametro
+  const lung = new Set(); // il numero vicino a "ML", "MT", "M" è una lunghezza
+  for(let k = 0; k < tutte.length; k++){
+    if(!/^\d/.test(tutte[k])) continue;
+    if(k > 0 && /^(d|diam|dia)$/.test(tutte[k-1])) diam.add(tutte[k]);
+    else if(tutte[k-1] === 'm' || tutte[k+1] === 'm') lung.add(tutte[k]);
+  }
+  return {base, extra, diam, lung};
+}
+let CERCA_IDX = null;          // preparato alla prima ricerca
+let CERCA_NICK = {};           // idx(string) -> parole del soprannome
+function cercaIndice(){
+  if(!CERCA_IDX) CERCA_IDX = PRODUCTS.map(p => cercaPrepara(p[0]));
+  return CERCA_IDX;
+}
+function cercaRadice(w){ return (w.length >= 4 && /^[a-z]+$/.test(w)) ? w.replace(/[aeiou]$/, '') : w; }
+// punti di una parola cercata contro le parole di un prodotto (0 = non c'è)
+function cercaPunti(q, r, isNum, words){
+  let best = 0;
+  for(const t of words){
+    let s = 0;
+    if(t === q) s = 4;
+    else if(q.length === 1 && !isNum){ if(t.indexOf(q) === 0) s = 1; }        // "v", "t": niente lettere in mezzo alle parole
+    else if(isNum){ if(t.indexOf(q) !== -1) s = 1; }                          // "10" dentro "110", come prima
+    else if(t.indexOf(q) === 0) s = 2;                                         // inizio parola
+    else if(r !== q && t.indexOf(r) === 0 && t.length - r.length <= 1) s = 2;  // tubi -> tubo, curve -> curva
+    else if(t.length >= 3 && /^[a-z]+$/.test(t) && q.indexOf(t) === 0) s = 3;  // abbreviazione: "cem." = cemento
+    else if(t.indexOf(q) > 0) s = 1;                                           // in mezzo: fibrocemento
+    if(s > best){ best = s; if(s === 4) break; }
+  }
+  return best;
+}
+// quante volte ogni prodotto è stato caricato (buoni nell'app + eliminati)
+let cercaContiCache = {o: null, t: null, m: null};
+function cercaConti(){
+  if(cercaContiCache.o === ordersCache && cercaContiCache.t === TOP_ELIMINATI) return cercaContiCache.m;
+  const m = new Map();
+  for(const o of ordersCache){
+    for(const it of (o.items || [])){
+      if(it.manual || it.reso) continue;
+      const idx = PRODUCTS_BY_DESC.get(it.desc);
+      if(idx !== undefined) m.set(idx, (m.get(idx) || 0) + 1);
+    }
+  }
+  for(const desc in TOP_ELIMINATI){
+    const idx = PRODUCTS_BY_DESC.get(desc), n = TOP_ELIMINATI[desc];
+    if(idx !== undefined && typeof n === 'number' && n > 0) m.set(idx, (m.get(idx) || 0) + n);
+  }
+  cercaContiCache = {o: ordersCache, t: TOP_ELIMINATI, m};
+  return m;
+}
 function cercaProdotti(q){
-  const words = q.split(/\s+/).filter(Boolean);
-  // Pertinenza: prima i prodotti dove la parola cercata è una parola intera
-  // ("tubo 40" → "TUBO D 40" prima di "TUBO D 140"), poi quelli dove una
-  // parola INIZIA così ("cemento" → "CEMENTO BIANCO" prima di "FIBROCEMENTO"),
-  // in fondo quelli dove la si trova solo in mezzo a una parola.
-  // Il soprannome conta più della descrizione.
-  const pats = words.map(w => {
-    const e = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return { w, whole: new RegExp('(^|[^a-z0-9])' + e + '([^a-z0-9]|$)'), start: new RegExp('(^|[^a-z0-9])' + e) };
-  });
-  const wordScore = (text, p)=>{
-    if(!text || text.indexOf(p.w) === -1) return 0;
-    if(p.whole.test(text)) return 4;
-    if(p.start.test(text)) return 2;
-    return 1;
-  };
-  const matches = [];
-  const score = new Map();
-  for(let i=0;i<PRODUCTS.length;i++){
-    const nd = PRODUCTS[i][3];
-    const nickNd = NICK_NORM[String(i)] || '';
-    let ok = true, s = 0;
-    for(const p of pats){
-      if(nd.indexOf(p.w) === -1 && nickNd.indexOf(p.w) === -1){ ok = false; break; }
-      const sn = wordScore(nickNd, p);
-      s += Math.max(wordScore(nd, p), sn ? sn + 1 : 0);
+  const words = cercaParole(q).filter(w => !CERCA_VUOTE[w]);
+  if(!words.length) return [];
+  const IDX = cercaIndice();
+  const qs = words.map(w => ({q: w, r: cercaRadice(w), num: /^\d/.test(w), sim: CERCA_SIMILI[w]}));
+  const metri = words.indexOf('m') !== -1;   // chi scrive "3 m" / "3 metri" cerca proprio la lunghezza
+  // parole scritte "attaccate" (6x30, d100, 3m): se il nome le contiene tali e quali, conta di più
+  const grezze = normalize(String(q)).split(/\s+/).filter(g => g.length >= 2 && words.indexOf(g) === -1);
+  const matches = [], info = new Map();
+  for(let i = 0; i < PRODUCTS.length; i++){
+    const P = IDX[i], N = CERCA_NICK[String(i)];
+    let s = 0, ok = true, simile = 0;
+    for(const x of qs){
+      let p = cercaPunti(x.q, x.r, x.num, P.base);
+      if(!p && P.extra.length) p = Math.min(3, cercaPunti(x.q, x.r, x.num, P.extra));
+      if(N){ const pn = cercaPunti(x.q, x.r, x.num, N); if(pn) p = Math.max(p, pn + 1); }
+      if(!p && x.sim && P.base.indexOf(x.sim) !== -1){ p = 1; simile = 1; }
+      if(!p){ ok = false; break; }
+      if(x.num && P.diam.has(x.q)) p += 1;
+      else if(x.num && !metri && P.lung.has(x.q) && p === 4) p = 2; // "tubo 100" non vuol dire "ML100"
+      s += p;
     }
     if(!ok) continue;
-    if(nd.indexOf(words[0]) === 0) s += 1; // la descrizione comincia con la prima parola cercata
+    const nd = PRODUCTS[i][3];
+    for(const g of grezze){ if(nd.indexOf(g) !== -1) s += 2; }   // il testo scritto c'è tale e quale
+    const primo = (P.base[0] && cercaPunti(qs[0].q, qs[0].r, qs[0].num, [P.base[0]])) ? 1 : 0;
     matches.push(i);
-    score.set(i, s);
+    info.set(i, {s, simile, primo});
   }
-  matches.sort((a, b)=> (score.get(b) - score.get(a)) || (PRODUCTS[a][0].length - PRODUCTS[b][0].length) || (a - b));
+  const conti = cercaConti();
+  matches.sort((a, b) => {
+    const A = info.get(a), B = info.get(b);
+    return (A.simile - B.simile) || (B.s - A.s) || ((conti.get(b) || 0) - (conti.get(a) || 0))
+      || (B.primo - A.primo) || (PRODUCTS[a][0].length - PRODUCTS[b][0].length) || (a - b);
+  });
   return matches;
 }
 function renderResults(query){
