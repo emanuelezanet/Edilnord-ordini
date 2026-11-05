@@ -1569,7 +1569,7 @@ async function loadFavorites(){
 }
 // Numero di versione dell'app (si vede in alto a destra, nella barra col nome):
 // serve a controllare che un telefono non stia ancora usando una copia vecchia.
-const APP_VERSION = '21.8.1';
+const APP_VERSION = '21.8.2';
 
 // Avviso in alto quando preferiti/soprannomi NON sono condivisi con i colleghi
 // (di solito perché le regole di Firebase non sono ancora state aggiornate),
@@ -2128,8 +2128,36 @@ function cercaIndice(){
   return CERCA_IDX;
 }
 function cercaRadice(w){ return (w.length >= 4 && /^[a-z]+$/.test(w)) ? w.replace(/[aeiou]$/, '') : w; }
+// v21.8.2: errori di battitura. Distanza tra due parole (lettere cambiate,
+// mancanti, in più o scambiate); si ferma appena supera "max".
+function cercaDistanza(a, b, max){
+  if(Math.abs(a.length - b.length) > max) return max + 1;
+  let p2 = null, p = [], c;
+  for(let j = 0; j <= b.length; j++) p[j] = j;
+  for(let i = 1; i <= a.length; i++){
+    c = [i]; let low = i;
+    for(let j = 1; j <= b.length; j++){
+      const costo = a[i-1] === b[j-1] ? 0 : 1;
+      let v = Math.min(p[j] + 1, c[j-1] + 1, p[j-1] + costo);
+      if(p2 && i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1]) v = Math.min(v, p2[j-2] + 1);
+      c[j] = v; if(v < low) low = v;
+    }
+    if(low > max) return max + 1;
+    p2 = p; p = c;
+  }
+  return p[b.length];
+}
+// la parola cercata è "quasi" questa parola del catalogo? (poristrolo ~ polistirolo)
+function cercaQuasi(q, t){
+  if(q.length < 4 || t.length < 3 || q[0] !== t[0] || !/^[a-z]+$/.test(q) || !/^[a-z]+$/.test(t)) return 0;
+  const tol = q.length >= 8 ? 2 : 1;
+  if(cercaDistanza(q, t, tol) <= tol) return 3;                                                       // parola intera
+  if(t.length > q.length && cercaDistanza(q, t.slice(0, q.length), tol) <= tol) return 1;            // parola scritta a metà
+  if(t.length >= 4 && t.length < q.length && cercaDistanza(q.slice(0, t.length), t, 1) <= 1) return 1; // abbreviazione: POLIST
+  return 0;
+}
 // punti di una parola cercata contro le parole di un prodotto (0 = non c'è)
-function cercaPunti(q, r, isNum, words){
+function cercaPunti(q, r, isNum, words, quasi){
   let best = 0;
   for(const t of words){
     let s = 0;
@@ -2140,6 +2168,7 @@ function cercaPunti(q, r, isNum, words){
     else if(r !== q && t.indexOf(r) === 0 && t.length - r.length <= 1) s = 2;  // tubi -> tubo, curve -> curva
     else if(t.length >= 3 && /^[a-z]+$/.test(t) && q.indexOf(t) === 0) s = 3;  // abbreviazione: "cem." = cemento
     else if(t.indexOf(q) > 0) s = 1;                                           // in mezzo: fibrocemento
+    if(!s && quasi && !isNum) s = cercaQuasi(q, t);
     if(s > best){ best = s; if(s === 4) break; }
   }
   return best;
@@ -2163,7 +2192,11 @@ function cercaConti(){
   cercaContiCache = {o: ordersCache, t: TOP_ELIMINATI, m};
   return m;
 }
-function cercaProdotti(q){
+// Se non trova niente, riprova accettando gli errori di battitura:
+// CERCA_QUASI dice alla lista di scrivere "forse cercavi".
+let CERCA_QUASI = false;
+function cercaProdotti(q, quasi){
+  if(!quasi) CERCA_QUASI = false;
   const words = cercaParole(q).filter(w => !CERCA_VUOTE[w]);
   if(!words.length) return [];
   const IDX = cercaIndice();
@@ -2172,15 +2205,17 @@ function cercaProdotti(q){
   // parole scritte "attaccate" (6x30, d100, 3m): se il nome le contiene tali e quali, conta di più
   const grezze = normalize(String(q)).split(/\s+/).filter(g => g.length >= 2 && words.indexOf(g) === -1);
   const matches = [], info = new Map();
+  const migliore = qs.map(() => 0);   // per ogni parola cercata, il punteggio migliore trovato
   for(let i = 0; i < PRODUCTS.length; i++){
     const P = IDX[i], N = CERCA_NICK[String(i)];
     let s = 0, ok = true, simile = 0;
     for(const x of qs){
-      let p = cercaPunti(x.q, x.r, x.num, P.base);
-      if(!p && P.extra.length) p = Math.min(3, cercaPunti(x.q, x.r, x.num, P.extra));
-      if(N){ const pn = cercaPunti(x.q, x.r, x.num, N); if(pn) p = Math.max(p, pn + 1); }
+      let p = cercaPunti(x.q, x.r, x.num, P.base, quasi);
+      if(!p && P.extra.length) p = Math.min(3, cercaPunti(x.q, x.r, x.num, P.extra, quasi));
+      if(N){ const pn = cercaPunti(x.q, x.r, x.num, N, quasi); if(pn) p = Math.max(p, pn + 1); }
       if(!p && x.sim && P.base.indexOf(x.sim) !== -1){ p = 1; simile = 1; }
       if(!p){ ok = false; break; }
+      if(p > migliore[qs.indexOf(x)]) migliore[qs.indexOf(x)] = p;
       if(x.num && P.diam.has(x.q)) p += 1;
       else if(x.num && !metri && P.lung.has(x.q) && p === 4) p = 2; // "tubo 100" non vuol dire "ML100"
       s += p;
@@ -2191,6 +2226,14 @@ function cercaProdotti(q){
     const primo = (P.base[0] && cercaPunti(qs[0].q, qs[0].r, qs[0].num, [P.base[0]])) ? 1 : 0;
     matches.push(i);
     info.set(i, {s, simile, primo});
+  }
+  // nessun risultato, oppure una parola trovata solo "di sbieco" (abbreviazione o
+  // pezzo di parola: "cememto" -> CEM., "manicoto" -> MANICO): si riprova
+  // accettando gli errori di battitura. I risultati di prima restano tutti.
+  if(!quasi && qs.some((x, k) => !x.num && x.q.length >= 4 && (migliore[k] < 2 || migliore[k] === 3))){
+    const forse = cercaProdotti(q, true);
+    CERCA_QUASI = !matches.length && forse.length > 0;
+    if(forse.length > matches.length) return forse;
   }
   const conti = cercaConti();
   matches.sort((a, b) => {
@@ -2229,9 +2272,9 @@ function renderResults(query){
   const MAX_SHOWN = 50;
   const shownFav = favMatches.slice(0, MAX_SHOWN);
   const shownOther = otherMatches.slice(0, Math.max(0, MAX_SHOWN - shownFav.length));
-  searchHint.textContent = matches.length > MAX_SHOWN
+  searchHint.textContent = (CERCA_QUASI ? 'Niente scritto così: forse cercavi… · ' : '') + (matches.length > MAX_SHOWN
     ? 'Primi ' + MAX_SHOWN + ' di ' + matches.length + ' risultati — affina la ricerca per restringere.'
-    : matches.length + ' risultati.';
+    : matches.length + ' risultati.');
   let html = '';
   if(shownFav.length && shownOther.length) html += '<div class="qa-heading">⭐ Preferiti</div>';
   html += shownFav.map(productRowHtml).join('');
