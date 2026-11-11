@@ -326,7 +326,7 @@ const fbApp = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb = getFirestore(fbApp);
 
-const VERSIONE = 'v21.8.2';
+const VERSIONE = 'v21.8.3';
 // Chi può modificare schede, scadenze e manutenzioni. Le regole di Firebase
 // usano la STESSA lista: qui serve solo a mostrare o nascondere i pulsanti.
 const UFFICIO = ['emanuele.zanet@gmail.com', 'marco@edil-nord.com', 'carlo@edil-nord.com'];   // gestiscono tutto (attrezzi, manutenzioni, forzare)
@@ -467,7 +467,8 @@ function nomeDaEmail(e){ const n = String(e || '').split('@')[0].split(/[._\-+0-
 function erroreFirebase(e){
   const c = e && (e.code || e.message) || '';
   if(c.indexOf('permission') !== -1) return 'Firebase ha rifiutato: mancano le regole per i noleggi, oppure il tuo account non è "ufficio".';
-  return 'Non salvato: controlla la connessione e riprova.';
+  // v21.8.3: il codice dell'errore resta scritto, così si capisce cosa è successo
+  return 'Non salvato: controlla la connessione e riprova.' + (c ? ' (' + String(c).slice(0, 60) + ')' : '');
 }
 
 // ---------------- Accesso ----------------
@@ -1241,8 +1242,27 @@ async function txNoleggio(id, mutate){
       tx.update(ref, Object.assign(patch, {aggiornatoAt: new Date().toISOString()}));
     });
     return '';
-  }catch(e){ return (e && (e.code || e.message)) || 'errore'; }
+  }catch(e){
+    const c = (e && (e.code || e.message)) || 'errore';
+    if(NOL_ERR_NOTI.includes(c) || String(c).indexOf('permission') !== -1) return c;
+    // v21.8.3: su qualche telefono la "transazione" di Firebase non va a buon fine
+    // anche con la rete funzionante (annullamento impossibile il 11/11).
+    // Si riprova con lettura + scrittura normali, con gli stessi controlli.
+    try{
+      const ref = doc(fbDb, 'noleggi', id);
+      const snap = await getDoc(ref);
+      if(!snap.exists()) return 'sparito';
+      const raw = snap.data();
+      const patch = mutate(raw, normNoleggio(id, raw));
+      await updateDoc(ref, Object.assign(patch, {aggiornatoAt: new Date().toISOString()}));
+      return '';
+    }catch(e2){
+      const c2 = (e2 && (e2.code || e2.message)) || 'errore';
+      return NOL_ERR_NOTI.includes(c2) ? c2 : (c2 + ' · ' + c);
+    }
+  }
 }
+const NOL_ERR_NOTI = ['gia_uscito', 'gia_chiuso', 'annullato', 'sparito', 'non_fuori'];
 // Le ore del contaore scritte in uscita/rientro aggiornano l'attrezzo (solo se più alte)
 function aggiornaOre(voci, quando){
   voci.forEach(v => {
